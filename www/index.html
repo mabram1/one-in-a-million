@@ -324,7 +324,7 @@
       // while shaking, the shake blurs the tilt reading and it's hard to aim → hold straight;
       // steer only when you hold the phone steady (not mid-stroke).
       const shaking = (now() - G._lastStroke) < STEER_LOCK_MS;
-      G.steerTarget = shaking ? 0 : Math.max(-1, Math.min(1, -(G.motion.lp - G.motion.base) * TILT_GAIN));
+      G.steerTarget = (shaking || G.sprint) ? 0 : Math.max(-1, Math.min(1, -(G.motion.lp - G.motion.base) * TILT_GAIN));
     }
     let mag; const a = e.acceleration;
     if (a && a.x != null){ mag = Math.hypot(a.x,a.y,a.z); }
@@ -527,9 +527,11 @@
     if (G.speed > G.topSpeed) G.topSpeed = G.speed;
 
     // steering — authority scales with speed (no speed, no turning)
+    if (G.sprint) G.steerTarget = 0;   // final sprint: steering off — pure straight hammer to the egg
     G.steer += (G.steerTarget - G.steer)*Math.min(1, dt*14);
     const auth = Math.min(1, G.speed/STEER_FLOOR);
     G.xNorm += G.steer*STEER_SENS*auth*dt;
+    if (G.sprint) G.xNorm += (0 - G.xNorm)*Math.min(1, dt*1.6);  // glide to center, lined up with the egg
     if (G.xNorm > 1 || G.xNorm < -1){
       G.xNorm = Math.max(-1, Math.min(1, G.xNorm));
       if (!G._wall){ softWallBump(); G._wall = true; }   // one knock on contact
