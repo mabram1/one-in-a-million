@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>One in a Million</title>
+<meta name="theme-color" content="#0d0305">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="One in a Million">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>html,body{margin:0;background:#0d0305;}</style>
+</head>
+<body>
+<style>
+  :root{
+    --void:#0d0305;
+    --bg1:#210710; --bg2:#42101f;
+    --membrane:#7c1836; --membrane-dk:#4a0d1f;
+    --flesh:#d1607c;
+    --pale:#f8ecdb; --pale-dim:#d9c6b2;
+    --energy:#43e0cf; --energy-dim:#1e6f68; --energy-deep:#0c2f2c;
+    --go:#7cff9f; --go-deep:#0f3d22;
+    --warm:#ffce97; --gold:#ffd24d;
+    --danger:#ff6a5c;
+    --text:#ffe6dc; --muted:#c6959e;
+    --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-display: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; margin:0; }
+  body{
+    background:radial-gradient(120% 80% at 50% 0%, #1b0509 0%, var(--void) 60%);
+    color:var(--text); font-family:var(--font-ui);
+    -webkit-user-select:none; user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    overflow:hidden; touch-action:none;
+  }
+  .wrap{ height:100dvh; width:100%; display:flex; align-items:center; justify-content:center; }
+  .stage{
+    position:relative; width:100%; height:100dvh; max-width:480px;
+    background:var(--void); overflow:hidden;
+    box-shadow:0 0 0 1px rgba(255,120,140,.10), 0 30px 80px -20px #000;
+  }
+  @media (min-width:520px){ .stage{ height:min(100dvh, 860px); border-radius:26px; } }
+  canvas{ display:block; width:100%; height:100%; }
+
+  /* HUD */
+  .hud{ position:absolute; inset:0; pointer-events:none; display:flex; flex-direction:column; justify-content:space-between; padding:14px; }
+  .hud.hidden{ display:none; }
+  .hud-top{ display:flex; align-items:flex-start; gap:10px; }
+  .stat{ background:rgba(20,4,8,.55); backdrop-filter:blur(6px); border:1px solid rgba(255,150,165,.14); border-radius:12px; padding:7px 11px; line-height:1; }
+  .stat .k{ font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); display:block; margin-bottom:5px; }
+  .stat .v{ font-size:19px; font-weight:800; font-variant-numeric:tabular-nums; color:var(--text); }
+  .stat .v small{ font-size:11px; font-weight:700; color:var(--muted); }
+  .hud-top .spacer{ flex:1; }
+  .iconbtn{ pointer-events:auto; background:rgba(20,4,8,.55); backdrop-filter:blur(6px); border:1px solid rgba(255,150,165,.14); color:var(--text); border-radius:12px; width:40px; height:40px; font-size:16px; display:grid; place-items:center; cursor:pointer; }
+  .iconbtn:active{ transform:scale(.94); }
+
+  .race{ position:absolute; top:70px; right:16px; bottom:150px; width:8px; border-radius:6px; background:linear-gradient(var(--energy-deep), rgba(20,4,8,.5)); border:1px solid rgba(255,150,165,.14); }
+  .race.hidden{ display:none; }
+  .race .egg-cap{ position:absolute; top:-9px; left:50%; transform:translateX(-50%); font-size:15px; }
+  .race .sprint-mark{ position:absolute; left:-4px; right:-4px; height:0; border-top:2px dashed var(--gold); }
+  .marker{ position:absolute; left:50%; width:16px; height:16px; border-radius:50%; transform:translate(-50%,50%); box-shadow:0 0 10px currentColor; }
+  .marker.you{ background:var(--energy); color:var(--energy); }
+  .marker.rival{ background:var(--danger); color:var(--danger); width:12px;height:12px; opacity:.9; }
+
+  .hud-bottom{ display:flex; flex-direction:column; gap:12px; }
+  .thrust-wrap{ display:flex; align-items:center; gap:10px; }
+  .thrust-label{ font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); writing-mode:vertical-rl; transform:rotate(180deg); align-self:stretch; display:flex; align-items:center; min-width:12px; }
+  .thrust-bar{ position:relative; flex:1; height:18px; border-radius:10px; background:rgba(20,4,8,.6); border:1px solid rgba(255,150,165,.14); overflow:hidden; }
+  .thrust-fill{ position:absolute; inset:0; width:0%; background:linear-gradient(90deg, var(--energy-dim), var(--energy)); border-radius:10px; transition:width .05s linear; }
+  .gozone{ position:absolute; top:0; bottom:0; left:78.5%; width:10.7%; background:repeating-linear-gradient(45deg, rgba(124,255,159,.28) 0 6px, rgba(124,255,159,.12) 6px 12px); border-left:2px solid var(--go); border-right:2px solid var(--go); display:none; }
+  .thrust-bar.charging .gozone{ display:block; }
+  .thrust-bar.boost .thrust-fill{ box-shadow:0 0 18px var(--energy); filter:saturate(1.3) brightness(1.15); }
+  .thrust-bar.inzone .thrust-fill{ background:linear-gradient(90deg, var(--go-deep), var(--go)); box-shadow:0 0 20px var(--go); }
+  .boost-tag{ align-self:center; font-size:10px; letter-spacing:.18em; text-transform:uppercase; font-weight:800; color:var(--energy); opacity:0; transition:opacity .15s; text-shadow:0 0 12px var(--energy); }
+  .boost-tag.on{ opacity:1; }
+  .boost-tag.sprint{ color:var(--gold); text-shadow:0 0 12px var(--gold); }
+
+  .strokepad{ pointer-events:auto; height:74px; border-radius:16px; border:1px dashed rgba(67,224,207,.5); background:radial-gradient(120% 140% at 50% 0%, rgba(67,224,207,.14), rgba(20,4,8,.4)); color:var(--energy); display:flex; align-items:center; justify-content:center; gap:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; font-size:12px; cursor:pointer; text-align:center; padding:0 12px; }
+  .strokepad:active{ background:radial-gradient(120% 140% at 50% 0%, rgba(67,224,207,.3), rgba(20,4,8,.4)); }
+  .strokepad.charging{ border-color:var(--go); color:var(--go); background:radial-gradient(120% 140% at 50% 0%, rgba(124,255,159,.16), rgba(20,4,8,.4)); }
+  .strokepad.hidden{ display:none; }
+  .strokepad .pulse{ font-size:16px; }
+
+  .overlay{ position:absolute; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px; text-align:center; gap:18px; background:radial-gradient(130% 90% at 50% 18%, rgba(66,16,31,.55), rgba(13,3,5,.92)); backdrop-filter:blur(2px); }
+  .overlay.hidden{ display:none; }
+  .eyebrow{ font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:var(--energy); font-weight:700; margin-bottom:-8px; }
+  .logo{ font-family:var(--font-display); font-weight:800; font-size:clamp(40px, 13vw, 66px); letter-spacing:-.01em; line-height:.98; margin:0; color:var(--pale); text-shadow:0 0 22px rgba(67,224,207,.35), 0 2px 0 var(--membrane), 0 6px 26px rgba(255,120,140,.35); text-wrap:balance; }
+  .logo .hl{ color:var(--energy); }
+  .tag{ font-size:14px; color:var(--muted); max-width:30ch; margin:-6px 0 0; line-height:1.45; text-wrap:balance; }
+  .modes{ display:flex; gap:10px; }
+  .mode{ pointer-events:auto; cursor:pointer; background:rgba(20,4,8,.5); border:1px solid rgba(255,150,165,.18); color:var(--text); border-radius:14px; padding:12px 16px; font-weight:700; font-size:13px; min-width:120px; display:flex; flex-direction:column; gap:4px; align-items:center; }
+  .mode small{ font-weight:500; font-size:10.5px; color:var(--muted); letter-spacing:.02em; }
+  .mode.sel{ border-color:var(--energy); color:var(--energy); box-shadow:0 0 0 1px var(--energy), 0 0 24px -6px var(--energy); background:rgba(12,47,44,.5); }
+  .mode.sel small{ color:var(--pale-dim); }
+  .play{ pointer-events:auto; cursor:pointer; border:none; margin-top:4px; background:linear-gradient(180deg, #ff8aa0, var(--membrane)); color:#2a0410; font-weight:800; font-size:17px; letter-spacing:.02em; padding:16px 40px; border-radius:16px; box-shadow:0 10px 30px -8px rgba(255,120,140,.6), inset 0 1px 0 rgba(255,255,255,.4); }
+  .play:active{ transform:translateY(1px); }
+  .hint{ font-size:11.5px; color:var(--muted); line-height:1.6; max-width:34ch; border-top:1px solid rgba(255,150,165,.12); padding-top:14px; }
+  .hint b{ color:var(--pale-dim); font-weight:700; }
+  .hint .k{ display:inline-block; background:rgba(255,255,255,.08); border-radius:5px; padding:1px 6px; font-family:ui-monospace,monospace; font-size:10.5px; color:var(--text); }
+  .fineprint{ font-size:10px; color:#7c5760; max-width:32ch; line-height:1.5; }
+  .diag{ position:absolute; left:8px; right:8px; bottom:6px; z-index:30; font-size:10px; line-height:1.4; text-align:center; color:var(--muted); pointer-events:none; text-shadow:0 1px 3px #000; }
+  .diag.ok{ color:var(--go); }
+  .diag.bad{ color:var(--danger); }
+  .diag .mono{ font-family:ui-monospace, monospace; opacity:.85; font-size:9.5px; }
+
+  .count{ position:absolute; inset:0; z-index:9; display:grid; place-items:center; pointer-events:none; }
+  .count.hidden{ display:none; }
+  .count .big{ font-family:var(--font-display); font-weight:800; font-size:clamp(64px,26vw,140px); color:var(--pale); text-shadow:0 0 40px rgba(67,224,207,.5); animation:pop .7s ease-out; }
+  .count .lbl{ position:absolute; bottom:34%; font-size:13px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); }
+  @keyframes pop{ from{ transform:scale(.4); opacity:0;} 40%{opacity:1;} to{ transform:scale(1.4); opacity:0;} }
+
+  .result{ font-family:var(--font-display); font-weight:800; font-size:clamp(30px,9vw,44px); margin:0; color:var(--pale); text-shadow:0 0 24px rgba(67,224,207,.3); }
+  .result.win{ color:var(--energy); }
+  .result.lose{ color:var(--danger); }
+  .subresult{ font-size:14px; color:var(--muted); margin:-10px 0 4px; }
+  .stats{ display:grid; grid-template-columns:1fr 1fr; gap:10px 26px; background:rgba(20,4,8,.4); border:1px solid rgba(255,150,165,.14); border-radius:16px; padding:18px 22px; min-width:min(88vw,300px); }
+  .stats .row{ display:flex; justify-content:space-between; gap:14px; }
+  .stats .row .k{ font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .stats .row .v{ font-weight:800; font-variant-numeric:tabular-nums; color:var(--text); }
+
+  @media (prefers-reduced-motion: reduce){ .count .big{ animation:none; } }
+</style>
+
+<div class="wrap">
+  <div class="stage" id="stage">
+    <canvas id="c"></canvas>
+
+    <div class="hud hidden" id="hud">
+      <div class="hud-top">
+        <div class="stat"><span class="k">Distance</span><span class="v" id="hDist">0<small>m</small></span></div>
+        <div class="stat"><span class="k" id="kSpeed">Speed</span><span class="v" id="hSpeed">0<small>%</small></span></div>
+        <div class="spacer"></div>
+        <div class="stat"><span class="k" id="kTime">Time</span><span class="v" id="hTime">0.0<small>s</small></span></div>
+        <div class="iconbtn" id="btnMute" title="Sound">🔊</div>
+        <div class="iconbtn" id="btnQuit" title="End run">✕</div>
+      </div>
+
+      <div class="hud-bottom">
+        <div class="boost-tag" id="boostTag">◆ Perfect rhythm — boost ◆</div>
+        <div class="thrust-wrap">
+          <div class="thrust-label" id="barLabel">Speed</div>
+          <div class="thrust-bar" id="thrustBar">
+            <div class="thrust-fill" id="thrustFill"></div>
+            <div class="gozone"></div>
+          </div>
+        </div>
+        <div class="strokepad" id="strokepad"><span class="pulse">〰</span> <span id="padText">Tap / Space to swim</span> <span class="pulse">〰</span></div>
+      </div>
+    </div>
+
+    <div class="race hidden" id="race">
+      <div class="egg-cap">🥚</div>
+      <div class="sprint-mark" id="sprintMark"></div>
+      <div class="marker you" id="mYou"></div>
+      <div class="marker rival" id="mRival"></div>
+    </div>
+
+    <div class="count hidden" id="count"><div class="big" id="countBig">3</div><div class="lbl" id="countLbl">Hold your phone comfortably…</div></div>
+
+    <div class="overlay" id="start">
+      <div class="eyebrow">🧬 featuring Spermy</div>
+      <h1 class="logo"><span class="hl">One</span> in a Million</h1>
+      <p class="tag">Rev up to launch. Ride the momentum up the canal. Sprint to the egg.</p>
+      <div class="modes">
+        <div class="mode sel" id="modeLevel" data-mode="level">🥚 Level Race<small>Beat your rival to the egg</small></div>
+        <div class="mode" id="modeEndless" data-mode="endless">∞ Endless<small>How far can you get?</small></div>
+      </div>
+      <button class="play" id="playBtn">TAP TO PLAY</button>
+      <div class="hint" id="controlHint"></div>
+      <div class="fineprint" id="finePrint"></div>
+    </div>
+
+    <div class="overlay hidden" id="end">
+      <h2 class="result" id="resultTitle">Nice swim</h2>
+      <p class="subresult" id="resultSub"></p>
+      <div class="stats" id="endStats"></div>
+      <button class="play" id="againBtn">RACE AGAIN</button>
+    </div>
+
+    <div class="diag" id="diag"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const $ = id => document.getElementById(id);
+  const now = () => performance.now();
+
+  // ---------- Tunables ----------
+  const LEVEL_LENGTH   = 3600;
+  const PX_PER_UNIT    = 5.0;
+  const CRUISE_CAP     = 96;    // normal top speed (units/s)
+  const OVER_CAP       = 132;   // reachable via perfect launch / boost / sprint
+  const SPRINT_ZONE    = 720;   // length of the final sprint straight
+  const SPRINT_START   = LEVEL_LENGTH - SPRINT_ZONE;
+  const SPERM_Y_FRAC   = 0.72;
+  const REFRACTORY     = 105;   // ms between counted strokes
+  const SHAKE_THRESH   = 3.6;   // m/s^2 high-pass threshold for a stroke
+  const STROKE_WINDOW  = 1400;  // ms cadence window (for boost)
+  const STEADY_RATE    = 3.0;   // strokes/s to qualify for boost
+  const ACCEL_UP       = 34;    // gentle upward push from shaking (units/s) — smooth, never snaps
+  const DRIVE_RATE     = 4.0;   // strokes/s for full upward push
+  const DECAY_CRUISE   = 0.012; // very gentle bleed (~1.2%/s) — top up every ~10s between obstacles
+  const DECAY_SPRINT   = 0.34;  // bleed during the final sprint — must hammer
+  const STEER_SENS     = 2.4;
+  const STEER_FLOOR    = CRUISE_CAP * 0.45; // speed for full steering authority
+  const HIT_PENALTY    = 0.30;  // speed kept after a collision
+  // charge / launch — time-based: ~5s of sustained shaking to fill
+  const CHG_RATE       = 0.20;  // charge/second while actively shaking -> ~5s to full
+  const CHG_ACTIVE_MS  = 260;   // must shake faster than this to keep charging
+  const CHG_ZONE_LO    = 0.88, CHG_ZONE_HI = 1.00, CHG_MAX = 1.12;  // narrow GO zone
+  const CHG_RELEASE_MS = 320;   // idle gap that triggers launch
+
+  // ---------- State ----------
+  let W=0, H=0, spermY=0, cx=0, maxHalf=0, dpr=1;
+  const G = {
+    state:'start', mode:'level',
+    distance:0, prevDistance:0, speed:0,
+    xNorm:0, steer:0, steerTarget:0,
+    strokes:[], boostOn:false, sprint:false,
+    charge:0, chargeInputT:0,
+    topSpeed:0, hits:0, elapsed:0,
+    obstacles:[], nextSpawn:0, particles:[],
+    hitFlash:0, shake:0, tailPhase:0, flick:0,
+    rival:{ world:0, speed:0, target:60, finished:false, finishT:0, retarget:0 },
+    finished:false, win:false, muted:false,
+    banner:null, _lastStroke:0,
+    motion:{ active:false, base:0, lp:0, grav:0, prevMag:null, permission:'—', events:0 },
+    ptr:{ down:false },
+  };
+
+  // ---------- Sizing ----------
+  function resize(){
+    const r = canvas.getBoundingClientRect();
+    W = r.width; H = r.height;
+    dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    canvas.width = Math.round(W*dpr); canvas.height = Math.round(H*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    spermY = H*SPERM_Y_FRAC; cx = W/2; maxHalf = Math.min(W*0.42, 210);
+  }
+  window.addEventListener('resize', resize);
+  if (window.ResizeObserver){ new ResizeObserver(resize).observe(canvas); }
+
+  // ---------- Canal geometry ----------
+  function wallHalf(worldY){
+    const t = worldY*0.0017;
+    let half = maxHalf*(0.72 + 0.28*Math.sin(t));
+    half *= 0.86 + 0.14*Math.sin(t*0.53 + 1.3);
+    return Math.max(maxHalf*0.42, half);
+  }
+  const yToWorld = y => G.distance + (spermY - y)/PX_PER_UNIT;
+  const worldToY = w => spermY - (w - G.distance)*PX_PER_UNIT;
+
+  // ---------- Audio ----------
+  let actx=null, noiseBuf=null;
+  function initAudio(){
+    if (actx) return;
+    try{
+      actx = new (window.AudioContext||window.webkitAudioContext)();
+      const n = actx.sampleRate*0.4; noiseBuf = actx.createBuffer(1,n,actx.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i=0;i<n;i++) d[i]=(Math.random()*2-1)*(1-i/n);
+    }catch(e){ actx=null; }
+  }
+  function playStroke(intensity){
+    if (!actx || G.muted) return;
+    const src=actx.createBufferSource(); src.buffer=noiseBuf;
+    const bp=actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=480+intensity*900; bp.Q.value=0.8;
+    const g=actx.createGain(); const v=0.05+intensity*0.12, t=actx.currentTime;
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.22);
+    src.connect(bp); bp.connect(g); g.connect(actx.destination); src.start(t); src.stop(t+0.24);
+  }
+  function playHit(){
+    if (!actx || G.muted) return;
+    const o=actx.createOscillator(), g=actx.createGain(), t=actx.currentTime;
+    o.type='sine'; o.frequency.setValueAtTime(190,t); o.frequency.exponentialRampToValueAtTime(46,t+0.3);
+    g.gain.setValueAtTime(0.28,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.34);
+    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.36);
+  }
+  function playLaunch(){
+    if (!actx || G.muted) return;
+    const o=actx.createOscillator(), g=actx.createGain(), t=actx.currentTime;
+    o.type='sawtooth'; o.frequency.setValueAtTime(120,t); o.frequency.exponentialRampToValueAtTime(720,t+0.35);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.22,t+0.05); g.gain.exponentialRampToValueAtTime(0.0001,t+0.5);
+    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.52);
+  }
+
+  // ---------- Strokes ----------
+  function registerStroke(intensity){
+    const t = now();
+    if (t - G._lastStroke < REFRACTORY) return;
+    G._lastStroke = t;
+    G.flick = Math.min(1, G.flick+0.6);
+    if (navigator.vibrate) navigator.vibrate(12);
+    playStroke(Math.min(1, intensity||0.6));
+    // strokes no longer punch speed directly — they mark "I'm shaking now";
+    // update() turns sustained shaking into a smooth, gradual push.
+    if (G.state === 'charging'){ G.chargeInputT = t; }
+    else if (G.state === 'playing'){ G.strokes.push(t); }
+  }
+
+  // ---------- Motion ----------
+  function onMotion(e){
+    G.motion.events++;
+    const g = e.accelerationIncludingGravity;
+    if (!g || g.x == null) return;
+    if (!G.motion.active){ G.motion.active = true; $('strokepad').classList.add('hidden'); updateHint(); }
+    G.motion.lp = G.motion.lp*0.85 + g.x*0.15;
+    if (G.state === 'ready') G.motion.base = G.motion.lp;
+    if (G.state === 'playing'){
+      const tilt = (G.motion.lp - G.motion.base)/9.0;
+      G.steerTarget = Math.max(-1, Math.min(1, -tilt*1.4));
+    }
+    let mag; const a = e.acceleration;
+    if (a && a.x != null){ mag = Math.hypot(a.x,a.y,a.z); }
+    else { const m = Math.hypot(g.x,g.y,g.z); G.motion.grav = G.motion.grav*0.9 + m*0.1; mag = Math.abs(m - G.motion.grav); }
+    if ((G.state==='playing' || G.state==='charging') && G.motion.prevMag != null){
+      if (mag - G.motion.prevMag > SHAKE_THRESH) registerStroke(Math.min(1,(mag-G.motion.prevMag)/14));
+    }
+    G.motion.prevMag = mag;
+  }
+
+  // ---------- Keyboard + pointer ----------
+  window.addEventListener('keydown', e => {
+    if (e.repeat) return;
+    if (e.code==='ArrowLeft'||e.code==='KeyA'){ G.steerTarget=-1; }
+    else if (e.code==='ArrowRight'||e.code==='KeyD'){ G.steerTarget=1; }
+    else if (e.code==='Space'){ e.preventDefault(); if (G.state==='playing'||G.state==='charging') registerStroke(0.8); }
+  });
+  window.addEventListener('keyup', e => {
+    if ((e.code==='ArrowLeft'||e.code==='KeyA') && G.steerTarget<0) G.steerTarget=0;
+    if ((e.code==='ArrowRight'||e.code==='KeyD') && G.steerTarget>0) G.steerTarget=0;
+  });
+  $('strokepad').addEventListener('pointerdown', e => { e.preventDefault(); if (G.state==='playing'||G.state==='charging') registerStroke(0.85); });
+  canvas.addEventListener('pointerdown', e => { if (G.motion.active) return; G.ptr.down=true; steerFromPointer(e); });
+  canvas.addEventListener('pointermove', e => { if (G.ptr.down) steerFromPointer(e); });
+  window.addEventListener('pointerup', () => { if (G.ptr.down){ G.ptr.down=false; G.steerTarget=0; } });
+  function steerFromPointer(e){ const r=canvas.getBoundingClientRect(); G.steerTarget=Math.max(-1,Math.min(1,(e.clientX-r.left - W/2)/(W*0.34))); }
+
+  // ---------- Banner ----------
+  function banner(text){ G.banner = { text, t: now() }; }
+
+  // ---------- Spawning ----------
+  function seedParticles(){
+    G.particles = [];
+    for (let i=0;i<48;i++) G.particles.push({ w:G.distance + Math.random()*(H/PX_PER_UNIT+60), lane:(Math.random()*2-1), s:1+Math.random()*2.4, sway:Math.random()*6.28 });
+  }
+  function spawnAhead(){
+    const horizon = G.distance + H/PX_PER_UNIT + 40;
+    const spawnLimit = (G.mode==='level') ? SPRINT_START : Infinity; // clear straight for the sprint
+    while (G.nextSpawn < horizon){
+      const d = G.distance;
+      const gap = Math.max(115, 250 - d*0.02);
+      if (G.nextSpawn > 260 && G.nextSpawn < spawnLimit){
+        if (Math.random() < 0.62){
+          const n = 1 + (Math.random() < Math.min(0.5, d*0.00012) ? 1 : 0);
+          for (let i=0;i<n;i++) G.obstacles.push({ type:'cell', world:G.nextSpawn + i*22, lane:(Math.random()*1.7-0.85), r:16+Math.random()*16, hit:false, ph:Math.random()*6.28 });
+        } else {
+          G.obstacles.push({ type:'band', world:G.nextSpawn, gapLane:(Math.random()*1.4-0.7), gapHalf:Math.max(0.34, 0.62 - d*0.00006), hit:false });
+        }
+      }
+      G.nextSpawn += gap;
+    }
+    G.obstacles = G.obstacles.filter(o => o.world > G.distance - 30);
+  }
+
+  // ---------- Flow ----------
+  function selectMode(m){ G.mode=m; $('modeLevel').classList.toggle('sel',m==='level'); $('modeEndless').classList.toggle('sel',m==='endless'); }
+  $('modeLevel').onclick = () => selectMode('level');
+  $('modeEndless').onclick = () => selectMode('endless');
+
+  const detectControls = () => ('DeviceMotionEvent' in window);
+  const inIframe = (() => { try { return window.self !== window.top; } catch(e){ return true; } })();
+  function updateDiag(){
+    const el = $('diag'); if (!el) return;
+    const m = G.motion; let s, cls='';
+    if (!window.isSecureContext){ s='❌ needs HTTPS (open the https:// link)'; cls='bad'; }
+    else if (!('DeviceMotionEvent' in window)){ s='❌ motion sensor not supported by this browser'; cls='bad'; }
+    else if (m.events > 0){ s='✅ sensor active — tilt & shake work'; cls='ok'; }
+    else if (String(m.permission).startsWith('error')){ s='❌ '+m.permission; cls='bad'; }
+    else if (m.permission === 'denied'){ s='❌ motion denied — reload & tap Allow'; cls='bad'; }
+    else if (m.permission === 'granted' || m.permission === 'auto'){ s='⚠️ allowed but NO sensor data'+(inIframe?' — likely the embed. Open in Safari/Chrome or fullscreen':''); cls='bad'; }
+    else if (G.state === 'start'){ s='ℹ️ tap PLAY to enable motion'; }
+    else { s='⏳ waiting for sensor…'; }
+    el.className = 'diag '+cls;
+    el.innerHTML = `Motion: ${s}<br><span class="mono">secure:${window.isSecureContext?'Y':'N'} · embed:${inIframe?'Y':'N'} · perm:${m.permission} · events:${m.events}</span>`;
+  }
+  function updateHint(){
+    const h = $('controlHint');
+    if (G.motion.active) h.innerHTML = '<b>Rev up:</b> shake to charge, stop to launch.<br><b>Then:</b> tilt to steer, shake to keep speed.';
+    else if (detectControls()) h.innerHTML = '<b>On your phone:</b> shake to charge & launch, tilt to steer.<br><b>On a laptop:</b> <span class="k">Space</span> to charge/swim, <span class="k">← →</span> to steer.';
+    else h.innerHTML = '<b>Charge:</b> tap the pad / <span class="k">Space</span>, then stop to launch.<br><b>Steer:</b> drag left / right.';
+  }
+
+  async function beginPlay(){
+    initAudio(); if (actx && actx.state==='suspended') actx.resume();
+    try{
+      if (typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function'){
+        const res = await DeviceMotionEvent.requestPermission();
+        G.motion.permission = res;
+        if (res==='granted') window.addEventListener('devicemotion', onMotion);
+      } else if ('DeviceMotionEvent' in window){ G.motion.permission='auto'; window.addEventListener('devicemotion', onMotion); }
+      else { G.motion.permission='unsupported'; }
+    }catch(e){ G.motion.permission = 'error: '+(e && e.message ? e.message : e); }
+    resetRun();
+    $('start').classList.add('hidden'); $('end').classList.add('hidden');
+    $('hud').classList.remove('hidden');
+    $('race').classList.toggle('hidden', G.mode!=='level');
+    $('strokepad').classList.toggle('hidden', G.motion.active);
+    $('kTime').textContent = G.mode==='level' ? 'Time' : 'Best m';
+    $('btnQuit').textContent = G.mode==='endless' ? '⏹' : '✕';
+    if (G.mode==='level'){ $('sprintMark').style.top = (100 - SPRINT_START/LEVEL_LENGTH*100) + '%'; }
+    startCountdown();
+  }
+  $('playBtn').onclick = beginPlay;
+  $('againBtn').onclick = beginPlay;
+
+  function resetRun(){
+    Object.assign(G, { distance:0, prevDistance:0, speed:0, xNorm:0, steer:0, steerTarget:0,
+      strokes:[], boostOn:false, sprint:false, charge:0, chargeInputT:0,
+      topSpeed:0, hits:0, elapsed:0, obstacles:[], nextSpawn:0,
+      hitFlash:0, shake:0, tailPhase:0, flick:0, bestDist:0, finished:false, win:false, banner:null });
+    G.motion.prevMag=null; G.motion.base=G.motion.lp;
+    G.rival = { world:0, speed:0, target:0.7*CRUISE_CAP, finished:false, finishT:0, retarget:0 };
+    seedParticles();
+  }
+
+  let countT=0, countN=3;
+  function startCountdown(){ G.state='ready'; countN=3; countT=now(); $('count').classList.remove('hidden'); $('countBig').textContent='3'; }
+
+  function launch(){
+    const c = G.charge;
+    const inZone = c>=CHG_ZONE_LO && c<=CHG_ZONE_HI;
+    if (inZone){ G.speed = OVER_CAP; banner('PERFECT LAUNCH! 🚀'); }
+    else if (c > CHG_ZONE_HI){ G.speed = CRUISE_CAP*0.5; banner('OVERCOOKED 💥'); }
+    else { G.speed = CRUISE_CAP*(0.42 + 0.5*c); banner('LAUNCH!'); }
+    G.shake = 1; G.flick = 1; G.charge = 0; G.strokes = [];
+    if (navigator.vibrate) navigator.vibrate(inZone ? [40,25,60] : 30);
+    playLaunch();
+    G.state = 'playing';
+  }
+
+  function quitRun(){ if (G.state==='playing'||G.state==='charging') endRun(G.mode==='endless'); }
+  $('btnQuit').onclick = quitRun;
+  $('btnMute').onclick = () => { G.muted=!G.muted; $('btnMute').textContent = G.muted?'🔇':'🔊'; };
+
+  function endRun(finishedGoal){
+    G.state='end'; G.finished=true;
+    const rivalDist = Math.min(G.rival.world, LEVEL_LENGTH);
+    let title, sub, cls='';
+    if (G.mode==='level'){
+      G.win = (G.rival.finishT===0) || (G.elapsed <= G.rival.finishT);
+      if (!finishedGoal){ title='Gave up'; sub='You bailed before the egg.'; cls='lose'; }
+      else if (G.win){ title='One in a million! 🥚'; sub='Beat your rival to the egg.'; cls='win'; }
+      else { title='Rival wins'; sub='Pipped at the egg — go again.'; cls='lose'; }
+    } else {
+      G.win = G.distance >= rivalDist;
+      title = G.win ? 'New record pace!' : 'Rival went further';
+      sub = G.win ? 'You out-swam your rival.' : `Rival reached ${Math.round(rivalDist/PX_PER_UNIT)} m.`;
+      cls = G.win ? 'win' : '';
+    }
+    const rt=$('resultTitle'); rt.textContent=title; rt.className='result '+cls;
+    $('resultSub').textContent = sub;
+    const m = v => Math.round(v/PX_PER_UNIT);
+    $('endStats').innerHTML =
+      `<div class="row"><span class="k">Distance</span><span class="v">${m(G.distance)} m</span></div>`+
+      `<div class="row"><span class="k">Top speed</span><span class="v">${Math.round(G.topSpeed/CRUISE_CAP*100)}%</span></div>`+
+      `<div class="row"><span class="k">Time</span><span class="v">${G.elapsed.toFixed(1)} s</span></div>`+
+      `<div class="row"><span class="k">Bumps</span><span class="v">${G.hits}</span></div>`;
+    $('hud').classList.add('hidden'); $('race').classList.add('hidden'); $('count').classList.add('hidden');
+    $('end').classList.remove('hidden');
+  }
+
+  // ---------- Charge update ----------
+  function chargeUpdate(dt, t){
+    const active = (t - G.chargeInputT) < CHG_ACTIVE_MS;   // currently shaking hard enough
+    if (active) G.charge = Math.min(CHG_MAX, G.charge + CHG_RATE*dt);  // smooth, ~5s to fill
+    if (G.charge >= CHG_MAX){ launch(); return; }                     // held too long -> fizzle
+    if (!active && G.charge > 0.4 && (t - G.chargeInputT) > CHG_RELEASE_MS){ launch(); return; }
+    G.tailPhase += dt*8;
+    syncHUD();
+  }
+
+  // ---------- Play update ----------
+  function update(dt, t){
+    // boost = steady rhythm while actively shaking
+    const cutoff = t - STROKE_WINDOW;
+    while (G.strokes.length && G.strokes[0] < cutoff) G.strokes.shift();
+    const rate = G.strokes.length/(STROKE_WINDOW/1000);
+    G.boostOn = false;
+    if (G.strokes.length >= 4){
+      const iv=[]; for (let i=1;i<G.strokes.length;i++) iv.push(G.strokes[i]-G.strokes[i-1]);
+      const mean = iv.reduce((a,b)=>a+b,0)/iv.length;
+      let vr=0; for (const x of iv) vr += (x-mean)*(x-mean); vr/=iv.length;
+      if (Math.sqrt(vr)/mean < 0.24 && rate > STEADY_RATE) G.boostOn = true;
+    }
+
+    // sprint zone
+    if (G.mode==='level' && !G.sprint && G.distance >= SPRINT_START){
+      G.sprint = true; banner('⚡ FINAL SPRINT! ⚡');
+      G.obstacles = G.obstacles.filter(o => o.world < SPRINT_START);
+    }
+
+    // momentum: shaking pushes speed UP gently (smooth, never snaps); always bleeds slowly.
+    const ceil = (G.boostOn || G.sprint) ? OVER_CAP : CRUISE_CAP;
+    const thrust01 = Math.min(1, rate/DRIVE_RATE);
+    if (G.speed < ceil) G.speed = Math.min(ceil, G.speed + ACCEL_UP*thrust01*dt);
+    const decay = G.sprint ? DECAY_SPRINT : DECAY_CRUISE;
+    G.speed -= G.speed*decay*dt;
+    if (G.speed < 0) G.speed = 0;
+    if (G.speed > G.topSpeed) G.topSpeed = G.speed;
+
+    // steering — authority scales with speed (no speed, no turning)
+    G.steer += (G.steerTarget - G.steer)*Math.min(1, dt*10);
+    const auth = Math.min(1, G.speed/STEER_FLOOR);
+    G.xNorm += G.steer*STEER_SENS*auth*dt;
+    if (G.xNorm > 1 || G.xNorm < -1){
+      G.xNorm = Math.max(-1, Math.min(1, G.xNorm));
+      if (!G._wall){ softWallBump(); G._wall = true; }   // one knock on contact
+      else { G.speed *= (1 - 0.5*dt); }                  // gentle scrub while grinding
+    } else { G._wall = false; }
+
+    G.prevDistance = G.distance;
+    G.distance += G.speed*dt;
+    G.elapsed += dt;
+    G.tailPhase += dt*(6 + G.speed/CRUISE_CAP*22);
+    G.flick = Math.max(0, G.flick - dt*4);
+    G.hitFlash = Math.max(0, G.hitFlash - dt*3);
+    G.shake = Math.max(0, G.shake - dt*6);
+
+    spawnAhead(); collisions(); updateRival(dt, t);
+
+    for (const p of G.particles){ if (p.w < G.distance-10) p.w += H/PX_PER_UNIT + 60 + Math.random()*40; p.sway += dt*2; }
+
+    if (G.mode==='level' && G.distance >= LEVEL_LENGTH && !G.finished){ G.distance=LEVEL_LENGTH; endRun(true); }
+    if (G.mode==='endless' && G.distance > G.bestDist) G.bestDist = G.distance;
+
+    syncHUD();
+  }
+
+  function softWallBump(){ if (G.speed > CRUISE_CAP*0.25){ G.speed *= 0.82; G.shake=Math.min(1,G.shake+0.3); if (navigator.vibrate) navigator.vibrate(20); } }
+  function spermScreenX(){ return cx + G.xNorm*(wallHalf(G.distance)-22); }
+
+  function collisions(){
+    const sx = spermScreenX(), sr = 15;
+    for (const o of G.obstacles){
+      if (o.hit) continue;
+      if (o.type==='cell'){
+        if (Math.abs(o.world-G.distance) < (sr+o.r)/PX_PER_UNIT){
+          const ox = cx + o.lane*(wallHalf(o.world)-o.r);
+          if (Math.abs(ox-sx) < sr + o.r*0.8) doHit(o);
+        }
+      } else if (G.prevDistance < o.world && G.distance >= o.world){
+        if (G.xNorm < o.gapLane-o.gapHalf || G.xNorm > o.gapLane+o.gapHalf) doHit(o);
+      }
+    }
+  }
+  function doHit(o){ o.hit=true; G.hits++; G.speed *= HIT_PENALTY; G.hitFlash=1; G.shake=1; if (navigator.vibrate) navigator.vibrate([30,20,30]); playHit(); }
+
+  function updateRival(dt, t){
+    const r = G.rival; if (r.finished) return;
+    const inSprint = G.mode==='level' && r.world >= SPRINT_START;
+    if (t > r.retarget){ r.retarget = t + 900 + Math.random()*1400; r.target = inSprint ? CRUISE_CAP*(0.98+Math.random()*0.2) : CRUISE_CAP*(0.55+Math.random()*0.4); }
+    r.speed += (r.target - r.speed)*Math.min(1, dt*1.6);
+    r.world += r.speed*dt;
+    if (G.mode==='level' && r.world >= LEVEL_LENGTH){ r.world=LEVEL_LENGTH; r.finished=true; r.finishT=G.elapsed; }
+  }
+
+  // ---------- HUD ----------
+  function syncHUD(){
+    $('hDist').innerHTML = Math.round(G.distance/PX_PER_UNIT)+'<small>m</small>';
+    const bar=$('thrustBar'), fill=$('thrustFill');
+    if (G.state==='charging'){
+      const inZone = G.charge>=CHG_ZONE_LO && G.charge<=CHG_ZONE_HI;
+      bar.classList.add('charging'); bar.classList.toggle('inzone', inZone); bar.classList.remove('boost');
+      fill.style.width = Math.min(100, G.charge/CHG_MAX*100)+'%';
+      $('barLabel').textContent = 'Charge';
+      $('kSpeed').textContent = 'Charge';
+      $('hSpeed').innerHTML = Math.round(Math.min(100,G.charge/CHG_ZONE_HI*100))+'<small>%</small>';
+      $('padText').textContent = 'Charge… then STOP to launch';
+      $('strokepad').classList.add('charging');
+      $('hTime').innerHTML = 'REV';
+      $('boostTag').classList.remove('on');
+    } else {
+      bar.classList.remove('charging','inzone');
+      bar.classList.toggle('boost', G.boostOn || G.sprint);
+      fill.style.width = Math.min(100, G.speed/OVER_CAP*100)+'%';
+      $('barLabel').textContent = 'Speed';
+      $('kSpeed').textContent = 'Speed';
+      $('hSpeed').innerHTML = Math.round(G.speed/CRUISE_CAP*100)+'<small>%</small>';
+      $('padText').textContent = 'Tap / Space to swim';
+      $('strokepad').classList.remove('charging');
+      if (G.mode==='level') $('hTime').innerHTML = G.elapsed.toFixed(1)+'<small>s</small>';
+      else $('hTime').innerHTML = Math.round(G.bestDist/PX_PER_UNIT)+'<small>m</small>';
+      const bt=$('boostTag');
+      bt.classList.toggle('on', G.boostOn || G.sprint);
+      bt.classList.toggle('sprint', G.sprint);
+      bt.textContent = G.sprint ? '⚡ FINAL SPRINT — GO GO GO ⚡' : '◆ Perfect rhythm — boost ◆';
+    }
+    if (G.mode==='level'){
+      $('mYou').style.top = (100 - Math.min(100,G.distance/LEVEL_LENGTH*100))+'%';
+      $('mRival').style.top = (100 - Math.min(100,G.rival.world/LEVEL_LENGTH*100))+'%';
+    }
+  }
+
+  // ---------- Render ----------
+  function render(){
+    ctx.save();
+    if (G.shake>0){ ctx.translate((Math.random()*2-1)*G.shake*7, (Math.random()*2-1)*G.shake*7); }
+    const bg = ctx.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0,'#331020'); bg.addColorStop(0.55,'#280d18'); bg.addColorStop(1,'#160409');
+    ctx.fillStyle=bg; ctx.fillRect(-12,-12,W+24,H+24);
+
+    drawWalls(); drawParticles(); drawObstacles();
+    if (G.mode==='level'){ drawSprintLine(); drawEgg(); }
+    drawRivalGhost(); drawSperm();
+    ctx.restore();
+
+    if (G.hitFlash>0){ ctx.fillStyle=`rgba(255,80,70,${G.hitFlash*0.32})`; ctx.fillRect(0,0,W,H); }
+    const sf = G.speed/CRUISE_CAP;
+    if (sf>0.02){ const v=ctx.createRadialGradient(cx,spermY,H*0.2,cx,spermY,H*0.78); v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,`rgba(67,224,207,${Math.min(0.16,sf*0.11)})`); ctx.fillStyle=v; ctx.fillRect(0,0,W,H); }
+    drawBanner();
+  }
+
+  function drawWalls(){
+    const step=8, left=[], right=[];
+    for (let y=-step; y<=H+step; y+=step){ const half=wallHalf(yToWorld(y)); left.push([cx-half,y]); right.push([cx+half,y]); }
+    const wg=ctx.createLinearGradient(0,0,cx,0); wg.addColorStop(0,'#3a0c1a'); wg.addColorStop(1,'#7c1836');
+    ctx.fillStyle=wg; ctx.beginPath(); ctx.moveTo(-10,-10); for (const p of left) ctx.lineTo(p[0],p[1]); ctx.lineTo(-10,H+10); ctx.closePath(); ctx.fill();
+    const wg2=ctx.createLinearGradient(W,0,cx,0); wg2.addColorStop(0,'#3a0c1a'); wg2.addColorStop(1,'#7c1836');
+    ctx.fillStyle=wg2; ctx.beginPath(); ctx.moveTo(W+10,-10); for (const p of right) ctx.lineTo(p[0],p[1]); ctx.lineTo(W+10,H+10); ctx.closePath(); ctx.fill();
+    ctx.lineWidth=3; ctx.strokeStyle='rgba(255,140,160,.55)'; ctx.shadowColor='rgba(255,120,150,.7)'; ctx.shadowBlur=14;
+    ctx.beginPath(); ctx.moveTo(left[0][0],left[0][1]); for (const p of left) ctx.lineTo(p[0],p[1]); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(right[0][0],right[0][1]); for (const p of right) ctx.lineTo(p[0],p[1]); ctx.stroke();
+    ctx.shadowBlur=0;
+  }
+  function drawParticles(){
+    ctx.fillStyle='rgba(255,220,190,.14)';
+    for (const p of G.particles){ const y=worldToY(p.w); if (y<-10||y>H+10) continue; const half=wallHalf(p.w)-8; const x=cx+p.lane*half+Math.sin(p.sway)*4; ctx.beginPath(); ctx.arc(x,y,p.s,0,6.28); ctx.fill(); }
+  }
+  function drawObstacles(){
+    for (const o of G.obstacles){
+      const y=worldToY(o.world); if (y<-60||y>H+60) continue;
+      if (o.type==='cell'){
+        const x=cx+o.lane*(wallHalf(o.world)-o.r);
+        ctx.save(); ctx.translate(x,y);
+        const grd=ctx.createRadialGradient(-o.r*0.3,-o.r*0.3,o.r*0.2,0,0,o.r);
+        grd.addColorStop(0,o.hit?'#c9b7a8':'#f3e7d6'); grd.addColorStop(1,o.hit?'#8a7566':'#c9a98f');
+        ctx.fillStyle=grd; ctx.shadowColor='rgba(255,240,220,.4)'; ctx.shadowBlur=12;
+        ctx.beginPath(); for (let a=0;a<6.28;a+=0.35){ const rr=o.r*(0.86+0.14*Math.sin(a*3+o.ph)); const px=Math.cos(a)*rr, py=Math.sin(a)*rr; a===0?ctx.moveTo(px,py):ctx.lineTo(px,py); } ctx.closePath(); ctx.fill(); ctx.shadowBlur=0;
+        ctx.fillStyle='rgba(150,90,110,.5)'; ctx.beginPath(); ctx.arc(o.r*0.15,o.r*0.1,o.r*0.4,0,6.28); ctx.fill(); ctx.restore();
+      } else {
+        const half=wallHalf(o.world), gcx=cx+o.gapLane*(half*0.8), gw=o.gapHalf*half;
+        ctx.fillStyle=o.hit?'rgba(120,60,80,.5)':'rgba(150,30,60,.78)'; ctx.shadowColor='rgba(255,90,120,.5)'; ctx.shadowBlur=10;
+        ctx.fillRect(cx-half,y-9,(gcx-gw)-(cx-half),18); ctx.fillRect(gcx+gw,y-9,(cx+half)-(gcx+gw),18); ctx.shadowBlur=0;
+        ctx.strokeStyle='rgba(67,224,207,.5)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(gcx-gw,y); ctx.lineTo(gcx+gw,y); ctx.stroke();
+      }
+    }
+  }
+  function drawSprintLine(){
+    const y=worldToY(SPRINT_START); if (y<-24||y>H+24) return;
+    const half=wallHalf(SPRINT_START);
+    ctx.save(); ctx.strokeStyle='#ffd24d'; ctx.lineWidth=4; ctx.setLineDash([14,10]); ctx.shadowColor='#ffd24d'; ctx.shadowBlur=16;
+    ctx.beginPath(); ctx.moveTo(cx-half,y); ctx.lineTo(cx+half,y); ctx.stroke(); ctx.setLineDash([]);
+    ctx.font='800 14px "Trebuchet MS", system-ui, sans-serif'; ctx.textAlign='center'; ctx.fillStyle='#ffd24d';
+    ctx.fillText('⚡ SPRINT ⚡', cx, y-9); ctx.restore();
+  }
+  function drawEgg(){
+    const y=worldToY(LEVEL_LENGTH); if (y>H+140) return; const R=66;
+    ctx.save(); ctx.translate(cx,y);
+    const halo=ctx.createRadialGradient(0,0,R*0.4,0,0,R*2.1); halo.addColorStop(0,'rgba(255,206,151,.55)'); halo.addColorStop(1,'rgba(255,206,151,0)');
+    ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(0,0,R*2.1,0,6.28); ctx.fill();
+    const eg=ctx.createRadialGradient(-R*0.3,-R*0.3,R*0.2,0,0,R); eg.addColorStop(0,'#fff3df'); eg.addColorStop(1,'#f2b25f');
+    ctx.fillStyle=eg; ctx.beginPath(); ctx.arc(0,0,R,0,6.28); ctx.fill(); ctx.restore();
+  }
+  function drawRivalGhost(){
+    if (G.mode!=='level' || G.rival.finished) return;
+    const y=worldToY(G.rival.world); if (y<-40||y>H+40) return;
+    const x=cx + 0.45*(wallHalf(G.rival.world)-22);
+    drawSpermShape(x,y,0.75,'#ffb9ae','#ff6a5c',0.55, now()*0.01, false);
+  }
+  function drawSperm(){
+    const showAtStart = (G.state==='charging' || G.state==='playing' || G.state==='ready');
+    if (!showAtStart) return;
+    drawSpermShape(spermScreenX(), spermY, 1, '#fbf0e0', G.state==='charging'?'#7cff9f':'#43e0cf', 1, G.tailPhase, true);
+  }
+  function drawSpermShape(x,y,scale,headCol,glowCol,alpha,phase,eyes){
+    ctx.save(); ctx.globalAlpha=alpha; ctx.translate(x,y); ctx.scale(scale,scale);
+    let amp = 6 + (G.speed/CRUISE_CAP)*10 + G.flick*8;
+    if (G.state==='charging') amp = 6 + G.charge*16;   // frantic wiggle while charging
+    ctx.strokeStyle=glowCol; ctx.lineWidth=4.5; ctx.lineCap='round'; ctx.shadowColor=glowCol; ctx.shadowBlur=12;
+    ctx.beginPath(); ctx.moveTo(0,10);
+    for (let i=0;i<=14;i++){ const t=i/14; ctx.lineTo(Math.sin(phase - t*7)*amp*t, 10+t*46); }
+    ctx.stroke(); ctx.shadowBlur=0;
+    const hg=ctx.createRadialGradient(-5,-6,3,0,0,17); hg.addColorStop(0,'#ffffff'); hg.addColorStop(1,headCol);
+    ctx.fillStyle=hg; ctx.shadowColor=glowCol; ctx.shadowBlur=16; ctx.beginPath(); ctx.ellipse(0,-2,13,17,0,0,6.28); ctx.fill(); ctx.shadowBlur=0;
+    if (eyes){ for (const s of [-1,1]){ ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(s*5,-6,4.2,0,6.28); ctx.fill(); ctx.fillStyle='#1a0509'; ctx.beginPath(); ctx.arc(s*5+G.steer*2,-4.5,2,0,6.28); ctx.fill(); } }
+    ctx.restore();
+  }
+  function drawBanner(){
+    if (!G.banner) return;
+    const age = now()-G.banner.t; if (age>1400){ G.banner=null; return; }
+    const k = age/1400; const alpha = k<0.15 ? k/0.15 : 1-(k-0.15)/0.85;
+    ctx.save(); ctx.globalAlpha=Math.max(0,alpha); ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font='800 clamp(26px,7vw,38px) "Trebuchet MS", system-ui, sans-serif';
+    ctx.fillStyle='#fbf0e0'; ctx.shadowColor='#43e0cf'; ctx.shadowBlur=24;
+    ctx.fillText(G.banner.text, W/2, H*0.33 - k*22); ctx.restore();
+  }
+
+  // ---------- Loop ----------
+  let last=0;
+  function loop(t){
+    if (!last) last=t;
+    let dt=(t-last)/1000; last=t; if (dt>0.05) dt=0.05;
+    if (!W || !H) resize();
+    if ((loop._n=(loop._n||0)+1) % 10 === 0) updateDiag();
+    if (G.state==='ready'){
+      const el=t-countT; const shown=3-Math.floor(el/700);
+      if (shown!==countN){ countN=shown;
+        if (countN>0){ $('countBig').textContent=String(countN); $('countBig').style.animation='none'; void $('countBig').offsetWidth; $('countBig').style.animation=''; }
+        else if (countN===0){ $('countBig').textContent='GO'; } }
+      if (el>2100){ $('count').classList.add('hidden'); G.state='charging'; G.charge=0; G.chargeInputT=t; banner('REV UP! 🔋'); }
+    } else if (G.state==='charging'){ chargeUpdate(dt, t); }
+    else if (G.state==='playing'){ update(dt, t); }
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- Boot ----------
+  resize(); selectMode('level'); updateHint();
+  $('finePrint').textContent = detectControls() ? 'On iPhone you may get a one-time "allow motion" prompt — tap Allow.' : 'No motion sensor detected — keyboard / touch controls will be used.';
+  requestAnimationFrame(loop);
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) { window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
+</script>
+</body>
+</html>
