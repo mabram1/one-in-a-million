@@ -137,6 +137,7 @@
         <div class="stat"><span class="k" id="kSpeed">Speed</span><span class="v" id="hSpeed">0<small>%</small></span></div>
         <div class="spacer"></div>
         <div class="stat"><span class="k" id="kTime">Time</span><span class="v" id="hTime">0.0<small>s</small></span></div>
+        <div class="iconbtn" id="btnCenter" title="Re-center steering">⟲</div>
         <div class="iconbtn" id="btnMute" title="Sound">🔊</div>
         <div class="iconbtn" id="btnQuit" title="End run">✕</div>
       </div>
@@ -211,7 +212,8 @@
   const DRIVE_RATE     = 4.0;   // strokes/s for full upward push
   const DECAY_CRUISE   = 0.012; // very gentle bleed (~1.2%/s) — top up every ~10s between obstacles
   const DECAY_SPRINT   = 0.34;  // bleed during the final sprint — must hammer
-  const STEER_SENS     = 2.4;
+  const STEER_SENS     = 3.0;   // how fast a tilt slides you left/right
+  const TILT_GAIN      = 0.30;  // how much phone tilt counts as steering (higher = more sensitive)
   const STEER_FLOOR    = CRUISE_CAP * 0.45; // speed for full steering authority
   const HIT_PENALTY    = 0.30;  // speed kept after a collision
   // charge / launch — time-based: ~5s of sustained shaking to fill
@@ -315,10 +317,10 @@
     if (!g || g.x == null) return;
     if (!G.motion.active){ G.motion.active = true; $('strokepad').classList.add('hidden'); updateHint(); }
     G.motion.lp = G.motion.lp*0.85 + g.x*0.15;
-    if (G.state === 'ready') G.motion.base = G.motion.lp;
+    // neutral ("straight ahead") = your natural hold, averaged right up until launch
+    if (G.state === 'ready' || G.state === 'charging') G.motion.base = G.motion.base*0.92 + G.motion.lp*0.08;
     if (G.state === 'playing'){
-      const tilt = (G.motion.lp - G.motion.base)/9.0;
-      G.steerTarget = Math.max(-1, Math.min(1, -tilt*1.4));
+      G.steerTarget = Math.max(-1, Math.min(1, -(G.motion.lp - G.motion.base) * TILT_GAIN));
     }
     let mag; const a = e.acceleration;
     if (a && a.x != null){ mag = Math.hypot(a.x,a.y,a.z); }
@@ -452,6 +454,7 @@
   function quitRun(){ if (G.state==='playing'||G.state==='charging') endRun(G.mode==='endless'); }
   $('btnQuit').onclick = quitRun;
   $('btnMute').onclick = () => { G.muted=!G.muted; $('btnMute').textContent = G.muted?'🔇':'🔊'; };
+  $('btnCenter').onclick = () => { G.motion.base = G.motion.lp; banner('Centered ⟲'); };
 
   function endRun(finishedGoal){
     G.state='end'; G.finished=true;

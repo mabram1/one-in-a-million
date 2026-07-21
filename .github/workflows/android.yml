@@ -35,6 +35,11 @@ jobs:
       - name: Add Android platform
         run: npx cap add android
 
+      - name: Lock portrait orientation
+        run: |
+          sed -i 's/android:name="\.MainActivity"/android:name=".MainActivity" android:screenOrientation="portrait"/' android/app/src/main/AndroidManifest.xml || true
+          grep -n "screenOrientation" android/app/src/main/AndroidManifest.xml || echo "note: portrait patch not applied (manifest format differs) — non-fatal"
+
       - name: Copy web assets into the app
         run: npx cap sync android
 
