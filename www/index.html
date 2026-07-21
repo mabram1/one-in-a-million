@@ -223,6 +223,12 @@
   const CHG_ZONE_LO    = 0.88, CHG_ZONE_HI = 1.00, CHG_MAX = 1.12;  // narrow GO zone
   const CHG_RELEASE_MS = 320;   // idle gap that triggers launch
 
+  // iOS Safari reports accelerationIncludingGravity with the OPPOSITE sign to Android/Chrome,
+  // so tilt-steering comes out mirrored on iPhone. Flip it on iOS so both platforms match.
+  const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
+                 (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1);
+  const MOTION_SIGN = IS_IOS ? -1 : 1;
+
   // ---------- State ----------
   let W=0, H=0, spermY=0, cx=0, maxHalf=0, dpr=1;
   const G = {
@@ -324,7 +330,7 @@
       // while shaking, the shake blurs the tilt reading and it's hard to aim → hold straight;
       // steer only when you hold the phone steady (not mid-stroke).
       const shaking = (now() - G._lastStroke) < STEER_LOCK_MS;
-      G.steerTarget = (shaking || G.sprint) ? 0 : Math.max(-1, Math.min(1, -(G.motion.lp - G.motion.base) * TILT_GAIN));
+      G.steerTarget = (shaking || G.sprint) ? 0 : Math.max(-1, Math.min(1, -(G.motion.lp - G.motion.base) * TILT_GAIN * MOTION_SIGN));
     }
     let mag; const a = e.acceleration;
     if (a && a.x != null){ mag = Math.hypot(a.x,a.y,a.z); }
@@ -398,7 +404,7 @@
     else if (G.state === 'start'){ s='ℹ️ tap PLAY to enable motion'; }
     else { s='⏳ waiting for sensor…'; }
     el.className = 'diag '+cls;
-    el.innerHTML = `Motion: ${s}<br><span class="mono">secure:${window.isSecureContext?'Y':'N'} · embed:${inIframe?'Y':'N'} · perm:${m.permission} · events:${m.events}</span>`;
+    el.innerHTML = `Motion: ${s}<br><span class="mono">secure:${window.isSecureContext?'Y':'N'} · embed:${inIframe?'Y':'N'} · ios:${IS_IOS?'Y':'N'} · perm:${m.permission} · events:${m.events}</span>`;
   }
   function updateHint(){
     const h = $('controlHint');
