@@ -212,8 +212,9 @@
   const DRIVE_RATE     = 4.0;   // strokes/s for full upward push
   const DECAY_CRUISE   = 0.012; // very gentle bleed (~1.2%/s) — top up every ~10s between obstacles
   const DECAY_SPRINT   = 0.34;  // bleed during the final sprint — must hammer
-  const STEER_SENS     = 3.0;   // how fast a tilt slides you left/right
-  const TILT_GAIN      = 0.30;  // how much phone tilt counts as steering (higher = more sensitive)
+  const STEER_SENS     = 4.2;   // how fast a tilt slides you left/right
+  const TILT_GAIN      = 0.42;  // how much phone tilt counts as steering (higher = more sensitive)
+  const STEER_LOCK_MS  = 280;   // while shaking, hold straight (the shake blurs the tilt reading)
   const STEER_FLOOR    = CRUISE_CAP * 0.45; // speed for full steering authority
   const HIT_PENALTY    = 0.30;  // speed kept after a collision
   // charge / launch — time-based: ~5s of sustained shaking to fill
@@ -320,7 +321,10 @@
     // neutral ("straight ahead") = your natural hold, averaged right up until launch
     if (G.state === 'ready' || G.state === 'charging') G.motion.base = G.motion.base*0.92 + G.motion.lp*0.08;
     if (G.state === 'playing'){
-      G.steerTarget = Math.max(-1, Math.min(1, -(G.motion.lp - G.motion.base) * TILT_GAIN));
+      // while shaking, the shake blurs the tilt reading and it's hard to aim → hold straight;
+      // steer only when you hold the phone steady (not mid-stroke).
+      const shaking = (now() - G._lastStroke) < STEER_LOCK_MS;
+      G.steerTarget = shaking ? 0 : Math.max(-1, Math.min(1, -(G.motion.lp - G.motion.base) * TILT_GAIN));
     }
     let mag; const a = e.acceleration;
     if (a && a.x != null){ mag = Math.hypot(a.x,a.y,a.z); }
@@ -398,7 +402,7 @@
   }
   function updateHint(){
     const h = $('controlHint');
-    if (G.motion.active) h.innerHTML = '<b>Rev up:</b> shake to charge, stop to launch.<br><b>Then:</b> tilt to steer, shake to keep speed.';
+    if (G.motion.active) h.innerHTML = '<b>Rev up:</b> shake to charge, stop to launch.<br><b>Then:</b> shake = speed (goes straight); stop &amp; tilt to steer.';
     else if (detectControls()) h.innerHTML = '<b>On your phone:</b> shake to charge & launch, tilt to steer.<br><b>On a laptop:</b> <span class="k">Space</span> to charge/swim, <span class="k">← →</span> to steer.';
     else h.innerHTML = '<b>Charge:</b> tap the pad / <span class="k">Space</span>, then stop to launch.<br><b>Steer:</b> drag left / right.';
   }
@@ -523,7 +527,7 @@
     if (G.speed > G.topSpeed) G.topSpeed = G.speed;
 
     // steering — authority scales with speed (no speed, no turning)
-    G.steer += (G.steerTarget - G.steer)*Math.min(1, dt*10);
+    G.steer += (G.steerTarget - G.steer)*Math.min(1, dt*14);
     const auth = Math.min(1, G.speed/STEER_FLOOR);
     G.xNorm += G.steer*STEER_SENS*auth*dt;
     if (G.xNorm > 1 || G.xNorm < -1){
