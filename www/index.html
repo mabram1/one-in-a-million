@@ -231,7 +231,7 @@
   const ACCEL_UP       = 34;    // gentle upward push from shaking (units/s) — smooth, never snaps
   const DRIVE_RATE     = 4.0;   // strokes/s for full upward push
   const DECAY_CRUISE   = 0.012; // very gentle bleed (~1.2%/s) — top up every ~10s between obstacles
-  const DECAY_SPRINT   = 0.28;  // bleed during the final sprint — must hammer
+  const DECAY_SPRINT   = 0.26;  // bleed during the final sprint — makes full speed hard to reach & hold
   const STEER_SENS     = 4.2;   // how fast a tilt slides you left/right
   const TILT_GAIN      = 0.42;  // how much phone tilt counts as steering (higher = more sensitive)
   const STEER_LOCK_MS  = 280;   // while shaking, hold straight (the shake blurs the tilt reading)
@@ -414,10 +414,6 @@
           G.pickups.push({ kind, world:G.nextSpawn + gap*0.5, lane:(Math.random()*1.5-0.75), r:14, taken:false, ph:Math.random()*6.28 });
         }
       }
-      // center speed-orbs in the final sprint (reachable — you auto-center there)
-      if (G.mode==='level' && G.nextSpawn >= SPRINT_START && G.nextSpawn < LEVEL_LENGTH-120 && Math.random()<0.28){
-        G.pickups.push({ kind:'speed', world:G.nextSpawn, lane:0, r:15, taken:false, ph:0 });
-      }
       // only a rare wide-open "breather" for variety (kept subtle so it never feels empty)
       G.nextSpawn += (Math.random() < 0.07) ? gap*1.5 : gap;
     }
@@ -510,7 +506,7 @@
   $('btnQuit').onclick = quitRun;
   $('btnMute').onclick = () => { G.muted=!G.muted; $('btnMute').textContent = G.muted?'🔇':'🔊'; };
   $('btnCenter').onclick = () => { G.motion.base = G.motion.lp; banner('Centered ⟲'); };
-  $('btnBoost').onclick = () => { if (G.state==='playing' && G.boostCharges>0 && G.boosting<=0){ G.boostCharges--; G.boosting=1.4; G.speed=OVER_CAP; G.flick=1; banner('BOOST! ⚡'); if(navigator.vibrate)navigator.vibrate(30); playLaunch(); } };
+  $('btnBoost').onclick = () => { if (G.state==='playing' && !G.sprint && G.boostCharges>0 && G.boosting<=0){ G.boostCharges--; G.boosting=1.4; G.speed=OVER_CAP; G.flick=1; banner('BOOST! ⚡'); if(navigator.vibrate)navigator.vibrate(30); playLaunch(); } };
   $('btnShield').onclick = () => { if (G.state==='playing' && G.shieldCharges>0 && !G.shieldActive){ G.shieldCharges--; G.shieldActive=true; banner('SHIELD UP 🛡'); if(navigator.vibrate)navigator.vibrate(15); } };
 
   function endRun(finishedGoal){
@@ -566,14 +562,15 @@
 
     // sprint zone
     if (G.mode==='level' && !G.sprint && G.distance >= SPRINT_START){
-      G.sprint = true; banner('⚡ FINAL SPRINT! ⚡');
+      G.sprint = true; banner('⚡ FINAL SPRINT! ⚡'); G.boosting = 0;   // no carried-over boost into the sprint
       G.obstacles = G.obstacles.filter(o => o.world < SPRINT_START);
+      G.pickups = G.pickups.filter(p => p.world < SPRINT_START);        // no boosters in the sprint arena
     }
 
     // momentum: shaking pushes speed UP gently (smooth, never snaps); always bleeds slowly.
     const ceil = (G.boostOn || G.sprint || G.boosting>0) ? OVER_CAP : CRUISE_CAP;
     const thrust01 = Math.min(1, rate/DRIVE_RATE);
-    const accel = ACCEL_UP * (G.sprint ? 1.35 : 1);   // sprint builds speed a bit faster when you hammer
+    const accel = ACCEL_UP;   // no sprint accel bonus — full speed must be earned by hammering hard
     if (G.speed < ceil) G.speed = Math.min(ceil, G.speed + accel*thrust01*dt);
     if (G.boosting>0){ G.boosting -= dt; G.speed = Math.max(G.speed, OVER_CAP); }  // ⚡ boost burst
     const decay = G.sprint ? DECAY_SPRINT : DECAY_CRUISE;
@@ -695,7 +692,7 @@
     // items
     $('boostCnt').textContent = G.boostCharges;
     $('shieldCnt').textContent = G.shieldCharges;
-    $('btnBoost').classList.toggle('empty', G.boostCharges<=0);
+    $('btnBoost').classList.toggle('empty', G.boostCharges<=0 || G.sprint);
     $('btnShield').classList.toggle('empty', G.shieldCharges<=0);
     $('btnShield').classList.toggle('on', G.shieldActive);
     if (G.mode==='level'){
