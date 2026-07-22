@@ -127,6 +127,8 @@
   .challenge-btn{ pointer-events:auto; cursor:pointer; border:2px solid var(--gold); background:rgba(255,210,77,.12); color:var(--gold); font-weight:800; font-size:14px; padding:12px 22px; border-radius:14px; box-shadow:0 0 20px -6px var(--gold); }
   .challenge-btn:active{ transform:translateY(1px); }
   .challenge-btn.hidden{ display:none; }
+  .live-btn{ pointer-events:auto; cursor:pointer; border:2px solid var(--go); background:rgba(124,255,159,.12); color:var(--go); font-weight:800; font-size:15px; padding:13px 26px; border-radius:14px; box-shadow:0 0 22px -6px var(--go); }
+  .live-btn:active{ transform:translateY(1px); }
   .toast{ position:absolute; top:16px; left:50%; transform:translateX(-50%); z-index:40; background:rgba(15,5,9,.92); border:1px solid rgba(67,224,207,.45); color:var(--text); font-weight:700; font-size:13px; padding:10px 18px; border-radius:14px; box-shadow:0 8px 24px -8px #000; pointer-events:none; max-width:88%; text-align:center; }
   .toast.hidden{ display:none; }
   .diag{ position:absolute; left:8px; right:8px; bottom:6px; z-index:30; font-size:10px; line-height:1.4; text-align:center; color:var(--muted); pointer-events:none; text-shadow:0 1px 3px #000; }
@@ -204,6 +206,7 @@
         <div class="mode" id="modeEndless" data-mode="endless">∞ Endless<small>How far can you get?</small></div>
       </div>
       <button class="play" id="playBtn">TAP TO PLAY</button>
+      <button class="live-btn" id="liveBtn">🟢 Live race with friends</button>
       <div class="hint" id="controlHint"></div>
       <button class="challenge-btn" id="startChallengeBtn">⚔ Challenge a friend</button>
       <div class="challenge-paste" id="challengePaste">Got a challenge code? Tap to enter</div>
@@ -218,11 +221,26 @@
       <button class="challenge-btn hidden" id="challengeBtn">⚔ Challenge a friend</button>
     </div>
 
+    <div class="overlay hidden" id="lobby">
+      <div class="eyebrow">🟢 Live race — beta</div>
+      <h2 class="result" id="lobbyInfo">Room …</h2>
+      <p class="tag">Share the room code with friends. When everyone is in, tap START — you all race together.</p>
+      <button class="play" id="lobbyStart">START RACE</button>
+      <button class="challenge-btn" id="lobbyLeave">← Leave room</button>
+    </div>
+
     <div class="diag" id="diag"></div>
     <div class="toast hidden" id="toast"></div>
   </div>
 </div>
 
+<script type="module">
+  // Serverless P2P networking for live rooms. Fails silently where blocked (e.g. the in-chat preview's CSP).
+  try {
+    const m = await import('https://esm.sh/trystero@0.20.0/nostr');
+    window.__trystero = { joinRoom: m.joinRoom };
+  } catch (e) { /* live race stays unavailable */ }
+</script>
 <script>
 (() => {
   "use strict";
@@ -442,6 +460,46 @@
     if (m){ try { setGhost(decodeGhost(m[1])); } catch(e){} }
   }
 
+  // ---------- Live multiplayer (serverless P2P rooms via Trystero) ----------
+  const MP = { active:false, room:null, code:'', name:'', peers:{}, send:null, sendGo:null, started:false, _sendT:0 };
+  const randomCode = () => { let c='', A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; for(let i=0;i<4;i++) c+=A[Math.floor(Math.random()*A.length)]; return c; };
+  function peerHue(id){ let h=0; for(const ch of id) h=(h*31 + ch.charCodeAt(0))%360; return h; }
+  function peerCount(){ return Object.keys(MP.peers).length; }
+  function startLive(){
+    if (!window.__trystero){ toast('Live race needs the web/app link (not the in-chat preview)'); return; }
+    let code=''; try{ code = prompt('Enter a room code to join a friend, or leave blank to create one:')||''; }catch(e){ return; }
+    code = code.trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
+    if (!code) code = randomCode();
+    try {
+      const room = window.__trystero.joinRoom({ appId:'oneinamillion-oiam-v1' }, code);
+      MP.room=room; MP.code=code; MP.active=true; MP.started=false; MP.peers={};
+      MP.name = 'Swimmer '+Math.floor(Math.random()*90+10);
+      const [sendState, getState] = room.makeAction('st');
+      const [sendGo, getGo] = room.makeAction('go');
+      MP.send = sendState; MP.sendGo = sendGo;
+      getState((d, id) => { const p = MP.peers[id] || (MP.peers[id]={}); p.d=d.d; p.x=d.x; p.n=d.n; p.fin=d.fin; p.ft=d.ft; p.t=now(); });
+      getGo((_, id) => { if (!MP.started) beginLiveRace(); });
+      room.onPeerJoin(()=>updateLobby());
+      room.onPeerLeave(id=>{ delete MP.peers[id]; updateLobby(); });
+      showLobby();
+    } catch(e){ MP.active=false; toast('Could not open the room — try the web/app link'); }
+  }
+  function showLobby(){ $('start').classList.add('hidden'); $('end').classList.add('hidden'); $('lobby').classList.remove('hidden'); updateLobby(); }
+  function updateLobby(){ const el=$('lobbyInfo'); if(!el) return; const n=peerCount()+1; el.innerHTML = 'Room <b>'+MP.code+'</b><br><span style="font-size:15px;color:var(--muted)">'+n+' swimmer'+(n===1?'':'s')+' connected</span>'; }
+  function leaveLobby(){ try{ MP.room && MP.room.leave && MP.room.leave(); }catch(e){} MP.active=false; MP.room=null; MP.peers={}; MP.started=false; $('lobby').classList.add('hidden'); $('start').classList.remove('hidden'); }
+  function beginLiveRace(){ MP.started=true; G.ghost=null; $('lobby').classList.add('hidden'); selectMode('level'); beginPlay(); }
+  function broadcastState(){ if (!MP.active || !MP.send) return; MP.send({ d:Math.round(G.distance), x:+G.xNorm.toFixed(2), n:MP.name, fin:G.finished?1:0, ft:+G.elapsed.toFixed(1) }); }
+  function prunePeers(){ const t=now(); for (const id in MP.peers){ if (t-(MP.peers[id].t||0) > 4000) delete MP.peers[id]; } }
+  function drawPeers(){
+    for (const id in MP.peers){ const p=MP.peers[id]; if (p.d==null) continue;
+      const y=worldToY(p.d); if (y<-44||y>H+44) continue;
+      const x=cx + (p.x||0)*(wallHalf(p.d)-22); const hue=peerHue(id);
+      drawSpermShape(x, y, 0.8, 'hsl('+hue+',75%,86%)', 'hsl('+hue+',80%,60%)', p.fin?0.4:0.62, now()*0.011, false);
+      ctx.save(); ctx.globalAlpha=0.9; ctx.fillStyle='#fff'; ctx.font='700 10px system-ui, sans-serif'; ctx.textAlign='center';
+      ctx.shadowColor='#000'; ctx.shadowBlur=4; ctx.fillText(p.n||'?', x, y-26); ctx.restore();
+    }
+  }
+
   // ---------- Spawning ----------
   function seedParticles(){
     G.particles = [];
@@ -546,6 +604,9 @@
   $('challengeBtn').onclick = shareChallenge;
   $('startChallengeBtn').onclick = shareChallenge;
   $('challengePaste').onclick = enterChallenge;
+  $('liveBtn').onclick = startLive;
+  $('lobbyStart').onclick = () => { if (MP.sendGo){ try{ MP.sendGo({}); }catch(e){} } beginLiveRace(); };
+  $('lobbyLeave').onclick = leaveLobby;
 
   function resetRun(){
     Object.assign(G, { distance:0, prevDistance:0, speed:0, xNorm:0, steer:0, steerTarget:0,
@@ -586,7 +647,15 @@
     G.state='end'; G.finished=true;
     const rivalDist = Math.min(G.rival.world, LEVEL_LENGTH);
     let title, sub, cls='';
-    if (G.mode==='level' && G.ghost){
+    if (MP.active){
+      broadcastState();
+      const others=Object.values(MP.peers);
+      const before=others.filter(p=>p.fin && p.ft!=null && p.ft <= G.elapsed).length;
+      const place=before+1, total=others.length+1;
+      G.win = finishedGoal && place===1;
+      if (!finishedGoal){ title='Left the race'; sub='You bailed before the egg.'; cls='lose'; }
+      else { title = place===1 ? 'You win! 🥚🏆' : 'Finished #'+place; sub='Place '+place+' of '+total+' • '+G.elapsed.toFixed(1)+'s'; cls = place===1?'win':''; }
+    } else if (G.mode==='level' && G.ghost){
       G.win = finishedGoal && G.elapsed <= G.ghostTime;
       if (!finishedGoal){ title='Gave up'; sub='You bailed before the egg.'; cls='lose'; }
       else if (G.win){ title='Challenge won! ⚔'; sub='Beat the ghost by '+(G.ghostTime-G.elapsed).toFixed(1)+'s'; cls='win'; }
@@ -692,6 +761,8 @@
     if (G.mode==='level' && G.distance >= LEVEL_LENGTH && !G.finished){ G.distance=LEVEL_LENGTH; endRun(true); }
     if (G.mode==='endless' && G.distance > G.bestDist) G.bestDist = G.distance;
 
+    if (MP.active){ MP._sendT += dt; if (MP._sendT >= 0.066){ MP._sendT=0; broadcastState(); } prunePeers(); }
+
     syncHUD();
   }
 
@@ -738,6 +809,7 @@
   }
 
   function updateRival(dt, t){
+    if (MP.active) return;   // live peers replace the AI rival
     const r = G.rival; if (r.finished) return;
     if (G.ghost){   // race the friend's recorded run
       r.world = ghostWorldAt(G.elapsed);
@@ -788,9 +860,17 @@
     $('btnShield').classList.toggle('on', G.shieldActive);
     if (G.mode==='level'){
       $('mYou').style.top = (100 - Math.min(100,G.distance/LEVEL_LENGTH*100))+'%';
-      $('mRival').style.top = (100 - Math.min(100,G.rival.world/LEVEL_LENGTH*100))+'%';
       const yf=$('youFill'); if (yf) yf.style.height = Math.min(100,G.distance/LEVEL_LENGTH*100)+'%';
-      const pv=$('placeVal'); if (pv) pv.textContent = (G.distance >= G.rival.world) ? '1st' : '2nd';
+      const pv=$('placeVal');
+      if (MP.active){
+        $('mRival').style.display='none';
+        let ahead=0; for (const id in MP.peers){ if ((MP.peers[id].d||0) > G.distance) ahead++; }
+        const P=['','1st','2nd','3rd','4th','5th','6th','7th','8th'];
+        if (pv) pv.textContent = P[ahead+1] || (ahead+1)+'th';
+      } else {
+        $('mRival').style.display=''; $('mRival').style.top = (100 - Math.min(100,G.rival.world/LEVEL_LENGTH*100))+'%';
+        if (pv) pv.textContent = (G.distance >= G.rival.world) ? '1st' : '2nd';
+      }
     }
   }
 
@@ -809,7 +889,7 @@
 
     drawWalls(); drawParticles(); drawObstacles(); drawPickups();
     if (G.mode==='level'){ drawSprintLine(); drawEgg(); }
-    drawRivalGhost(); drawSperm();
+    drawRivalGhost(); if (MP.active) drawPeers(); drawSperm();
     ctx.restore();
 
     if (G.hitFlash>0){ ctx.fillStyle=`rgba(255,80,70,${G.hitFlash*0.32})`; ctx.fillRect(0,0,W,H); }
@@ -916,7 +996,7 @@
     ctx.restore();
   }
   function drawRivalGhost(){
-    if (G.mode!=='level' || G.rival.finished) return;
+    if (MP.active || G.mode!=='level' || G.rival.finished) return;
     const y=worldToY(G.rival.world); if (y<-40||y>H+40) return;
     const x=cx + 0.45*(wallHalf(G.rival.world)-22);
     if (G.ghost) drawSpermShape(x,y,0.78,'#dbeaff','#9ec4ff',0.42, now()*0.01, false);   // friend's ghost
