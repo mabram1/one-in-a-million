@@ -211,7 +211,7 @@
   const ACCEL_UP       = 34;    // gentle upward push from shaking (units/s) — smooth, never snaps
   const DRIVE_RATE     = 4.0;   // strokes/s for full upward push
   const DECAY_CRUISE   = 0.012; // very gentle bleed (~1.2%/s) — top up every ~10s between obstacles
-  const DECAY_SPRINT   = 0.34;  // bleed during the final sprint — must hammer
+  const DECAY_SPRINT   = 0.25;  // bleed during the final sprint — must hammer (eased a touch)
   const STEER_SENS     = 4.2;   // how fast a tilt slides you left/right
   const TILT_GAIN      = 0.42;  // how much phone tilt counts as steering (higher = more sensitive)
   const STEER_LOCK_MS  = 280;   // while shaking, hold straight (the shake blurs the tilt reading)
@@ -233,6 +233,7 @@
   let W=0, H=0, spermY=0, cx=0, maxHalf=0, dpr=1;
   const G = {
     state:'start', mode:'level',
+    canalSeed:0,
     distance:0, prevDistance:0, speed:0,
     xNorm:0, steer:0, steerTarget:0,
     strokes:[], boostOn:false, sprint:false,
@@ -261,7 +262,7 @@
 
   // ---------- Canal geometry ----------
   function wallHalf(worldY){
-    const t = worldY*0.0017;
+    const t = worldY*0.0017 + G.canalSeed;   // per-run phase => tunnel shape differs every game
     let half = maxHalf*(0.72 + 0.28*Math.sin(t));
     half *= 0.86 + 0.14*Math.sin(t*0.53 + 1.3);
     return Math.max(maxHalf*0.42, half);
@@ -371,16 +372,17 @@
     const spawnLimit = (G.mode==='level') ? SPRINT_START : Infinity; // clear straight for the sprint
     while (G.nextSpawn < horizon){
       const d = G.distance;
-      const gap = Math.max(115, 250 - d*0.02);
+      const gap = Math.max(150, 250 - d*0.012);   // more breathing room; ramps up gentler
       if (G.nextSpawn > 260 && G.nextSpawn < spawnLimit){
-        if (Math.random() < 0.62){
-          const n = 1 + (Math.random() < Math.min(0.5, d*0.00012) ? 1 : 0);
-          for (let i=0;i<n;i++) G.obstacles.push({ type:'cell', world:G.nextSpawn + i*22, lane:(Math.random()*1.7-0.85), r:16+Math.random()*16, hit:false, ph:Math.random()*6.28 });
+        if (Math.random() < 0.60){
+          const n = 1 + (Math.random() < Math.min(0.30, d*0.00007) ? 1 : 0);
+          for (let i=0;i<n;i++) G.obstacles.push({ type:'cell', world:G.nextSpawn + i*24, lane:(Math.random()*1.6-0.8), r:14+Math.random()*13, hit:false, ph:Math.random()*6.28 });
         } else {
-          G.obstacles.push({ type:'band', world:G.nextSpawn, gapLane:(Math.random()*1.4-0.7), gapHalf:Math.max(0.34, 0.62 - d*0.00006), hit:false });
+          G.obstacles.push({ type:'band', world:G.nextSpawn, gapLane:(Math.random()*1.3-0.65), gapHalf:Math.max(0.44, 0.62 - d*0.00004), hit:false });
         }
       }
-      G.nextSpawn += gap;
+      // occasional wide-open "breather" stretch so pacing keeps changing
+      G.nextSpawn += (Math.random() < 0.14) ? gap*1.8 : gap;
     }
     G.obstacles = G.obstacles.filter(o => o.world > G.distance - 30);
   }
@@ -440,7 +442,8 @@
     Object.assign(G, { distance:0, prevDistance:0, speed:0, xNorm:0, steer:0, steerTarget:0,
       strokes:[], boostOn:false, sprint:false, charge:0, chargeInputT:0,
       topSpeed:0, hits:0, elapsed:0, obstacles:[], nextSpawn:0,
-      hitFlash:0, shake:0, tailPhase:0, flick:0, bestDist:0, finished:false, win:false, banner:null });
+      hitFlash:0, shake:0, tailPhase:0, flick:0, bestDist:0, finished:false, win:false, banner:null,
+      canalSeed: Math.random()*1000 });
     G.motion.prevMag=null; G.motion.base=G.motion.lp;
     G.rival = { world:0, speed:0, target:0.7*CRUISE_CAP, finished:false, finishT:0, retarget:0 };
     seedParticles();
@@ -541,7 +544,7 @@
     if (G.xNorm > 1 || G.xNorm < -1){
       G.xNorm = Math.max(-1, Math.min(1, G.xNorm));
       if (!G._wall){ softWallBump(); G._wall = true; }   // one knock on contact
-      else { G.speed *= (1 - 0.5*dt); }                  // gentle scrub while grinding
+      else { G.speed *= (1 - 0.4*dt); }                  // gentle scrub while grinding
     } else { G._wall = false; }
 
     G.prevDistance = G.distance;
@@ -562,7 +565,7 @@
     syncHUD();
   }
 
-  function softWallBump(){ if (G.speed > CRUISE_CAP*0.25){ G.speed *= 0.82; G.shake=Math.min(1,G.shake+0.3); if (navigator.vibrate) navigator.vibrate(20); } }
+  function softWallBump(){ if (G.speed > CRUISE_CAP*0.25){ G.speed *= 0.88; G.shake=Math.min(1,G.shake+0.25); if (navigator.vibrate) navigator.vibrate(18); } }
   function spermScreenX(){ return cx + G.xNorm*(wallHalf(G.distance)-22); }
 
   function collisions(){
@@ -584,7 +587,7 @@
   function updateRival(dt, t){
     const r = G.rival; if (r.finished) return;
     const inSprint = G.mode==='level' && r.world >= SPRINT_START;
-    if (t > r.retarget){ r.retarget = t + 900 + Math.random()*1400; r.target = inSprint ? CRUISE_CAP*(0.98+Math.random()*0.2) : CRUISE_CAP*(0.55+Math.random()*0.4); }
+    if (t > r.retarget){ r.retarget = t + 900 + Math.random()*1400; r.target = inSprint ? CRUISE_CAP*(0.88+Math.random()*0.16) : CRUISE_CAP*(0.55+Math.random()*0.4); }
     r.speed += (r.target - r.speed)*Math.min(1, dt*1.6);
     r.world += r.speed*dt;
     if (G.mode==='level' && r.world >= LEVEL_LENGTH){ r.world=LEVEL_LENGTH; r.finished=true; r.finishT=G.elapsed; }
