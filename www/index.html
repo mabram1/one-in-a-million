@@ -231,7 +231,7 @@
   const ACCEL_UP       = 34;    // gentle upward push from shaking (units/s) — smooth, never snaps
   const DRIVE_RATE     = 4.0;   // strokes/s for full upward push
   const DECAY_CRUISE   = 0.012; // very gentle bleed (~1.2%/s) — top up every ~10s between obstacles
-  const DECAY_SPRINT   = 0.25;  // bleed during the final sprint — must hammer (eased a touch)
+  const DECAY_SPRINT   = 0.20;  // bleed during the final sprint — must hammer (eased)
   const STEER_SENS     = 4.2;   // how fast a tilt slides you left/right
   const TILT_GAIN      = 0.42;  // how much phone tilt counts as steering (higher = more sensitive)
   const STEER_LOCK_MS  = 280;   // while shaking, hold straight (the shake blurs the tilt reading)
@@ -260,7 +260,7 @@
     boostCharges:3, shieldCharges:2, shieldActive:false, boosting:0,
     charge:0, chargeInputT:0,
     topSpeed:0, hits:0, elapsed:0,
-    obstacles:[], nextSpawn:0, particles:[],
+    obstacles:[], pickups:[], score:0, nextSpawn:0, particles:[],
     hitFlash:0, shake:0, tailPhase:0, flick:0,
     rival:{ world:0, speed:0, target:60, finished:false, finishT:0, retarget:0 },
     finished:false, win:false, muted:false,
@@ -316,6 +316,13 @@
     o.type='sine'; o.frequency.setValueAtTime(190,t); o.frequency.exponentialRampToValueAtTime(46,t+0.3);
     g.gain.setValueAtTime(0.28,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.34);
     o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.36);
+  }
+  function playPickup(p){
+    if (!actx || G.muted) return;
+    const o=actx.createOscillator(), g=actx.createGain(), t=actx.currentTime;
+    o.type='triangle'; o.frequency.setValueAtTime(560*p,t); o.frequency.exponentialRampToValueAtTime(1120*p,t+0.11);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.16,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.2);
+    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.22);
   }
   function playLaunch(){
     if (!actx || G.muted) return;
@@ -393,14 +400,22 @@
     const spawnLimit = (G.mode==='level') ? SPRINT_START : Infinity; // clear straight for the sprint
     while (G.nextSpawn < horizon){
       const d = G.distance;
-      const gap = Math.max(122, 250 - d*0.02);   // denser again, and tightens toward the end
-      if (G.nextSpawn > 240 && G.nextSpawn < spawnLimit){
+      const gap = Math.max(122, 225 - d*0.02);   // a touch denser (incl. the wide-open start); tightens toward the end
+      if (G.nextSpawn > 160 && G.nextSpawn < spawnLimit){
         if (Math.random() < 0.62){
           const n = 1 + (Math.random() < Math.min(0.5, d*0.0001) ? 1 : 0);
           for (let i=0;i<n;i++) G.obstacles.push({ type:'cell', world:G.nextSpawn + i*22, lane:(Math.random()*1.6-0.8), r:15+Math.random()*14, hit:false, ph:Math.random()*6.28 });
         } else {
           G.obstacles.push({ type:'band', world:G.nextSpawn, gapLane:(Math.random()*1.35-0.675), gapHalf:Math.max(0.40, 0.62 - d*0.00005), hit:false });
         }
+        if (Math.random() < 0.20){   // a collectible sitting in the open lane
+          const roll=Math.random(); const kind = roll<0.5?'star':roll<0.7?'boost':roll<0.9?'shield':'speed';
+          G.pickups.push({ kind, world:G.nextSpawn + gap*0.5, lane:(Math.random()*1.5-0.75), r:14, taken:false, ph:Math.random()*6.28 });
+        }
+      }
+      // center speed-orbs in the final sprint (reachable — you auto-center there)
+      if (G.mode==='level' && G.nextSpawn >= SPRINT_START && G.nextSpawn < LEVEL_LENGTH-120 && Math.random()<0.28){
+        G.pickups.push({ kind:'speed', world:G.nextSpawn, lane:0, r:15, taken:false, ph:0 });
       }
       // only a rare wide-open "breather" for variety (kept subtle so it never feels empty)
       G.nextSpawn += (Math.random() < 0.07) ? gap*1.5 : gap;
@@ -466,7 +481,7 @@
   function resetRun(){
     Object.assign(G, { distance:0, prevDistance:0, speed:0, xNorm:0, steer:0, steerTarget:0,
       strokes:[], boostOn:false, sprint:false, charge:0, chargeInputT:0,
-      topSpeed:0, hits:0, elapsed:0, obstacles:[], nextSpawn:0,
+      topSpeed:0, hits:0, elapsed:0, obstacles:[], pickups:[], score:0, nextSpawn:0,
       hitFlash:0, shake:0, tailPhase:0, flick:0, bestDist:0, finished:false, win:false, banner:null,
       boostCharges:3, shieldCharges:2, shieldActive:false, boosting:0,
       canalSeed: Math.random()*1000 });
@@ -516,8 +531,8 @@
     $('resultSub').textContent = sub;
     const m = v => Math.round(v/PX_PER_UNIT);
     $('endStats').innerHTML =
+      `<div class="row"><span class="k">Score</span><span class="v">${Math.floor(G.score).toLocaleString()}</span></div>`+
       `<div class="row"><span class="k">Distance</span><span class="v">${m(G.distance)} m</span></div>`+
-      `<div class="row"><span class="k">Top speed</span><span class="v">${Math.round(G.topSpeed/CRUISE_CAP*100)}%</span></div>`+
       `<div class="row"><span class="k">Time</span><span class="v">${G.elapsed.toFixed(1)} s</span></div>`+
       `<div class="row"><span class="k">Bumps</span><span class="v">${G.hits}</span></div>`;
     $('hud').classList.add('hidden'); $('race').classList.add('hidden'); $('count').classList.add('hidden');
@@ -557,7 +572,8 @@
     // momentum: shaking pushes speed UP gently (smooth, never snaps); always bleeds slowly.
     const ceil = (G.boostOn || G.sprint || G.boosting>0) ? OVER_CAP : CRUISE_CAP;
     const thrust01 = Math.min(1, rate/DRIVE_RATE);
-    if (G.speed < ceil) G.speed = Math.min(ceil, G.speed + ACCEL_UP*thrust01*dt);
+    const accel = ACCEL_UP * (G.sprint ? 1.9 : 1);   // sprint builds speed faster when you hammer
+    if (G.speed < ceil) G.speed = Math.min(ceil, G.speed + accel*thrust01*dt);
     if (G.boosting>0){ G.boosting -= dt; G.speed = Math.max(G.speed, OVER_CAP); }  // ⚡ boost burst
     const decay = G.sprint ? DECAY_SPRINT : DECAY_CRUISE;
     G.speed -= G.speed*decay*dt;
@@ -579,12 +595,13 @@
     G.prevDistance = G.distance;
     G.distance += G.speed*dt;
     G.elapsed += dt;
+    G.score += G.speed*dt*0.6;   // points accrue faster the faster you go
     G.tailPhase += dt*(6 + G.speed/CRUISE_CAP*22);
     G.flick = Math.max(0, G.flick - dt*4);
     G.hitFlash = Math.max(0, G.hitFlash - dt*3);
     G.shake = Math.max(0, G.shake - dt*6);
 
-    spawnAhead(); collisions(); updateRival(dt, t);
+    spawnAhead(); collisions(); collectPickups(); updateRival(dt, t);
 
     for (const p of G.particles){ if (p.w < G.distance-10) p.w += H/PX_PER_UNIT + 60 + Math.random()*40; p.sway += dt*2; }
 
@@ -617,6 +634,25 @@
     G.hits++; G.speed *= HIT_PENALTY; G.hitFlash=1; G.shake=1; if (navigator.vibrate) navigator.vibrate([30,20,30]); playHit();
   }
 
+  function collectPickups(){
+    const sx=spermScreenX(), sr=18;
+    for (const p of G.pickups){
+      if (p.taken) continue;
+      if (Math.abs(p.world-G.distance) < (sr+p.r)/PX_PER_UNIT){
+        const px = cx + p.lane*(wallHalf(p.world)-p.r);
+        if (Math.abs(px-sx) < sr+p.r) takePickup(p);
+      }
+    }
+    G.pickups = G.pickups.filter(p => !p.taken && p.world > G.distance-30);
+  }
+  function takePickup(p){
+    p.taken=true; G.flick=Math.min(1,G.flick+0.4); if (navigator.vibrate) navigator.vibrate(10);
+    if (p.kind==='star'){ G.score+=250; playPickup(1.0); }
+    else if (p.kind==='boost'){ G.boostCharges=Math.min(9,G.boostCharges+1); banner('⚡ +1'); playPickup(1.3); }
+    else if (p.kind==='shield'){ G.shieldCharges=Math.min(9,G.shieldCharges+1); banner('🛡 +1'); playPickup(0.8); }
+    else { G.boosting=Math.max(G.boosting,2.6); G.speed=Math.max(G.speed,OVER_CAP); G.score+=100; banner('SPEED! ✦'); playPickup(1.6); }
+  }
+
   function updateRival(dt, t){
     const r = G.rival; if (r.finished) return;
     const inSprint = G.mode==='level' && r.world >= SPRINT_START;
@@ -644,8 +680,8 @@
       bar.classList.remove('charging','inzone');
       bar.classList.toggle('boost', G.boostOn || G.sprint);
       fill.style.width = Math.min(100, G.speed/OVER_CAP*100)+'%';
-      $('kSpeed').textContent = 'Speed';
-      $('hSpeed').innerHTML = Math.round(G.speed/CRUISE_CAP*100)+'<small>%</small>';
+      $('kSpeed').textContent = 'Score';
+      $('hSpeed').textContent = Math.floor(G.score).toLocaleString();
       $('padText').textContent = 'Tap / Space to swim';
       $('strokepad').classList.remove('charging');
       if (G.mode==='level') $('hTime').innerHTML = G.elapsed.toFixed(1)+'<small>s</small>';
@@ -682,7 +718,7 @@
     gl.addColorStop(0,`rgba(255,188,110,${glowI})`); gl.addColorStop(1,'rgba(255,188,110,0)');
     ctx.fillStyle=gl; ctx.fillRect(0,0,W,H);
 
-    drawWalls(); drawParticles(); drawObstacles();
+    drawWalls(); drawParticles(); drawObstacles(); drawPickups();
     if (G.mode==='level'){ drawSprintLine(); drawEgg(); }
     drawRivalGhost(); drawSperm();
     ctx.restore();
@@ -750,6 +786,22 @@
         ctx.fillRect(cx-half,y-9,(gcx-gw)-(cx-half),18); ctx.fillRect(gcx+gw,y-9,(cx+half)-(gcx+gw),18); ctx.shadowBlur=0;
         ctx.strokeStyle='rgba(67,224,207,.5)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(gcx-gw,y); ctx.lineTo(gcx+gw,y); ctx.stroke();
       }
+    }
+  }
+  function drawPickups(){
+    for (const p of G.pickups){
+      if (p.taken) continue;
+      const y=worldToY(p.world); if (y<-22||y>H+22) continue;
+      const x=cx+p.lane*(wallHalf(p.world)-p.r), bob=Math.sin(now()*0.004+p.ph)*3;
+      const col = p.kind==='shield' ? '#43e0cf' : (p.kind==='speed' ? '#7cff9f' : '#ffd24d');
+      const icon = p.kind==='boost' ? '⚡' : p.kind==='shield' ? '🛡' : p.kind==='speed' ? '✦' : '★';
+      ctx.save(); ctx.translate(x,y+bob);
+      ctx.shadowColor=col; ctx.shadowBlur=16;
+      ctx.fillStyle='rgba(18,8,12,.6)'; ctx.beginPath(); ctx.arc(0,0,p.r,0,6.28); ctx.fill();
+      ctx.lineWidth=2.5; ctx.strokeStyle=col; ctx.beginPath(); ctx.arc(0,0,p.r,0,6.28); ctx.stroke();
+      ctx.shadowBlur=0; ctx.fillStyle=col; ctx.font='700 15px system-ui, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(icon, 0, 1);
+      ctx.restore();
     }
   }
   function drawSprintLine(){
