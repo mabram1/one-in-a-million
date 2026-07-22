@@ -231,7 +231,7 @@
   const ACCEL_UP       = 34;    // gentle upward push from shaking (units/s) — smooth, never snaps
   const DRIVE_RATE     = 4.0;   // strokes/s for full upward push
   const DECAY_CRUISE   = 0.012; // very gentle bleed (~1.2%/s) — top up every ~10s between obstacles
-  const DECAY_SPRINT   = 0.26;  // bleed during the final sprint — makes full speed hard to reach & hold
+  const DECAY_SPRINT   = 0.30;  // bleed during the final sprint — full speed is hard to reach & hold
   const STEER_SENS     = 4.2;   // how fast a tilt slides you left/right
   const TILT_GAIN      = 0.42;  // how much phone tilt counts as steering (higher = more sensitive)
   const STEER_LOCK_MS  = 280;   // while shaking, hold straight (the shake blurs the tilt reading)
@@ -276,7 +276,7 @@
     dpr = Math.min(window.devicePixelRatio || 1, 2.5);
     canvas.width = Math.round(W*dpr); canvas.height = Math.round(H*dpr);
     ctx.setTransform(dpr,0,0,dpr,0,0);
-    spermY = H*SPERM_Y_FRAC; cx = W/2; maxHalf = Math.min(W*0.46, 225);
+    spermY = H*SPERM_Y_FRAC; cx = W/2; maxHalf = Math.min(W*0.48, 236);
   }
   window.addEventListener('resize', resize);
   if (window.ResizeObserver){ new ResizeObserver(resize).observe(canvas); }
@@ -286,7 +286,7 @@
     const t = worldY*0.0017 + G.canalSeed;   // per-run phase => tunnel shape differs every game
     let half = maxHalf*(0.80 + 0.20*Math.sin(t));
     half *= 0.88 + 0.12*Math.sin(t*0.53 + 1.3);
-    half *= 1 - 0.58*Math.min(1, worldY/LEVEL_LENGTH);   // funnels: wide at the start, clearly narrower by the egg
+    half *= 1 - 0.58*Math.pow(Math.min(1, worldY/LEVEL_LENGTH), 1.8);   // stays wide early, narrows mostly toward the egg
     return Math.max(maxHalf*0.28, half);
   }
   const yToWorld = y => G.distance + (spermY - y)/PX_PER_UNIT;
