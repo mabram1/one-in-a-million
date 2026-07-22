@@ -119,6 +119,14 @@
   .hint b{ color:var(--pale-dim); font-weight:700; }
   .hint .k{ display:inline-block; background:rgba(255,255,255,.08); border-radius:5px; padding:1px 6px; font-family:ui-monospace,monospace; font-size:10.5px; color:var(--text); }
   .fineprint{ font-size:10px; color:#7c5760; max-width:32ch; line-height:1.5; }
+  .challenge-badge{ font-size:13px; font-weight:700; color:var(--gold); background:rgba(255,210,77,.12); border:1px solid rgba(255,210,77,.4); border-radius:12px; padding:8px 14px; text-shadow:0 0 10px rgba(255,210,77,.4); }
+  .challenge-badge.hidden{ display:none; }
+  .challenge-badge b{ color:#fff; }
+  .challenge-paste{ pointer-events:auto; cursor:pointer; font-size:11.5px; color:var(--gold); opacity:.85; text-decoration:underline; text-underline-offset:3px; }
+  .challenge-paste:active{ opacity:1; }
+  .challenge-btn{ pointer-events:auto; cursor:pointer; border:2px solid var(--gold); background:rgba(255,210,77,.12); color:var(--gold); font-weight:800; font-size:14px; padding:12px 22px; border-radius:14px; box-shadow:0 0 20px -6px var(--gold); }
+  .challenge-btn:active{ transform:translateY(1px); }
+  .challenge-btn.hidden{ display:none; }
   .diag{ position:absolute; left:8px; right:8px; bottom:6px; z-index:30; font-size:10px; line-height:1.4; text-align:center; color:var(--muted); pointer-events:none; text-shadow:0 1px 3px #000; }
   .diag.ok{ color:var(--go); }
   .diag.bad{ color:var(--danger); }
@@ -188,12 +196,14 @@
       <div class="eyebrow">🧬 featuring Spermy</div>
       <h1 class="logo"><span class="hl">One</span> in a Million</h1>
       <p class="tag">Rev up to launch. Ride the momentum up the canal. Sprint to the egg.</p>
+      <div class="challenge-badge hidden" id="challengeBadge"></div>
       <div class="modes">
         <div class="mode sel" id="modeLevel" data-mode="level">🥚 Level Race<small>Beat your rival to the egg</small></div>
         <div class="mode" id="modeEndless" data-mode="endless">∞ Endless<small>How far can you get?</small></div>
       </div>
       <button class="play" id="playBtn">TAP TO PLAY</button>
       <div class="hint" id="controlHint"></div>
+      <div class="challenge-paste" id="challengePaste">⚔ Got a challenge code? Tap to enter</div>
       <div class="fineprint" id="finePrint"></div>
     </div>
 
@@ -202,6 +212,7 @@
       <p class="subresult" id="resultSub"></p>
       <div class="stats" id="endStats"></div>
       <button class="play" id="againBtn">RACE AGAIN</button>
+      <button class="challenge-btn hidden" id="challengeBtn">⚔ Challenge a friend</button>
     </div>
 
     <div class="diag" id="diag"></div>
@@ -261,6 +272,7 @@
     charge:0, chargeInputT:0,
     topSpeed:0, hits:0, elapsed:0,
     obstacles:[], pickups:[], score:0, nextSpawn:0, particles:[],
+    ghost:null, ghostTime:0, ghostRec:[], _ghostTimer:0, lastGhostCode:'',
     hitFlash:0, shake:0, tailPhase:0, flick:0,
     rival:{ world:0, speed:0, target:60, finished:false, finishT:0, retarget:0 },
     finished:false, win:false, muted:false,
@@ -391,6 +403,41 @@
   // ---------- Banner ----------
   function banner(text){ G.banner = { text, t: now() }; }
 
+  // ---------- Ghost race (async multiplayer) ----------
+  // Records the player's distance every 0.1s, encodes it into a shareable code so a
+  // friend can race against this exact run as a "ghost". No server needed.
+  const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  function encodeGhost(dists){
+    let out='', prev=0;
+    for (const d of dists){ const r=Math.round(d); let delta=Math.max(0,Math.min(63, r-prev)); out+=B64[delta]; prev+=delta; }
+    return out;
+  }
+  function decodeGhost(str){
+    const dists=[]; let cur=0;
+    for (const ch of str){ const v=B64.indexOf(ch); if (v<0) continue; cur+=v; dists.push(cur); }
+    return dists;
+  }
+  function ghostWorldAt(t){
+    const a=G.ghost; if (!a || !a.length) return 0;
+    const idx=t/0.1, i=Math.floor(idx);
+    if (i>=a.length-1) return a[a.length-1];
+    const f=idx-i; return a[i]*(1-f)+a[i+1]*f;
+  }
+  function setGhost(dists){
+    if (!dists || dists.length<3) return false;
+    G.ghost = dists;
+    let gt = dists.length*0.1;
+    for (let i=0;i<dists.length;i++){ if (dists[i]>=LEVEL_LENGTH){ gt=i*0.1; break; } }
+    G.ghostTime = gt;
+    selectMode('level');
+    const b=$('challengeBadge'); if (b){ b.classList.remove('hidden'); b.innerHTML = '⚔ Challenge — beat <b>'+gt.toFixed(1)+'s</b> to the egg'; }
+    return true;
+  }
+  function loadGhostFromHash(){
+    const m = (location.hash||'').match(/g=([A-Za-z0-9\-_]+)/);
+    if (m){ try { setGhost(decodeGhost(m[1])); } catch(e){} }
+  }
+
   // ---------- Spawning ----------
   function seedParticles(){
     G.particles = [];
@@ -475,6 +522,23 @@
   }
   $('playBtn').onclick = beginPlay;
   $('againBtn').onclick = beginPlay;
+  function shareChallenge(){
+    if (!G.lastGhostCode) return;
+    const isWeb = location.protocol.indexOf('http')===0;
+    const payload = isWeb ? (location.origin + location.pathname + '#g=' + G.lastGhostCode) : G.lastGhostCode;
+    const msg = isWeb ? 'Link copied! 📋 Send it to a friend' : 'Code copied! 📋 Send it to a friend';
+    const fallback = () => { try { prompt('Copy this challenge, send it to a friend:', payload); } catch(e){} };
+    if (navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(payload).then(()=>banner(msg)).catch(fallback); }
+    else fallback();
+  }
+  function enterChallenge(){
+    let code=''; try { code = prompt('Paste the challenge code or link:') || ''; } catch(e){ return; }
+    if (!code) return;
+    const m = code.match(/g=([A-Za-z0-9\-_]+)/); const raw = m ? m[1] : code.trim();
+    if (setGhost(decodeGhost(raw))) banner('Challenge loaded ⚔'); else banner('Invalid code');
+  }
+  $('challengeBtn').onclick = shareChallenge;
+  $('challengePaste').onclick = enterChallenge;
 
   function resetRun(){
     Object.assign(G, { distance:0, prevDistance:0, speed:0, xNorm:0, steer:0, steerTarget:0,
@@ -482,6 +546,7 @@
       topSpeed:0, hits:0, elapsed:0, obstacles:[], pickups:[], score:0, nextSpawn:0,
       hitFlash:0, shake:0, tailPhase:0, flick:0, bestDist:0, finished:false, win:false, banner:null,
       boostCharges:3, shieldCharges:2, shieldActive:false, boosting:0,
+      ghostRec:[], _ghostTimer:0, lastGhostCode:'',
       canalSeed: Math.random()*1000 });
     G.motion.prevMag=null; G.motion.base=G.motion.lp;
     G.rival = { world:0, speed:0, target:0.7*CRUISE_CAP, finished:false, finishT:0, retarget:0 };
@@ -514,7 +579,12 @@
     G.state='end'; G.finished=true;
     const rivalDist = Math.min(G.rival.world, LEVEL_LENGTH);
     let title, sub, cls='';
-    if (G.mode==='level'){
+    if (G.mode==='level' && G.ghost){
+      G.win = finishedGoal && G.elapsed <= G.ghostTime;
+      if (!finishedGoal){ title='Gave up'; sub='You bailed before the egg.'; cls='lose'; }
+      else if (G.win){ title='Challenge won! ⚔'; sub='Beat the ghost by '+(G.ghostTime-G.elapsed).toFixed(1)+'s'; cls='win'; }
+      else { title='Ghost wins ⚔'; sub=(G.elapsed-G.ghostTime).toFixed(1)+'s behind — go again'; cls='lose'; }
+    } else if (G.mode==='level'){
       G.win = (G.rival.finishT===0) || (G.elapsed <= G.rival.finishT);
       if (!finishedGoal){ title='Gave up'; sub='You bailed before the egg.'; cls='lose'; }
       else if (G.win){ title='One in a million! 🥚'; sub='Beat your rival to the egg.'; cls='win'; }
@@ -533,6 +603,12 @@
       `<div class="row"><span class="k">Distance</span><span class="v">${m(G.distance)} m</span></div>`+
       `<div class="row"><span class="k">Time</span><span class="v">${G.elapsed.toFixed(1)} s</span></div>`+
       `<div class="row"><span class="k">Bumps</span><span class="v">${G.hits}</span></div>`;
+    // build a shareable "challenge" code from this run so a friend can race your ghost
+    const cbtn=$('challengeBtn');
+    if (G.mode==='level' && finishedGoal && G.ghostRec.length>5){
+      G.lastGhostCode = encodeGhost(G.ghostRec);
+      if (cbtn){ cbtn.classList.remove('hidden'); cbtn.textContent='⚔ Challenge a friend'; }
+    } else if (cbtn){ cbtn.classList.add('hidden'); }
     $('hud').classList.add('hidden'); $('race').classList.add('hidden'); $('count').classList.add('hidden');
     $('end').classList.remove('hidden');
   }
@@ -595,6 +671,7 @@
     G.distance += G.speed*dt;
     G.elapsed += dt;
     G.score += G.speed*dt*0.6;   // points accrue faster the faster you go
+    if (G.mode==='level'){ G._ghostTimer += dt; if (G._ghostTimer >= 0.1){ G._ghostTimer -= 0.1; G.ghostRec.push(G.distance); } }
     G.tailPhase += dt*(6 + G.speed/CRUISE_CAP*22);
     G.flick = Math.max(0, G.flick - dt*4);
     G.hitFlash = Math.max(0, G.hitFlash - dt*3);
@@ -654,6 +731,11 @@
 
   function updateRival(dt, t){
     const r = G.rival; if (r.finished) return;
+    if (G.ghost){   // race the friend's recorded run
+      r.world = ghostWorldAt(G.elapsed);
+      if (r.world >= LEVEL_LENGTH){ r.world=LEVEL_LENGTH; r.finished=true; r.finishT=G.ghostTime; }
+      return;
+    }
     const inSprint = G.mode==='level' && r.world >= SPRINT_START;
     if (t > r.retarget){ r.retarget = t + 900 + Math.random()*1400; r.target = inSprint ? CRUISE_CAP*(0.88+Math.random()*0.16) : CRUISE_CAP*(0.55+Math.random()*0.4); }
     r.speed += (r.target - r.speed)*Math.min(1, dt*1.6);
@@ -829,7 +911,8 @@
     if (G.mode!=='level' || G.rival.finished) return;
     const y=worldToY(G.rival.world); if (y<-40||y>H+40) return;
     const x=cx + 0.45*(wallHalf(G.rival.world)-22);
-    drawSpermShape(x,y,0.75,'#ffb9ae','#ff6a5c',0.55, now()*0.01, false);
+    if (G.ghost) drawSpermShape(x,y,0.78,'#dbeaff','#9ec4ff',0.42, now()*0.01, false);   // friend's ghost
+    else drawSpermShape(x,y,0.75,'#ffb9ae','#ff6a5c',0.55, now()*0.01, false);            // AI rival
   }
   function drawSperm(){
     const showAtStart = (G.state==='charging' || G.state==='playing' || G.state==='ready');
@@ -893,7 +976,7 @@
   }
 
   // ---------- Boot ----------
-  resize(); selectMode('level'); updateHint();
+  resize(); selectMode('level'); updateHint(); loadGhostFromHash();
   $('finePrint').textContent = detectControls() ? 'On iPhone you may get a one-time "allow motion" prompt — tap Allow.' : 'No motion sensor detected — keyboard / touch controls will be used.';
   requestAnimationFrame(loop);
 })();
