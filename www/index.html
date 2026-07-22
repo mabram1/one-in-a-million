@@ -129,6 +129,25 @@
   .challenge-btn.hidden{ display:none; }
   .live-btn{ pointer-events:auto; cursor:pointer; border:2px solid var(--go); background:rgba(124,255,159,.12); color:var(--go); font-weight:800; font-size:15px; padding:13px 26px; border-radius:14px; box-shadow:0 0 22px -6px var(--go); }
   .live-btn:active{ transform:translateY(1px); }
+  .overlay.menu{ justify-content:flex-start; overflow-y:auto; gap:14px; padding:24px 20px 34px; }
+  .menu-hero{ display:flex; flex-direction:column; align-items:center; gap:2px; margin-top:4px; }
+  .panels{ display:flex; flex-direction:column; gap:12px; width:100%; max-width:360px; }
+  .panel{ pointer-events:auto; width:100%; text-align:left; background:linear-gradient(160deg, rgba(42,12,24,.9), rgba(15,5,9,.9)); border:1px solid rgba(255,150,165,.18); border-radius:18px; padding:14px 15px; color:var(--text); display:flex; flex-direction:column; gap:12px; cursor:pointer; font-family:inherit; }
+  .panel.tap:active{ transform:scale(.99); }
+  .panel-head{ display:flex; align-items:center; gap:12px; }
+  .picon{ font-size:24px; width:44px; height:44px; display:grid; place-items:center; background:rgba(67,224,207,.12); border-radius:12px; flex:0 0 auto; }
+  .panel-txt{ flex:1; }
+  .ptitle{ font-weight:800; font-size:16px; color:#fff; }
+  .psub{ font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .chev{ font-size:26px; color:var(--muted); line-height:1; }
+  .beta{ font-size:8.5px; background:var(--go); color:#0b3b22; border-radius:5px; padding:1px 5px; vertical-align:middle; letter-spacing:.05em; font-weight:800; }
+  .dist-chips{ display:flex; gap:8px; }
+  .chip{ flex:1; pointer-events:auto; cursor:pointer; background:rgba(20,4,8,.5); border:1px solid rgba(255,150,165,.18); color:var(--text); border-radius:12px; padding:9px 0; font-weight:800; font-size:15px; font-variant-numeric:tabular-nums; }
+  .chip small{ font-size:10px; color:var(--muted); font-weight:700; }
+  .chip.sel{ border-color:var(--energy); color:var(--energy); background:rgba(12,47,44,.5); box-shadow:0 0 0 1px var(--energy); }
+  .chip.sel small{ color:var(--pale-dim); }
+  .panel-play{ pointer-events:auto; cursor:pointer; border:none; background:linear-gradient(180deg,#ff8aa0,var(--membrane)); color:#2a0410; font-weight:800; font-size:15px; padding:12px; border-radius:12px; letter-spacing:.03em; }
+  .panel-play:active{ transform:translateY(1px); }
   .toast{ position:absolute; top:16px; left:50%; transform:translateX(-50%); z-index:40; background:rgba(15,5,9,.92); border:1px solid rgba(67,224,207,.45); color:var(--text); font-weight:700; font-size:13px; padding:10px 18px; border-radius:14px; box-shadow:0 8px 24px -8px #000; pointer-events:none; max-width:88%; text-align:center; }
   .toast.hidden{ display:none; }
   .diag{ position:absolute; left:8px; right:8px; bottom:6px; z-index:30; font-size:10px; line-height:1.4; text-align:center; color:var(--muted); pointer-events:none; text-shadow:0 1px 3px #000; }
@@ -196,19 +215,27 @@
 
     <div class="count hidden" id="count"><div class="big" id="countBig">3</div><div class="lbl" id="countLbl">Hold your phone comfortably…</div></div>
 
-    <div class="overlay" id="start">
-      <div class="eyebrow">🧬 featuring Spermy</div>
-      <h1 class="logo"><span class="hl">One</span> in a Million</h1>
-      <p class="tag">Rev up to launch. Ride the momentum up the canal. Sprint to the egg.</p>
-      <div class="challenge-badge hidden" id="challengeBadge"></div>
-      <div class="modes">
-        <div class="mode sel" id="modeLevel" data-mode="level">🥚 Level Race<small>Beat your rival to the egg</small></div>
-        <div class="mode" id="modeEndless" data-mode="endless">∞ Endless<small>How far can you get?</small></div>
+    <div class="overlay menu" id="start">
+      <div class="menu-hero">
+        <div class="eyebrow">🧬 featuring Spermy</div>
+        <h1 class="logo"><span class="hl">One</span> in a Million</h1>
       </div>
-      <button class="play" id="playBtn">TAP TO PLAY</button>
-      <button class="live-btn" id="liveBtn">🟢 Live race with friends</button>
+      <div class="challenge-badge hidden" id="challengeBadge"></div>
+      <div class="panels">
+        <div class="panel">
+          <div class="panel-head"><span class="picon">🏊</span><div class="panel-txt"><div class="ptitle">Practice</div><div class="psub">Single player — beat your best</div></div></div>
+          <div class="dist-chips" id="distChips">
+            <button class="chip" data-m="250">250<small>m</small></button>
+            <button class="chip sel" data-m="500">500<small>m</small></button>
+            <button class="chip" data-m="1000">1000<small>m</small></button>
+          </div>
+          <button class="panel-play" id="practicePlay">PLAY ▶</button>
+        </div>
+        <button class="panel tap" id="mpPanel"><div class="panel-head"><span class="picon">🟢</span><div class="panel-txt"><div class="ptitle">Multiplayer <span class="beta">BETA</span></div><div class="psub">Race real players — live room</div></div><span class="chev">›</span></div></button>
+        <button class="panel tap" id="chPanel"><div class="panel-head"><span class="picon">⚔</span><div class="panel-txt"><div class="ptitle">Challenge a friend</div><div class="psub">Send your ghost to beat</div></div><span class="chev">›</span></div></button>
+        <button class="panel tap" id="endlessPanel"><div class="panel-head"><span class="picon">∞</span><div class="panel-txt"><div class="ptitle">Endless</div><div class="psub">How far can you get?</div></div><span class="chev">›</span></div></button>
+      </div>
       <div class="hint" id="controlHint"></div>
-      <button class="challenge-btn" id="startChallengeBtn">⚔ Challenge a friend</button>
       <div class="challenge-paste" id="challengePaste">Got a challenge code? Tap to enter</div>
       <div class="fineprint" id="finePrint"></div>
     </div>
@@ -250,12 +277,12 @@
   const now = () => performance.now();
 
   // ---------- Tunables ----------
-  const LEVEL_LENGTH   = 3600;
   const PX_PER_UNIT    = 5.0;
+  let   LEVEL_LENGTH   = 2500;  // world units to the egg (default 500m; meters * PX_PER_UNIT)
+  let   SPRINT_START   = 1900;
+  function setLevelLength(units){ LEVEL_LENGTH = Math.max(700, Math.round(units)); SPRINT_START = LEVEL_LENGTH - Math.min(700, Math.round(LEVEL_LENGTH*0.24)); }
   const CRUISE_CAP     = 96;    // normal top speed (units/s)
   const OVER_CAP       = 132;   // reachable via perfect launch / boost / sprint
-  const SPRINT_ZONE    = 720;   // length of the final sprint straight
-  const SPRINT_START   = LEVEL_LENGTH - SPRINT_ZONE;
   const SPERM_Y_FRAC   = 0.72;
   const REFRACTORY     = 105;   // ms between counted strokes
   const SHAKE_THRESH   = 3.6;   // m/s^2 high-pass threshold for a stroke
@@ -448,6 +475,7 @@
   function setGhost(dists){
     if (!dists || dists.length<3) return false;
     G.ghost = dists;
+    setLevelLength(dists[dists.length-1]);   // match the friend's track length
     let gt = dists.length*0.1;
     for (let i=0;i<dists.length;i++){ if (dists[i]>=LEVEL_LENGTH){ gt=i*0.1; break; } }
     G.ghostTime = gt;
@@ -487,7 +515,7 @@
   function showLobby(){ $('start').classList.add('hidden'); $('end').classList.add('hidden'); $('lobby').classList.remove('hidden'); updateLobby(); }
   function updateLobby(){ const el=$('lobbyInfo'); if(!el) return; const n=peerCount()+1; el.innerHTML = 'Room <b>'+MP.code+'</b><br><span style="font-size:15px;color:var(--muted)">'+n+' swimmer'+(n===1?'':'s')+' connected</span>'; }
   function leaveLobby(){ try{ MP.room && MP.room.leave && MP.room.leave(); }catch(e){} MP.active=false; MP.room=null; MP.peers={}; MP.started=false; $('lobby').classList.add('hidden'); $('start').classList.remove('hidden'); }
-  function beginLiveRace(){ MP.started=true; G.ghost=null; $('lobby').classList.add('hidden'); selectMode('level'); beginPlay(); }
+  function beginLiveRace(){ MP.started=true; G.ghost=null; setLevelLength(2500); $('lobby').classList.add('hidden'); selectMode('level'); beginPlay(); }
   function broadcastState(){ if (!MP.active || !MP.send) return; MP.send({ d:Math.round(G.distance), x:+G.xNorm.toFixed(2), n:MP.name, fin:G.finished?1:0, ft:+G.elapsed.toFixed(1) }); }
   function prunePeers(){ const t=now(); for (const id in MP.peers){ if (t-(MP.peers[id].t||0) > 4000) delete MP.peers[id]; } }
   function drawPeers(){
@@ -531,9 +559,8 @@
   }
 
   // ---------- Flow ----------
-  function selectMode(m){ G.mode=m; $('modeLevel').classList.toggle('sel',m==='level'); $('modeEndless').classList.toggle('sel',m==='endless'); }
-  $('modeLevel').onclick = () => selectMode('level');
-  $('modeEndless').onclick = () => selectMode('endless');
+  function selectMode(m){ G.mode=m; const l=$('modeLevel'),e=$('modeEndless'); if(l)l.classList.toggle('sel',m==='level'); if(e)e.classList.toggle('sel',m==='endless'); }
+  let practiceM = 500;
 
   const detectControls = () => ('DeviceMotionEvent' in window);
   const inIframe = (() => { try { return window.self !== window.top; } catch(e){ return true; } })();
@@ -582,8 +609,12 @@
     if (G.mode==='level'){ $('sprintMark').style.top = (100 - SPRINT_START/LEVEL_LENGTH*100) + '%'; }
     startCountdown();
   }
-  $('playBtn').onclick = beginPlay;
   $('againBtn').onclick = beginPlay;
+  document.querySelectorAll('#distChips .chip').forEach(ch => { ch.onclick = () => { practiceM = +ch.dataset.m; document.querySelectorAll('#distChips .chip').forEach(c=>c.classList.toggle('sel', c===ch)); }; });
+  $('practicePlay').onclick = () => { setLevelLength(practiceM * PX_PER_UNIT); selectMode('level'); beginPlay(); };
+  $('endlessPanel').onclick = () => { selectMode('endless'); beginPlay(); };
+  $('mpPanel').onclick = () => startLive();
+  $('chPanel').onclick = () => shareChallenge();
   let toastTimer=0;
   function toast(msg){ const t=$('toast'); if(!t) return; t.textContent=msg; t.classList.remove('hidden'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.add('hidden'), 2400); }
   function shareChallenge(){
@@ -602,9 +633,7 @@
     if (setGhost(decodeGhost(raw))) toast('Challenge loaded ⚔ — race the ghost!'); else toast("Hmm, that code didn't work");
   }
   $('challengeBtn').onclick = shareChallenge;
-  $('startChallengeBtn').onclick = shareChallenge;
   $('challengePaste').onclick = enterChallenge;
-  $('liveBtn').onclick = startLive;
   $('lobbyStart').onclick = () => { if (MP.sendGo){ try{ MP.sendGo({}); }catch(e){} } beginLiveRace(); };
   $('lobbyLeave').onclick = leaveLobby;
 
@@ -1064,7 +1093,7 @@
   }
 
   // ---------- Boot ----------
-  resize(); selectMode('level'); updateHint(); loadGhostFromHash();
+  setLevelLength(2500); resize(); selectMode('level'); updateHint(); loadGhostFromHash();
   try { const _c = localStorage.getItem('oiam_run'); if (_c) G.lastGhostCode = _c; } catch(e){}
   $('finePrint').textContent = detectControls() ? 'On iPhone you may get a one-time "allow motion" prompt — tap Allow.' : 'No motion sensor detected — keyboard / touch controls will be used.';
   requestAnimationFrame(loop);
