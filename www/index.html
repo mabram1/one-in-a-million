@@ -276,7 +276,7 @@
     dpr = Math.min(window.devicePixelRatio || 1, 2.5);
     canvas.width = Math.round(W*dpr); canvas.height = Math.round(H*dpr);
     ctx.setTransform(dpr,0,0,dpr,0,0);
-    spermY = H*SPERM_Y_FRAC; cx = W/2; maxHalf = Math.min(W*0.42, 210);
+    spermY = H*SPERM_Y_FRAC; cx = W/2; maxHalf = Math.min(W*0.46, 225);
   }
   window.addEventListener('resize', resize);
   if (window.ResizeObserver){ new ResizeObserver(resize).observe(canvas); }
@@ -286,8 +286,8 @@
     const t = worldY*0.0017 + G.canalSeed;   // per-run phase => tunnel shape differs every game
     let half = maxHalf*(0.80 + 0.20*Math.sin(t));
     half *= 0.88 + 0.12*Math.sin(t*0.53 + 1.3);
-    half *= 1 - 0.52*Math.min(1, worldY/LEVEL_LENGTH);   // funnels: wide at the start, clearly narrower by the egg
-    return Math.max(maxHalf*0.30, half);
+    half *= 1 - 0.58*Math.min(1, worldY/LEVEL_LENGTH);   // funnels: wide at the start, clearly narrower by the egg
+    return Math.max(maxHalf*0.28, half);
   }
   const yToWorld = y => G.distance + (spermY - y)/PX_PER_UNIT;
   const worldToY = w => spermY - (w - G.distance)*PX_PER_UNIT;
@@ -400,22 +400,23 @@
     const horizon = G.distance + H/PX_PER_UNIT + 40;
     const spawnLimit = (G.mode==='level') ? SPRINT_START : Infinity; // clear straight for the sprint
     while (G.nextSpawn < horizon){
-      const d = G.distance;
-      const gap = Math.max(122, 225 - d*0.02);   // a touch denser (incl. the wide-open start); tightens toward the end
-      if (G.nextSpawn > 160 && G.nextSpawn < spawnLimit){
+      const prog = Math.min(1, G.nextSpawn/LEVEL_LENGTH);   // 0 at the wide start -> 1 at the narrow egg
+      const gap = Math.min(300, 132 + G.nextSpawn*0.05);    // dense at the start, sparser toward the end
+      if (G.nextSpawn > 150 && G.nextSpawn < spawnLimit){
         if (Math.random() < 0.62){
-          const n = 1 + (Math.random() < Math.min(0.5, d*0.0001) ? 1 : 0);
-          for (let i=0;i<n;i++) G.obstacles.push({ type:'cell', world:G.nextSpawn + i*22, lane:(Math.random()*1.6-0.8), r:15+Math.random()*14, hit:false, ph:Math.random()*6.28 });
+          const n = 1 + (Math.random() < 0.42*(1-prog) ? 1 : 0);        // clusters early, singles late
+          const size = (14 + Math.random()*13) * (1 - 0.4*prog);         // obstacles shrink toward the end
+          for (let i=0;i<n;i++) G.obstacles.push({ type:'cell', world:G.nextSpawn + i*22, lane:(Math.random()*1.6-0.8), r:size, hit:false, ph:Math.random()*6.28 });
         } else {
-          G.obstacles.push({ type:'band', world:G.nextSpawn, gapLane:(Math.random()*1.35-0.675), gapHalf:Math.max(0.40, 0.62 - d*0.00005), hit:false });
+          G.obstacles.push({ type:'band', world:G.nextSpawn, gapLane:(Math.random()*1.3-0.65), gapHalf:Math.min(0.72, 0.44 + prog*0.22), hit:false });
         }
         if (Math.random() < 0.20){   // a collectible sitting in the open lane
           const roll=Math.random(); const kind = roll<0.5?'star':roll<0.7?'boost':roll<0.9?'shield':'speed';
           G.pickups.push({ kind, world:G.nextSpawn + gap*0.5, lane:(Math.random()*1.5-0.75), r:14, taken:false, ph:Math.random()*6.28 });
         }
       }
-      // only a rare wide-open "breather" for variety (kept subtle so it never feels empty)
-      G.nextSpawn += (Math.random() < 0.07) ? gap*1.5 : gap;
+      // only a rare wide-open "breather" for variety
+      G.nextSpawn += (Math.random() < 0.07) ? gap*1.4 : gap;
     }
     G.obstacles = G.obstacles.filter(o => o.world > G.distance - 30);
   }
