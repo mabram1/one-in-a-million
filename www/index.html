@@ -237,6 +237,7 @@
       </div>
       <div class="hint" id="controlHint"></div>
       <div class="challenge-paste" id="challengePaste">Got a challenge code? Tap to enter</div>
+      <div class="challenge-paste" id="serverCfg" style="color:var(--energy)">⚙ Server settings (Supabase)</div>
       <div class="fineprint" id="finePrint"></div>
     </div>
 
@@ -266,7 +267,11 @@
   try {
     const m = await import('https://esm.sh/trystero@0.20.0/nostr');
     window.__trystero = { joinRoom: m.joinRoom };
-  } catch (e) { /* live race stays unavailable */ }
+  } catch (e) { /* P2P fallback unavailable */ }
+  try {
+    const s = await import('https://esm.sh/@supabase/supabase-js@2');
+    window.__supa = { createClient: s.createClient };
+  } catch (e) { /* Supabase transport unavailable */ }
 </script>
 <script>
 (() => {
@@ -489,32 +494,89 @@
   }
 
   // ---------- Live multiplayer (serverless P2P rooms via Trystero) ----------
-  const MP = { active:false, room:null, code:'', name:'', peers:{}, send:null, sendGo:null, started:false, _sendT:0 };
+  const MP = { active:false, transport:'', room:null, client:null, ch:null, id:'', code:'', name:'', peers:{}, send:null, sendGo:null, started:false, _sendT:0 };
   const randomCode = () => { let c='', A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; for(let i=0;i<4;i++) c+=A[Math.floor(Math.random()*A.length)]; return c; };
   function peerHue(id){ let h=0; for(const ch of id) h=(h*31 + ch.charCodeAt(0))%360; return h; }
   function peerCount(){ return Object.keys(MP.peers).length; }
+
+  // --- server config (Supabase: works with self-hosted Docker or cloud — only URL + anon key change) ---
+  function supaCfg(){ try { return JSON.parse(localStorage.getItem('oiam_supa')||'null'); } catch(e){ return null; } }
+  function setSupaCfg(){
+    const cur = supaCfg()||{}; let url='', key='';
+    try { url = prompt('Supabase URL (e.g. http://localhost:8000 or https://xxx.supabase.co).\nLeave blank to clear and use P2P:', cur.url||'')||''; } catch(e){ return; }
+    if (!url.trim()){ try{ localStorage.removeItem('oiam_supa'); }catch(e){} toast('Server cleared — using P2P'); return; }
+    try { key = prompt('Supabase anon key:', cur.key||'')||''; } catch(e){ return; }
+    if (!key.trim()) return;
+    try { localStorage.setItem('oiam_supa', JSON.stringify({ url:url.trim().replace(/\/+$/,''), key:key.trim() })); } catch(e){}
+    toast('Server saved ✓ — Multiplayer now uses Supabase');
+  }
+
   function startLive(){
-    if (!window.__trystero){ toast('Live race needs the web/app link (not the in-chat preview)'); return; }
+    const cfg = supaCfg();
+    const haveSupa = !!(cfg && cfg.url && cfg.key && window.__supa);
+    if (!haveSupa && !window.__trystero){ toast('Live race needs the web/app link (not the in-chat preview)'); return; }
     let code=''; try{ code = prompt('Enter a room code to join a friend, or leave blank to create one:')||''; }catch(e){ return; }
     code = code.trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
     if (!code) code = randomCode();
+    MP.code=code; MP.active=true; MP.started=false; MP.peers={};
+    MP.name = 'Swimmer '+Math.floor(Math.random()*90+10);
+    MP.id = Math.random().toString(36).slice(2,9);
+    if (haveSupa) startLiveSupabase(code, cfg); else startLiveP2P(code);
+  }
+
+  function startLiveSupabase(code, cfg){
+    try {
+      const client = window.__supa.createClient(cfg.url, cfg.key, { realtime:{ params:{ eventsPerSecond: 20 } } });
+      const ch = client.channel('oiam:'+code, { config:{ broadcast:{ self:false }, presence:{ key: MP.id } } });
+      MP.transport='supabase'; MP.client=client; MP.ch=ch;
+      ch.on('broadcast', { event:'st' }, ({ payload }) => {
+        if (!payload || !payload.id || payload.id===MP.id) return;
+        const p = MP.peers[payload.id] || (MP.peers[payload.id]={});
+        p.d=payload.d; p.x=payload.x; p.n=payload.n; p.fin=payload.fin; p.ft=payload.ft; p.t=now();
+      });
+      ch.on('broadcast', { event:'go' }, () => { if (!MP.started) beginLiveRace(); });
+      ch.on('presence', { event:'sync' }, updateLobby);
+      ch.on('presence', { event:'join' }, updateLobby);
+      ch.on('presence', { event:'leave' }, updateLobby);
+      ch.subscribe(async (status) => {
+        if (status==='SUBSCRIBED'){ try{ await ch.track({ name: MP.name }); }catch(e){} updateLobby(); }
+        else if (status==='CHANNEL_ERROR' || status==='TIMED_OUT'){ toast('Cannot reach Supabase — check Server settings'); }
+      });
+      MP.send   = (payload) => { try{ ch.send({ type:'broadcast', event:'st', payload:{ ...payload, id:MP.id } }); }catch(e){} };
+      MP.sendGo = () => { try{ ch.send({ type:'broadcast', event:'go', payload:{} }); }catch(e){} };
+      showLobby();
+    } catch(e){ MP.active=false; toast('Supabase connection failed — check Server settings'); }
+  }
+
+  function startLiveP2P(code){
     try {
       const room = window.__trystero.joinRoom({ appId:'oneinamillion-oiam-v1' }, code);
-      MP.room=room; MP.code=code; MP.active=true; MP.started=false; MP.peers={};
-      MP.name = 'Swimmer '+Math.floor(Math.random()*90+10);
+      MP.transport='p2p'; MP.room=room;
       const [sendState, getState] = room.makeAction('st');
       const [sendGo, getGo] = room.makeAction('go');
       MP.send = sendState; MP.sendGo = sendGo;
       getState((d, id) => { const p = MP.peers[id] || (MP.peers[id]={}); p.d=d.d; p.x=d.x; p.n=d.n; p.fin=d.fin; p.ft=d.ft; p.t=now(); });
-      getGo((_, id) => { if (!MP.started) beginLiveRace(); });
+      getGo(() => { if (!MP.started) beginLiveRace(); });
       room.onPeerJoin(()=>updateLobby());
       room.onPeerLeave(id=>{ delete MP.peers[id]; updateLobby(); });
       showLobby();
     } catch(e){ MP.active=false; toast('Could not open the room — try the web/app link'); }
   }
+
   function showLobby(){ $('start').classList.add('hidden'); $('end').classList.add('hidden'); $('lobby').classList.remove('hidden'); updateLobby(); }
-  function updateLobby(){ const el=$('lobbyInfo'); if(!el) return; const n=peerCount()+1; el.innerHTML = 'Room <b>'+MP.code+'</b><br><span style="font-size:15px;color:var(--muted)">'+n+' swimmer'+(n===1?'':'s')+' connected</span>'; }
-  function leaveLobby(){ try{ MP.room && MP.room.leave && MP.room.leave(); }catch(e){} MP.active=false; MP.room=null; MP.peers={}; MP.started=false; $('lobby').classList.add('hidden'); $('start').classList.remove('hidden'); }
+  function updateLobby(){
+    const el=$('lobbyInfo'); if(!el) return;
+    let n = peerCount()+1;
+    if (MP.transport==='supabase' && MP.ch && MP.ch.presenceState){ try{ n = Math.max(1, Object.keys(MP.ch.presenceState()).length); }catch(e){} }
+    const via = MP.transport==='supabase' ? 'Supabase' : 'P2P';
+    el.innerHTML = 'Room <b>'+MP.code+'</b><br><span style="font-size:15px;color:var(--muted)">'+n+' swimmer'+(n===1?'':'s')+' connected · via '+via+'</span>';
+  }
+  function leaveLobby(){
+    try{ MP.room && MP.room.leave && MP.room.leave(); }catch(e){}
+    try{ MP.ch && MP.ch.unsubscribe && MP.ch.unsubscribe(); }catch(e){}
+    MP.active=false; MP.transport=''; MP.room=null; MP.ch=null; MP.client=null; MP.peers={}; MP.started=false;
+    $('lobby').classList.add('hidden'); $('start').classList.remove('hidden');
+  }
   function beginLiveRace(){ MP.started=true; G.ghost=null; setLevelLength(2500); $('lobby').classList.add('hidden'); selectMode('level'); beginPlay(); }
   function broadcastState(){ if (!MP.active || !MP.send) return; MP.send({ d:Math.round(G.distance), x:+G.xNorm.toFixed(2), n:MP.name, fin:G.finished?1:0, ft:+G.elapsed.toFixed(1) }); }
   function prunePeers(){ const t=now(); for (const id in MP.peers){ if (t-(MP.peers[id].t||0) > 4000) delete MP.peers[id]; } }
@@ -634,6 +696,7 @@
   }
   $('challengeBtn').onclick = shareChallenge;
   $('challengePaste').onclick = enterChallenge;
+  $('serverCfg').onclick = setSupaCfg;
   $('lobbyStart').onclick = () => { if (MP.sendGo){ try{ MP.sendGo({}); }catch(e){} } beginLiveRace(); };
   $('lobbyLeave').onclick = leaveLobby;
 
