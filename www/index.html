@@ -225,9 +225,9 @@
         <div class="panel">
           <div class="panel-head"><span class="picon">🏊</span><div class="panel-txt"><div class="ptitle">Practice</div><div class="psub">Single player — beat your best</div></div></div>
           <div class="dist-chips" id="distChips">
-            <button class="chip" data-m="250">250<small>m</small></button>
-            <button class="chip sel" data-m="500">500<small>m</small></button>
-            <button class="chip" data-m="1000">1000<small>m</small></button>
+            <button class="chip" data-m="750">750<small>m</small></button>
+            <button class="chip sel" data-m="1000">1000<small>m</small></button>
+            <button class="chip" data-m="1250">1250<small>m</small></button>
           </div>
           <button class="panel-play" id="practicePlay">PLAY ▶</button>
         </div>
@@ -577,7 +577,7 @@
     MP.active=false; MP.transport=''; MP.room=null; MP.ch=null; MP.client=null; MP.peers={}; MP.started=false;
     $('lobby').classList.add('hidden'); $('start').classList.remove('hidden');
   }
-  function beginLiveRace(){ MP.started=true; G.ghost=null; setLevelLength(2500); $('lobby').classList.add('hidden'); selectMode('level'); beginPlay(); }
+  function beginLiveRace(){ MP.started=true; G.ghost=null; setLevelLength(5000); $('lobby').classList.add('hidden'); selectMode('level'); beginPlay(); }
   function broadcastState(){ if (!MP.active || !MP.send) return; MP.send({ d:Math.round(G.distance), x:+G.xNorm.toFixed(2), n:MP.name, fin:G.finished?1:0, ft:+G.elapsed.toFixed(1) }); }
   function prunePeers(){ const t=now(); for (const id in MP.peers){ if (t-(MP.peers[id].t||0) > 4000) delete MP.peers[id]; } }
   function drawPeers(){
@@ -622,7 +622,7 @@
 
   // ---------- Flow ----------
   function selectMode(m){ G.mode=m; const l=$('modeLevel'),e=$('modeEndless'); if(l)l.classList.toggle('sel',m==='level'); if(e)e.classList.toggle('sel',m==='endless'); }
-  let practiceM = 500;
+  let practiceM = 1000;
 
   const detectControls = () => ('DeviceMotionEvent' in window);
   const inIframe = (() => { try { return window.self !== window.top; } catch(e){ return true; } })();
@@ -1156,7 +1156,7 @@
   }
 
   // ---------- Boot ----------
-  setLevelLength(2500); resize(); selectMode('level'); updateHint(); loadGhostFromHash();
+  setLevelLength(5000); resize(); selectMode('level'); updateHint(); loadGhostFromHash();
   try { const _c = localStorage.getItem('oiam_run'); if (_c) G.lastGhostCode = _c; } catch(e){}
   $('finePrint').textContent = detectControls() ? 'On iPhone you may get a one-time "allow motion" prompt — tap Allow.' : 'No motion sensor detected — keyboard / touch controls will be used.';
   requestAnimationFrame(loop);
