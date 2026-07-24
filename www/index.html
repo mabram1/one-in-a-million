@@ -500,15 +500,24 @@
   function peerCount(){ return Object.keys(MP.peers).length; }
 
   // --- server config (Supabase: works with self-hosted Docker or cloud — only URL + anon key change) ---
-  function supaCfg(){ try { return JSON.parse(localStorage.getItem('oiam_supa')||'null'); } catch(e){ return null; } }
+  // Live server everyone uses by default. The anon key is public by design (safe in client code).
+  const SUPA_DEFAULT = {
+    url: 'https://tsddumsxoclcjguczezr.supabase.co',
+    key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzZGR1bXN4b2NsY2pndWN6ZXpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4Nzg0OTAsImV4cCI6MjEwMDQ1NDQ5MH0.1yTBnlNOAzxgSQdS27bo52fPSx_JEH5T2DM3cQb8rq4'
+  };
+  const normUrl = u => String(u||'').trim().replace(/\/+$/,'').replace(/\/rest\/v1$/,'');
+  function supaCfg(){
+    try { const s = JSON.parse(localStorage.getItem('oiam_supa')||'null'); if (s && s.url && s.key) return s; } catch(e){}
+    return SUPA_DEFAULT;
+  }
   function setSupaCfg(){
     const cur = supaCfg()||{}; let url='', key='';
-    try { url = prompt('Supabase URL (e.g. http://localhost:8000 or https://xxx.supabase.co).\nLeave blank to clear and use P2P:', cur.url||'')||''; } catch(e){ return; }
-    if (!url.trim()){ try{ localStorage.removeItem('oiam_supa'); }catch(e){} toast('Server cleared — using P2P'); return; }
+    try { url = prompt('Supabase URL — leave blank to use the default live server:', cur.url||'')||''; } catch(e){ return; }
+    if (!normUrl(url)){ try{ localStorage.removeItem('oiam_supa'); }catch(e){} toast('Using the default live server ✓'); return; }
     try { key = prompt('Supabase anon key:', cur.key||'')||''; } catch(e){ return; }
     if (!key.trim()) return;
-    try { localStorage.setItem('oiam_supa', JSON.stringify({ url:url.trim().replace(/\/+$/,''), key:key.trim() })); } catch(e){}
-    toast('Server saved ✓ — Multiplayer now uses Supabase');
+    try { localStorage.setItem('oiam_supa', JSON.stringify({ url:normUrl(url), key:key.trim() })); } catch(e){}
+    toast('Custom server saved ✓');
   }
 
   function startLive(){
