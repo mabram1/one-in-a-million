@@ -10,6 +10,7 @@
  * bootGame() returns a handle used by tests to drive the loop deterministically.
  */
 import { tuning } from '../config/tuning';
+import { mulberry32, randomSeed, type Rng } from '../content/prng';
 
 export function bootGame() {
   "use strict";
@@ -68,6 +69,7 @@ export function bootGame() {
     charge:0, chargeInputT:0,
     topSpeed:0, hits:0, elapsed:0,
     obstacles:[], pickups:[], score:0, nextSpawn:0, particles:[],
+    raceSeed:0, rng:(Math.random as Rng), _seedOverride:null,
     ghost:null, ghostTime:0, ghostRec:[], _ghostTimer:0, lastGhostCode:'',
     hitFlash:0, shake:0, tailPhase:0, flick:0,
     rival:{ world:0, speed:0, target:60, finished:false, finishT:0, retarget:0 },
@@ -417,7 +419,7 @@ export function bootGame() {
   // ---------- Spawning ----------
   function seedParticles(){
     G.particles = [];
-    for (let i=0;i<trackGeneration.particleCount;i++) G.particles.push({ w:G.distance + Math.random()*(H/PX_PER_UNIT+60), lane:(Math.random()*2-1), s:1+Math.random()*2.4, sway:Math.random()*6.28 });
+    for (let i=0;i<trackGeneration.particleCount;i++) G.particles.push({ w:G.distance + G.rng()*(H/PX_PER_UNIT+60), lane:(G.rng()*2-1), s:1+G.rng()*2.4, sway:G.rng()*6.28 });
   }
   function spawnAhead(){
     const horizon = G.distance + H/PX_PER_UNIT + 40;
@@ -426,20 +428,20 @@ export function bootGame() {
       const prog = Math.min(1, G.nextSpawn/LEVEL_LENGTH);   // 0 at the wide start -> 1 at the narrow egg
       const gap = Math.min(trackGeneration.gapMax, trackGeneration.gapBase + G.nextSpawn*trackGeneration.gapPerWorldUnit);    // dense at the start, sparser toward the end
       if (G.nextSpawn > trackGeneration.graceUntilUnits && G.nextSpawn < spawnLimit){
-        if (Math.random() < trackGeneration.cellProbability){
-          const n = 1 + (Math.random() < trackGeneration.clusterProbability*(1-prog) ? 1 : 0);        // clusters early, singles late
-          const size = (trackGeneration.cellSizeBase + Math.random()*trackGeneration.cellSizeRandom) * (1 - trackGeneration.cellShrinkByProgress*prog);         // obstacles shrink toward the end
-          for (let i=0;i<n;i++) G.obstacles.push({ type:'cell', world:G.nextSpawn + i*trackGeneration.clusterSpacingUnits, lane:(Math.random()*trackGeneration.cellLaneSpread-trackGeneration.cellLaneSpread/2), r:size, hit:false, ph:Math.random()*6.28 });
+        if (G.rng() < trackGeneration.cellProbability){
+          const n = 1 + (G.rng() < trackGeneration.clusterProbability*(1-prog) ? 1 : 0);        // clusters early, singles late
+          const size = (trackGeneration.cellSizeBase + G.rng()*trackGeneration.cellSizeRandom) * (1 - trackGeneration.cellShrinkByProgress*prog);         // obstacles shrink toward the end
+          for (let i=0;i<n;i++) G.obstacles.push({ type:'cell', world:G.nextSpawn + i*trackGeneration.clusterSpacingUnits, lane:(G.rng()*trackGeneration.cellLaneSpread-trackGeneration.cellLaneSpread/2), r:size, hit:false, ph:G.rng()*6.28 });
         } else {
-          G.obstacles.push({ type:'band', world:G.nextSpawn, gapLane:(Math.random()*trackGeneration.bandLaneSpread-trackGeneration.bandLaneSpread/2), gapHalf:Math.min(trackGeneration.bandGapMax, trackGeneration.bandGapBase + prog*trackGeneration.bandGapByProgress), hit:false });
+          G.obstacles.push({ type:'band', world:G.nextSpawn, gapLane:(G.rng()*trackGeneration.bandLaneSpread-trackGeneration.bandLaneSpread/2), gapHalf:Math.min(trackGeneration.bandGapMax, trackGeneration.bandGapBase + prog*trackGeneration.bandGapByProgress), hit:false });
         }
-        if (Math.random() < trackGeneration.pickupProbability){   // a collectible sitting in the open lane
-          const roll=Math.random(); const kind = roll<0.5?'star':roll<0.7?'boost':roll<0.9?'shield':'speed';
-          G.pickups.push({ kind, world:G.nextSpawn + gap*0.5, lane:(Math.random()*1.5-0.75), r:trackGeneration.cellSizeBase, taken:false, ph:Math.random()*6.28 });
+        if (G.rng() < trackGeneration.pickupProbability){   // a collectible sitting in the open lane
+          const roll=G.rng(); const kind = roll<0.5?'star':roll<0.7?'boost':roll<0.9?'shield':'speed';
+          G.pickups.push({ kind, world:G.nextSpawn + gap*0.5, lane:(G.rng()*1.5-0.75), r:trackGeneration.cellSizeBase, taken:false, ph:G.rng()*6.28 });
         }
       }
       // only a rare wide-open "breather" for variety
-      G.nextSpawn += (Math.random() < trackGeneration.breatherProbability) ? gap*trackGeneration.breatherMultiplier : gap;
+      G.nextSpawn += (G.rng() < trackGeneration.breatherProbability) ? gap*trackGeneration.breatherMultiplier : gap;
     }
     G.obstacles = G.obstacles.filter(o => o.world > G.distance - trackGeneration.cullBehindUnits);
   }
@@ -527,13 +529,17 @@ export function bootGame() {
 
   function resetRun(){
     try{ clearInterval(MP._finT); }catch(e){}
+    // Seed the reproducible track RNG first — canal shape and particles derive from it.
+    // Priority: explicit override (tests / multiplayer host / challenge) > fresh random seed.
+    G.raceSeed = (G._seedOverride != null) ? (G._seedOverride >>> 0) : randomSeed();
+    G.rng = mulberry32(G.raceSeed);
     Object.assign(G, { distance:0, prevDistance:0, speed:0, xNorm:0, steer:0, steerTarget:0,
       strokes:[], boostOn:false, sprint:false, charge:0, chargeInputT:0,
       topSpeed:0, hits:0, elapsed:0, obstacles:[], pickups:[], score:0, nextSpawn:0,
       hitFlash:0, shake:0, tailPhase:0, flick:0, bestDist:0, finished:false, win:false, banner:null,
       boostCharges:items.startingBoostCharges, shieldCharges:items.startingShieldCharges, shieldActive:false, boosting:0,
       ghostRec:[], _ghostTimer:0, lastGhostCode:'',
-      canalSeed: Math.random()*1000 });
+      canalSeed: G.rng()*1000 });
     G.motion.prevMag=null; G.motion.base=G.motion.lp;
     G.rival = { world:0, speed:0, target:0.7*CRUISE_CAP, finished:false, finishT:0, retarget:0 };
     seedParticles();
@@ -677,7 +683,7 @@ export function bootGame() {
 
     spawnAhead(); collisions(); collectPickups(); updateRival(dt, t);
 
-    for (const p of G.particles){ if (p.w < G.distance-10) p.w += H/PX_PER_UNIT + 60 + Math.random()*40; p.sway += dt*2; }
+    for (const p of G.particles){ if (p.w < G.distance-10) p.w += H/PX_PER_UNIT + 60 + G.rng()*40; p.sway += dt*2; }
 
     if (G.mode==='level' && G.distance >= LEVEL_LENGTH && !G.finished){ G.distance=LEVEL_LENGTH; endRun(true); }
     if (G.mode==='endless' && G.distance > G.bestDist) G.bestDist = G.distance;
