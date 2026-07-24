@@ -260,6 +260,7 @@
         <button class="chip" data-m="800">800<small>m</small></button>
       </div>
       <button class="play" id="lobbyStart">START RACE</button>
+      <div class="tag" id="lobbyWait" style="display:none">⏳ Waiting for the host to start the race…</div>
       <button class="challenge-btn" id="lobbyLeave">← Leave room</button>
     </div>
 
@@ -543,6 +544,7 @@
     if (!haveSupa && !window.__trystero){ toast('Live race needs the web/app link (not the in-chat preview)'); return; }
     let code=''; try{ code = prompt('Enter a room code to join a friend, or leave blank to create one:')||''; }catch(e){ return; }
     code = code.trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
+    MP.isHost = !code;                    // created the room => host; typed a code => joined
     if (!code) code = randomCode();
     MP.code=code; MP.active=true; MP.started=false; MP.peers={};
     MP.name = 'Swimmer '+Math.floor(Math.random()*90+10);
@@ -558,7 +560,8 @@
       ch.on('broadcast', { event:'st' }, ({ payload }) => {
         if (!payload || !payload.id || payload.id===MP.id) return;
         const p = MP.peers[payload.id] || (MP.peers[payload.id]={});
-        p.d=payload.d; p.x=payload.x; p.n=payload.n; p.fin=payload.fin; p.ft=payload.ft; p.t=now();
+        p.td=payload.d; p.tx=payload.x; if (p.d==null){ p.d=p.td; p.x=p.tx; }   // smoothed toward target
+        p.n=payload.n; p.fin=payload.fin; p.ft=payload.ft; p.t=now();
       });
       ch.on('broadcast', { event:'go' }, ({ payload }) => { if (!MP.started) beginLiveRace(payload && payload.m); });
       ch.on('presence', { event:'sync' }, updateLobby);
@@ -581,7 +584,7 @@
       const [sendState, getState] = room.makeAction('st');
       const [sendGo, getGo] = room.makeAction('go');
       MP.send = sendState; MP.sendGo = sendGo;
-      getState((d, id) => { const p = MP.peers[id] || (MP.peers[id]={}); p.d=d.d; p.x=d.x; p.n=d.n; p.fin=d.fin; p.ft=d.ft; p.t=now(); });
+      getState((d, id) => { const p = MP.peers[id] || (MP.peers[id]={}); p.td=d.d; p.tx=d.x; if (p.d==null){ p.d=p.td; p.x=p.tx; } p.n=d.n; p.fin=d.fin; p.ft=d.ft; p.t=now(); });
       getGo((d) => { if (!MP.started) beginLiveRace(d && d.m); });
       room.onPeerJoin(()=>updateLobby());
       room.onPeerLeave(id=>{ delete MP.peers[id]; updateLobby(); });
@@ -596,8 +599,14 @@
     if (MP.transport==='supabase' && MP.ch && MP.ch.presenceState){ try{ n = Math.max(1, Object.keys(MP.ch.presenceState()).length); }catch(e){} }
     const via = MP.transport==='supabase' ? 'Supabase' : 'P2P';
     el.innerHTML = 'Room <b>'+MP.code+'</b><br><span style="font-size:15px;color:var(--muted)">'+n+' swimmer'+(n===1?'':'s')+' connected · via '+via+'</span>';
+    // only the host starts the race (and picks the distance)
+    const sb=$('lobbyStart'), wt=$('lobbyWait'), ch=$('mpChips');
+    if (sb) sb.style.display = MP.isHost ? '' : 'none';
+    if (ch) ch.style.display = MP.isHost ? '' : 'none';
+    if (wt) wt.style.display = MP.isHost ? 'none' : '';
   }
   function leaveLobby(){
+    try{ clearInterval(MP._finT); }catch(e){}
     try{ MP.room && MP.room.leave && MP.room.leave(); }catch(e){}
     try{ MP.ch && MP.ch.unsubscribe && MP.ch.unsubscribe(); }catch(e){}
     MP.active=false; MP.transport=''; MP.room=null; MP.ch=null; MP.client=null; MP.peers={}; MP.started=false;
@@ -606,7 +615,15 @@
   let mpM = 600;   // multiplayer track length (metres), chosen in the lobby
   function beginLiveRace(m){ MP.started=true; G.ghost=null; setLevelLength((m||mpM||600)*PX_PER_UNIT); $('lobby').classList.add('hidden'); selectMode('level'); beginPlay(); }
   function broadcastState(){ if (!MP.active || !MP.send) return; MP.send({ d:Math.round(G.distance), x:+G.xNorm.toFixed(2), n:MP.name, fin:G.finished?1:0, ft:+G.elapsed.toFixed(1) }); }
-  function prunePeers(){ const t=now(); for (const id in MP.peers){ if (t-(MP.peers[id].t||0) > 4000) delete MP.peers[id]; } }
+  // keep finished racers forever (they stop broadcasting) so results/placement stay correct
+  function prunePeers(){ const t=now(); for (const id in MP.peers){ const p=MP.peers[id]; if (!p.fin && t-(p.t||0) > 6000) delete MP.peers[id]; } }
+  function smoothPeers(dt){
+    const k = Math.min(1, dt*9);
+    for (const id in MP.peers){ const p=MP.peers[id];
+      if (p.td!=null){ if (p.d==null) p.d=p.td; p.d += (p.td-p.d)*k; }
+      if (p.tx!=null){ if (p.x==null) p.x=p.tx; p.x += (p.tx-p.x)*k; }
+    }
+  }
   // Everyone you're racing (live peers, or the AI rival / friend's ghost in single player)
   function competitors(){
     const out=[];
@@ -657,8 +674,8 @@
     for (const id in MP.peers){ const p=MP.peers[id]; if (p.d==null) continue;
       const y=worldToY(p.d); if (y<-44||y>H+44) continue;
       const x=cx + (p.x||0)*(wallHalf(p.d)-22); const hue=peerHue(id);
-      drawSpermShape(x, y, 0.82, 'hsl('+hue+',75%,88%)', 'hsl('+hue+',85%,62%)', p.fin?0.45:0.82, now()*0.011, false);
-      ctx.save(); ctx.globalAlpha=0.9; ctx.fillStyle='#fff'; ctx.font='700 10px system-ui, sans-serif'; ctx.textAlign='center';
+      drawSpermShape(x, y, 0.82, 'hsl('+hue+',75%,88%)', 'hsl('+hue+',85%,62%)', p.fin?0.26:0.5, now()*0.011, false);
+      ctx.save(); ctx.globalAlpha=0.6; ctx.fillStyle='#fff'; ctx.font='700 10px system-ui, sans-serif'; ctx.textAlign='center';
       ctx.shadowColor='#000'; ctx.shadowBlur=4; ctx.fillText(p.n||'?', x, y-26); ctx.restore();
     }
   }
@@ -771,10 +788,11 @@
   $('challengePaste').onclick = enterChallenge;
   $('serverCfg').onclick = setSupaCfg;
   document.querySelectorAll('#mpChips .chip').forEach(ch => { ch.onclick = () => { mpM = +ch.dataset.m; document.querySelectorAll('#mpChips .chip').forEach(c=>c.classList.toggle('sel', c===ch)); }; });
-  $('lobbyStart').onclick = () => { if (MP.sendGo){ try{ MP.sendGo({ m: mpM }); }catch(e){} } beginLiveRace(mpM); };
+  $('lobbyStart').onclick = () => { if (!MP.isHost) return; if (MP.sendGo){ try{ MP.sendGo({ m: mpM }); }catch(e){} } beginLiveRace(mpM); };
   $('lobbyLeave').onclick = leaveLobby;
 
   function resetRun(){
+    try{ clearInterval(MP._finT); }catch(e){}
     Object.assign(G, { distance:0, prevDistance:0, speed:0, xNorm:0, steer:0, steerTarget:0,
       strokes:[], boostOn:false, sprint:false, charge:0, chargeInputT:0,
       topSpeed:0, hits:0, elapsed:0, obstacles:[], pickups:[], score:0, nextSpawn:0,
@@ -815,6 +833,9 @@
     let title, sub, cls='';
     if (MP.active){
       broadcastState();
+      // keep announcing our finish time — others still racing must learn it to place correctly
+      try{ clearInterval(MP._finT); }catch(e){}
+      MP._finT = setInterval(() => { if (MP.active) broadcastState(); else clearInterval(MP._finT); }, 1000);
       const others=Object.values(MP.peers);
       const before=others.filter(p=>p.fin && p.ft!=null && p.ft <= G.elapsed).length;
       const place=before+1, total=others.length+1;
@@ -927,7 +948,7 @@
     if (G.mode==='level' && G.distance >= LEVEL_LENGTH && !G.finished){ G.distance=LEVEL_LENGTH; endRun(true); }
     if (G.mode==='endless' && G.distance > G.bestDist) G.bestDist = G.distance;
 
-    if (MP.active){ MP._sendT += dt; if (MP._sendT >= 0.066){ MP._sendT=0; broadcastState(); } prunePeers(); }
+    if (MP.active){ MP._sendT += dt; if (MP._sendT >= 0.066){ MP._sendT=0; broadcastState(); } prunePeers(); smoothPeers(dt); }
 
     syncHUD();
   }
@@ -1155,8 +1176,8 @@
     if (MP.active || G.mode!=='level' || G.rival.finished) return;
     const y=worldToY(G.rival.world); if (y<-40||y>H+40) return;
     const x=cx + 0.45*(wallHalf(G.rival.world)-22);
-    if (G.ghost) drawSpermShape(x,y,0.8,'#dbeaff','#9ec4ff',0.62, now()*0.01, false);   // friend's ghost
-    else drawSpermShape(x,y,0.78,'#ffb9ae','#ff6a5c',0.75, now()*0.01, false);          // AI rival
+    if (G.ghost) drawSpermShape(x,y,0.8,'#dbeaff','#9ec4ff',0.45, now()*0.01, false);   // friend's ghost
+    else drawSpermShape(x,y,0.78,'#ffb9ae','#ff6a5c',0.55, now()*0.01, false);          // AI rival
   }
   function drawSperm(){
     const showAtStart = (G.state==='charging' || G.state==='playing' || G.state==='ready');
