@@ -71,6 +71,7 @@
   .marker{ position:absolute; left:50%; width:20px; height:20px; border-radius:50%; transform:translate(-50%,50%); box-shadow:0 0 10px currentColor; display:grid; place-items:center; font-size:11px; border:2px solid #160409; }
   .marker.you{ background:var(--energy); color:#0b3b36; }
   .marker.rival{ background:var(--danger); color:#3a0d0a; width:16px; height:16px; opacity:.95; }
+  .marker.comp{ width:15px; height:15px; opacity:.95; border:2px solid #160409; }
   .race .place{ position:absolute; bottom:-54px; left:50%; transform:translateX(-50%); width:58px; text-align:center; background:rgba(15,5,9,.7); border:1px solid rgba(67,224,207,.25); border-radius:12px; padding:5px 0; }
   .race .place .pk{ font-size:8.5px; letter-spacing:.14em; color:var(--muted); }
   .race .place .pv{ font-size:17px; font-weight:800; color:var(--energy); }
@@ -253,6 +254,11 @@
       <div class="eyebrow">🟢 Live race — beta</div>
       <h2 class="result" id="lobbyInfo">Room …</h2>
       <p class="tag">Share the room code with friends. When everyone is in, tap START — you all race together.</p>
+      <div class="dist-chips" id="mpChips" style="max-width:320px;width:100%">
+        <button class="chip" data-m="400">400<small>m</small></button>
+        <button class="chip sel" data-m="600">600<small>m</small></button>
+        <button class="chip" data-m="800">800<small>m</small></button>
+      </div>
       <button class="play" id="lobbyStart">START RACE</button>
       <button class="challenge-btn" id="lobbyLeave">← Leave room</button>
     </div>
@@ -316,6 +322,7 @@
 
   // ---------- State ----------
   let W=0, H=0, spermY=0, cx=0, maxHalf=0, dpr=1;
+  const GFX = {};   // cached gradients (rebuilt on resize)
   const G = {
     state:'start', mode:'level',
     canalSeed:0,
@@ -343,6 +350,16 @@
     canvas.width = Math.round(W*dpr); canvas.height = Math.round(H*dpr);
     ctx.setTransform(dpr,0,0,dpr,0,0);
     spermY = H*SPERM_Y_FRAC; cx = W/2; maxHalf = Math.min(W*0.48, 236);
+    // cache gradients once per resize (creating them every frame tanked Android perf)
+    GFX.wallL = ctx.createLinearGradient(0,0,cx,0);
+    GFX.wallL.addColorStop(0,'#1c060b'); GFX.wallL.addColorStop(0.5,'#5e1229'); GFX.wallL.addColorStop(1,'#b8304f');
+    GFX.wallR = ctx.createLinearGradient(W,0,cx,0);
+    GFX.wallR.addColorStop(0,'#1c060b'); GFX.wallR.addColorStop(0.5,'#5e1229'); GFX.wallR.addColorStop(1,'#b8304f');
+    GFX.edge = ctx.createLinearGradient(0,0,W,0);   // shadow cast inward from both walls = depth
+    GFX.edge.addColorStop(0,'rgba(6,1,3,.80)'); GFX.edge.addColorStop(0.26,'rgba(6,1,3,0)');
+    GFX.edge.addColorStop(0.74,'rgba(6,1,3,0)');  GFX.edge.addColorStop(1,'rgba(6,1,3,.80)');
+    GFX.vig = ctx.createRadialGradient(cx,H*0.5,H*0.3, cx,H*0.5,H*0.85);
+    GFX.vig.addColorStop(0,'rgba(0,0,0,0)'); GFX.vig.addColorStop(1,'rgba(9,2,4,.55)');
   }
   window.addEventListener('resize', resize);
   if (window.ResizeObserver){ new ResizeObserver(resize).observe(canvas); }
@@ -543,7 +560,7 @@
         const p = MP.peers[payload.id] || (MP.peers[payload.id]={});
         p.d=payload.d; p.x=payload.x; p.n=payload.n; p.fin=payload.fin; p.ft=payload.ft; p.t=now();
       });
-      ch.on('broadcast', { event:'go' }, () => { if (!MP.started) beginLiveRace(); });
+      ch.on('broadcast', { event:'go' }, ({ payload }) => { if (!MP.started) beginLiveRace(payload && payload.m); });
       ch.on('presence', { event:'sync' }, updateLobby);
       ch.on('presence', { event:'join' }, updateLobby);
       ch.on('presence', { event:'leave' }, updateLobby);
@@ -552,7 +569,7 @@
         else if (status==='CHANNEL_ERROR' || status==='TIMED_OUT'){ toast('Cannot reach Supabase — check Server settings'); }
       });
       MP.send   = (payload) => { try{ ch.send({ type:'broadcast', event:'st', payload:{ ...payload, id:MP.id } }); }catch(e){} };
-      MP.sendGo = () => { try{ ch.send({ type:'broadcast', event:'go', payload:{} }); }catch(e){} };
+      MP.sendGo = (payload) => { try{ ch.send({ type:'broadcast', event:'go', payload: payload||{} }); }catch(e){} };
       showLobby();
     } catch(e){ MP.active=false; toast('Supabase connection failed — check Server settings'); }
   }
@@ -565,7 +582,7 @@
       const [sendGo, getGo] = room.makeAction('go');
       MP.send = sendState; MP.sendGo = sendGo;
       getState((d, id) => { const p = MP.peers[id] || (MP.peers[id]={}); p.d=d.d; p.x=d.x; p.n=d.n; p.fin=d.fin; p.ft=d.ft; p.t=now(); });
-      getGo(() => { if (!MP.started) beginLiveRace(); });
+      getGo((d) => { if (!MP.started) beginLiveRace(d && d.m); });
       room.onPeerJoin(()=>updateLobby());
       room.onPeerLeave(id=>{ delete MP.peers[id]; updateLobby(); });
       showLobby();
@@ -586,14 +603,61 @@
     MP.active=false; MP.transport=''; MP.room=null; MP.ch=null; MP.client=null; MP.peers={}; MP.started=false;
     $('lobby').classList.add('hidden'); $('start').classList.remove('hidden');
   }
-  function beginLiveRace(){ MP.started=true; G.ghost=null; setLevelLength(5000); $('lobby').classList.add('hidden'); selectMode('level'); beginPlay(); }
+  let mpM = 600;   // multiplayer track length (metres), chosen in the lobby
+  function beginLiveRace(m){ MP.started=true; G.ghost=null; setLevelLength((m||mpM||600)*PX_PER_UNIT); $('lobby').classList.add('hidden'); selectMode('level'); beginPlay(); }
   function broadcastState(){ if (!MP.active || !MP.send) return; MP.send({ d:Math.round(G.distance), x:+G.xNorm.toFixed(2), n:MP.name, fin:G.finished?1:0, ft:+G.elapsed.toFixed(1) }); }
   function prunePeers(){ const t=now(); for (const id in MP.peers){ if (t-(MP.peers[id].t||0) > 4000) delete MP.peers[id]; } }
+  // Everyone you're racing (live peers, or the AI rival / friend's ghost in single player)
+  function competitors(){
+    const out=[];
+    if (MP.active){
+      for (const id in MP.peers){ const p=MP.peers[id]; if (p.d==null) continue; out.push({ id, world:p.d, name:p.n||'?', hue:peerHue(id) }); }
+    } else if (G.mode==='level' && G.rival && !G.rival.finished){
+      out.push({ id:'rival', world:G.rival.world, name: G.ghost?'Ghost':'Rival', hue: G.ghost?215:2 });
+    }
+    return out;
+  }
+  // Race rail on the right: a marker for every competitor, not just you
+  function syncRaceMarkers(){
+    const race=$('race'); if(!race) return;
+    const list=competitors();
+    const pool = race.__pool || (race.__pool=[]);
+    while (pool.length < list.length){ const d=document.createElement('div'); d.className='marker comp'; race.appendChild(d); pool.push(d); }
+    for (let i=0;i<pool.length;i++){
+      const el=pool[i];
+      if (i<list.length){ const c=list[i];
+        el.style.display='';
+        el.style.top = (100 - Math.min(100, Math.max(0, c.world/LEVEL_LENGTH*100)))+'%';
+        el.style.background = 'hsl('+c.hue+',80%,60%)';
+        el.style.color = 'hsl('+c.hue+',80%,60%)';
+      } else el.style.display='none';
+    }
+  }
+  // Competitors off the top/bottom of the screen: show a pointer + how far away they are
+  function drawCompetitorMarkers(){
+    const list=competitors(); if (!list.length) return;
+    const ahead=[], behind=[];
+    for (const c of list){ const y=worldToY(c.world); if (y>=-30 && y<=H+30) continue; (y<0?ahead:behind).push(c); }
+    if (!ahead.length && !behind.length) return;
+    ctx.save(); ctx.textAlign='center'; ctx.font='700 10px system-ui, sans-serif';
+    const row=(arr,py,up)=>arr.forEach((c,i)=>{
+      const x = cx + (i-(arr.length-1)/2)*80;
+      const col='hsl('+c.hue+',80%,62%)';
+      const gapM = Math.abs(Math.round((c.world-G.distance)/PX_PER_UNIT));
+      ctx.fillStyle=col; ctx.beginPath();
+      if (up){ ctx.moveTo(x-8,py+7); ctx.lineTo(x+8,py+7); ctx.lineTo(x,py-6); }
+      else   { ctx.moveTo(x-8,py-7); ctx.lineTo(x+8,py-7); ctx.lineTo(x,py+6); }
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle='#fff'; ctx.fillText(gapM+'m '+c.name, x, up?py+20:py-14);
+    });
+    row(ahead, 104, true); row(behind, H-104, false);
+    ctx.restore();
+  }
   function drawPeers(){
     for (const id in MP.peers){ const p=MP.peers[id]; if (p.d==null) continue;
       const y=worldToY(p.d); if (y<-44||y>H+44) continue;
       const x=cx + (p.x||0)*(wallHalf(p.d)-22); const hue=peerHue(id);
-      drawSpermShape(x, y, 0.8, 'hsl('+hue+',75%,86%)', 'hsl('+hue+',80%,60%)', p.fin?0.4:0.62, now()*0.011, false);
+      drawSpermShape(x, y, 0.82, 'hsl('+hue+',75%,88%)', 'hsl('+hue+',85%,62%)', p.fin?0.45:0.82, now()*0.011, false);
       ctx.save(); ctx.globalAlpha=0.9; ctx.fillStyle='#fff'; ctx.font='700 10px system-ui, sans-serif'; ctx.textAlign='center';
       ctx.shadowColor='#000'; ctx.shadowBlur=4; ctx.fillText(p.n||'?', x, y-26); ctx.restore();
     }
@@ -706,7 +770,8 @@
   $('challengeBtn').onclick = shareChallenge;
   $('challengePaste').onclick = enterChallenge;
   $('serverCfg').onclick = setSupaCfg;
-  $('lobbyStart').onclick = () => { if (MP.sendGo){ try{ MP.sendGo({}); }catch(e){} } beginLiveRace(); };
+  document.querySelectorAll('#mpChips .chip').forEach(ch => { ch.onclick = () => { mpM = +ch.dataset.m; document.querySelectorAll('#mpChips .chip').forEach(c=>c.classList.toggle('sel', c===ch)); }; });
+  $('lobbyStart').onclick = () => { if (MP.sendGo){ try{ MP.sendGo({ m: mpM }); }catch(e){} } beginLiveRace(mpM); };
   $('lobbyLeave').onclick = leaveLobby;
 
   function resetRun(){
@@ -963,15 +1028,12 @@
       $('mYou').style.top = (100 - Math.min(100,G.distance/LEVEL_LENGTH*100))+'%';
       const yf=$('youFill'); if (yf) yf.style.height = Math.min(100,G.distance/LEVEL_LENGTH*100)+'%';
       const pv=$('placeVal');
-      if (MP.active){
-        $('mRival').style.display='none';
-        let ahead=0; for (const id in MP.peers){ if ((MP.peers[id].d||0) > G.distance) ahead++; }
-        const P=['','1st','2nd','3rd','4th','5th','6th','7th','8th'];
-        if (pv) pv.textContent = P[ahead+1] || (ahead+1)+'th';
-      } else {
-        $('mRival').style.display=''; $('mRival').style.top = (100 - Math.min(100,G.rival.world/LEVEL_LENGTH*100))+'%';
-        if (pv) pv.textContent = (G.distance >= G.rival.world) ? '1st' : '2nd';
-      }
+      $('mRival').style.display='none';        // replaced by per-competitor markers
+      syncRaceMarkers();
+      let ahead=0;
+      for (const c of competitors()){ if (c.world > G.distance) ahead++; }
+      const P=['','1st','2nd','3rd','4th','5th','6th','7th','8th'];
+      if (pv) pv.textContent = P[ahead+1] || (ahead+1)+'th';
     }
   }
 
@@ -993,6 +1055,7 @@
     drawRivalGhost(); if (MP.active) drawPeers(); drawSperm();
     ctx.restore();
 
+    drawCompetitorMarkers();
     if (G.hitFlash>0){ ctx.fillStyle=`rgba(255,80,70,${G.hitFlash*0.32})`; ctx.fillRect(0,0,W,H); }
     const sf = G.speed/CRUISE_CAP;
     if (sf>0.02){ const v=ctx.createRadialGradient(cx,spermY,H*0.2,cx,spermY,H*0.78); v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,`rgba(67,224,207,${Math.min(0.16,sf*0.11)})`); ctx.fillStyle=v; ctx.fillRect(0,0,W,H); }
@@ -1000,41 +1063,33 @@
   }
 
   function drawWalls(){
-    const step=8, left=[], right=[];
+    const step=10, left=[], right=[];
     for (let y=-step; y<=H+step; y+=step){ const half=wallHalf(yToWorld(y)); left.push([cx-half,y]); right.push([cx+half,y]); }
-    // fleshy fill: dark outer -> crimson -> coral glow near the inner edge
-    for (const side of [-1,1]){
-      const pts = side<0 ? left : right; const edgeX = side<0 ? 0 : W;
-      const g = ctx.createLinearGradient(edgeX,0, cx,0);
-      g.addColorStop(0,'#280810'); g.addColorStop(0.5,'#6e1530'); g.addColorStop(1,'#bd3352');
-      ctx.fillStyle=g; ctx.beginPath(); ctx.moveTo(side<0?-10:W+10,-10);
-      for (const p of pts) ctx.lineTo(p[0],p[1]); ctx.lineTo(side<0?-10:W+10,H+10); ctx.closePath(); ctx.fill();
-    }
-    // glossy coral inner edge
-    ctx.lineWidth=5; ctx.strokeStyle='rgba(255,150,175,.6)'; ctx.shadowColor='rgba(255,110,150,.85)'; ctx.shadowBlur=18;
+    ctx.fillStyle=GFX.wallL; ctx.beginPath(); ctx.moveTo(-10,-10);
+    for (const p of left) ctx.lineTo(p[0],p[1]); ctx.lineTo(-10,H+10); ctx.closePath(); ctx.fill();
+    ctx.fillStyle=GFX.wallR; ctx.beginPath(); ctx.moveTo(W+10,-10);
+    for (const p of right) ctx.lineTo(p[0],p[1]); ctx.lineTo(W+10,H+10); ctx.closePath(); ctx.fill();
+    // glossy inner edge — layered strokes instead of shadowBlur (far cheaper, same look)
+    ctx.lineWidth=7; ctx.strokeStyle='rgba(255,120,150,.22)';
     ctx.beginPath(); ctx.moveTo(left[0][0],left[0][1]); for (const p of left) ctx.lineTo(p[0],p[1]); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(right[0][0],right[0][1]); for (const p of right) ctx.lineTo(p[0],p[1]); ctx.stroke();
-    // thin bright highlight
-    ctx.shadowBlur=0; ctx.lineWidth=1.5; ctx.strokeStyle='rgba(255,225,228,.45)';
-    ctx.beginPath(); ctx.moveTo(left[0][0]+3,left[0][1]); for (const p of left) ctx.lineTo(p[0]+3,p[1]); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(right[0][0]-3,right[0][1]); for (const p of right) ctx.lineTo(p[0]-3,p[1]); ctx.stroke();
-    // vignette darkening the corners
-    const vg = ctx.createRadialGradient(cx,H*0.5,H*0.32, cx,H*0.5,H*0.8);
-    vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(9,2,4,.5)');
-    ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
+    ctx.lineWidth=2.5; ctx.strokeStyle='rgba(255,185,200,.75)';
+    ctx.beginPath(); ctx.moveTo(left[0][0],left[0][1]); for (const p of left) ctx.lineTo(p[0],p[1]); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(right[0][0],right[0][1]); for (const p of right) ctx.lineTo(p[0],p[1]); ctx.stroke();
+    // depth: shadow cast inward from the walls, plus corner vignette
+    ctx.fillStyle=GFX.edge; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle=GFX.vig;  ctx.fillRect(0,0,W,H);
   }
   function drawParticles(){
-    // ambient red blood cells (biconcave red discs) drifting in the fluid
+    // ambient red blood cells — flat fills (a gradient per cell per frame was the Android bottleneck)
+    ctx.globalAlpha=0.5;
     for (const p of G.particles){
       const y=worldToY(p.w); if (y<-14||y>H+14) continue;
       const half=wallHalf(p.w)-8; const x=cx+p.lane*half+Math.sin(p.sway)*5; const r=p.s*2.4;
-      ctx.save(); ctx.translate(x,y); ctx.globalAlpha=0.5;
-      const g=ctx.createRadialGradient(-r*0.3,-r*0.3,r*0.2,0,0,r);
-      g.addColorStop(0,'#e46870'); g.addColorStop(0.7,'#b52f3c'); g.addColorStop(1,'#7a1a24');
-      ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(0,0,r,r*0.82,0,0,6.28); ctx.fill();
-      ctx.fillStyle='rgba(85,14,24,.85)'; ctx.beginPath(); ctx.arc(0,0,r*0.42,0,6.28); ctx.fill();
-      ctx.restore();
+      ctx.fillStyle='#c8404c'; ctx.beginPath(); ctx.ellipse(x,y,r,r*0.82,0,0,6.28); ctx.fill();
+      ctx.fillStyle='#7c1a24'; ctx.beginPath(); ctx.arc(x,y,r*0.42,0,6.28); ctx.fill();
     }
+    ctx.globalAlpha=1;
   }
   function drawObstacles(){
     for (const o of G.obstacles){
@@ -1044,16 +1099,16 @@
         ctx.save(); ctx.translate(x,y);
         const grd=ctx.createRadialGradient(-o.r*0.3,-o.r*0.3,o.r*0.2,0,0,o.r);
         grd.addColorStop(0,o.hit?'#c9b7a8':'#f3e7d6'); grd.addColorStop(1,o.hit?'#8a7566':'#c9a98f');
-        ctx.fillStyle=grd; ctx.shadowColor='rgba(255,240,220,.4)'; ctx.shadowBlur=12;
-        ctx.beginPath(); for (let a=0;a<6.28;a+=0.35){ const rr=o.r*(0.86+0.14*Math.sin(a*3+o.ph)); const px=Math.cos(a)*rr, py=Math.sin(a)*rr; a===0?ctx.moveTo(px,py):ctx.lineTo(px,py); } ctx.closePath(); ctx.fill(); ctx.shadowBlur=0;
+        ctx.fillStyle=grd;
+        ctx.beginPath(); for (let a=0;a<6.28;a+=0.4){ const rr=o.r*(0.86+0.14*Math.sin(a*3+o.ph)); const px=Math.cos(a)*rr, py=Math.sin(a)*rr; a===0?ctx.moveTo(px,py):ctx.lineTo(px,py); } ctx.closePath(); ctx.fill();
         const ng=ctx.createRadialGradient(o.r*0.05,0,o.r*0.1, o.r*0.15,o.r*0.1,o.r*0.45);
         ng.addColorStop(0,'#a06bc0'); ng.addColorStop(1,'#5e3480');
         ctx.fillStyle=ng; ctx.beginPath(); ctx.arc(o.r*0.15,o.r*0.1,o.r*0.42,0,6.28); ctx.fill();
         ctx.fillStyle='rgba(255,255,255,.35)'; ctx.beginPath(); ctx.arc(o.r*0.02,o.r*-0.05,o.r*0.14,0,6.28); ctx.fill(); ctx.restore();
       } else {
         const half=wallHalf(o.world), gcx=cx+o.gapLane*(half*0.8), gw=o.gapHalf*half;
-        ctx.fillStyle=o.hit?'rgba(120,60,80,.5)':'rgba(150,30,60,.78)'; ctx.shadowColor='rgba(255,90,120,.5)'; ctx.shadowBlur=10;
-        ctx.fillRect(cx-half,y-9,(gcx-gw)-(cx-half),18); ctx.fillRect(gcx+gw,y-9,(cx+half)-(gcx+gw),18); ctx.shadowBlur=0;
+        ctx.fillStyle=o.hit?'rgba(120,60,80,.5)':'rgba(150,30,60,.85)';
+        ctx.fillRect(cx-half,y-9,(gcx-gw)-(cx-half),18); ctx.fillRect(gcx+gw,y-9,(cx+half)-(gcx+gw),18);
         ctx.strokeStyle='rgba(67,224,207,.5)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(gcx-gw,y); ctx.lineTo(gcx+gw,y); ctx.stroke();
       }
     }
@@ -1066,10 +1121,10 @@
       const col = p.kind==='shield' ? '#43e0cf' : (p.kind==='speed' ? '#7cff9f' : '#ffd24d');
       const icon = p.kind==='boost' ? '⚡' : p.kind==='shield' ? '🛡' : p.kind==='speed' ? '✦' : '★';
       ctx.save(); ctx.translate(x,y+bob);
-      ctx.shadowColor=col; ctx.shadowBlur=16;
-      ctx.fillStyle='rgba(18,8,12,.6)'; ctx.beginPath(); ctx.arc(0,0,p.r,0,6.28); ctx.fill();
-      ctx.lineWidth=2.5; ctx.strokeStyle=col; ctx.beginPath(); ctx.arc(0,0,p.r,0,6.28); ctx.stroke();
-      ctx.shadowBlur=0; ctx.fillStyle=col; ctx.font='700 15px system-ui, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle='rgba(18,8,12,.65)'; ctx.beginPath(); ctx.arc(0,0,p.r,0,6.28); ctx.fill();
+      ctx.lineWidth=4; ctx.globalAlpha=0.28; ctx.strokeStyle=col; ctx.beginPath(); ctx.arc(0,0,p.r,0,6.28); ctx.stroke();
+      ctx.globalAlpha=1; ctx.lineWidth=2.5; ctx.strokeStyle=col; ctx.beginPath(); ctx.arc(0,0,p.r,0,6.28); ctx.stroke();
+      ctx.fillStyle=col; ctx.font='700 15px system-ui, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.fillText(icon, 0, 1);
       ctx.restore();
     }
@@ -1100,8 +1155,8 @@
     if (MP.active || G.mode!=='level' || G.rival.finished) return;
     const y=worldToY(G.rival.world); if (y<-40||y>H+40) return;
     const x=cx + 0.45*(wallHalf(G.rival.world)-22);
-    if (G.ghost) drawSpermShape(x,y,0.78,'#dbeaff','#9ec4ff',0.42, now()*0.01, false);   // friend's ghost
-    else drawSpermShape(x,y,0.75,'#ffb9ae','#ff6a5c',0.55, now()*0.01, false);            // AI rival
+    if (G.ghost) drawSpermShape(x,y,0.8,'#dbeaff','#9ec4ff',0.62, now()*0.01, false);   // friend's ghost
+    else drawSpermShape(x,y,0.78,'#ffb9ae','#ff6a5c',0.75, now()*0.01, false);          // AI rival
   }
   function drawSperm(){
     const showAtStart = (G.state==='charging' || G.state==='playing' || G.state==='ready');
@@ -1115,14 +1170,15 @@
     let amp = 6 + (G.speed/CRUISE_CAP)*10 + G.flick*8;
     if (G.state==='charging') amp = 6 + G.charge*16;   // frantic wiggle while charging
     const tail = (w) => { ctx.beginPath(); ctx.moveTo(0,10); for (let i=0;i<=16;i++){ const t=i/16; ctx.lineTo(Math.sin(phase - t*7)*amp*t, 10+t*50); } ctx.lineWidth=w; ctx.stroke(); };
-    ctx.strokeStyle=glowCol; ctx.lineCap='round'; ctx.shadowColor=glowCol; ctx.shadowBlur=16;
+    ctx.strokeStyle=glowCol; ctx.lineCap='round';
+    if (eyes){ ctx.shadowColor=glowCol; ctx.shadowBlur=14; }   // expensive glow only for your own sperm
     ctx.globalAlpha=alpha*0.5; tail(7);           // soft wide glow
     ctx.globalAlpha=alpha; tail(4);               // bright core
     ctx.shadowBlur=0;
     if (eyes){ ctx.fillStyle='rgba(200,245,240,.5)'; for (let i=2;i<=6;i++){ const t=i/7; const bx=Math.sin(phase-t*7)*amp*t+(i%2?6:-6), by=10+t*50; ctx.beginPath(); ctx.arc(bx,by,Math.max(0.6,2.4-t*2),0,6.28); ctx.fill(); } }
     // head
     const hg=ctx.createRadialGradient(-5,-7,3,0,0,18); hg.addColorStop(0,'#ffffff'); hg.addColorStop(1,headCol);
-    ctx.fillStyle=hg; ctx.shadowColor=glowCol; ctx.shadowBlur=18; ctx.beginPath(); ctx.ellipse(0,-2,14,18,0,0,6.28); ctx.fill(); ctx.shadowBlur=0;
+    ctx.fillStyle=hg; if (eyes){ ctx.shadowColor=glowCol; ctx.shadowBlur=16; } ctx.beginPath(); ctx.ellipse(0,-2,14,18,0,0,6.28); ctx.fill(); ctx.shadowBlur=0;
     ctx.fillStyle='rgba(255,255,255,.55)'; ctx.beginPath(); ctx.ellipse(-5,-9,3.2,5,-0.4,0,6.28); ctx.fill();
     if (eyes){
       const look = Math.max(-2.5,Math.min(2.5,G.steer*3));
