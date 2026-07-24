@@ -1,0 +1,42 @@
+name: CI
+
+# Guards the build and the PROTECTED gameplay behavior (handbook 7.6, 7.19).
+# A failure here means either the build broke or tuned gameplay changed.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Characterization tests (protected behavior)
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Warn if the committed build looks stale
+        run: |
+          # Soft check: hashed asset filenames can differ across Node versions, so this
+          # warns rather than fails. GitHub Pages serves the committed www/ today.
+          if ! git diff --quiet -- www; then
+            echo "::warning::www/ differs from a fresh build. If deploying via committed www/, run 'npm run build' and commit."
+            git status --porcelain -- www || true
+          fi

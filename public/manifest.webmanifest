@@ -1,0 +1,14 @@
+{
+  "name": "One in a Million",
+  "short_name": "OneInAMillion",
+  "description": "Rev up to launch, ride the momentum up the canal, sprint to the egg.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0d0305",
+  "theme_color": "#0d0305",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

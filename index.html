@@ -1,1 +1,114 @@
-<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=./www/"><title>One in a Million</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>One in a Million</title>
+<meta name="theme-color" content="#0d0305">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="One in a Million">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>html,body{margin:0;background:#0d0305;}</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage" id="stage">
+    <canvas id="c"></canvas>
+
+    <div class="hud hidden" id="hud">
+      <div class="hud-top">
+        <div class="stat"><span class="ico">↑</span><div class="col"><span class="k">Distance</span><span class="v" id="hDist">0<small>m</small></span></div></div>
+        <div class="stat"><span class="ico">»</span><div class="col"><span class="k" id="kSpeed">Speed</span><span class="v" id="hSpeed">0<small>%</small></span></div></div>
+        <div class="spacer"></div>
+        <div class="stat"><div class="col"><span class="k" id="kTime">Time</span><span class="v" id="hTime">0.0<small>s</small></span></div></div>
+        <div class="iconbtn" id="btnCenter" title="Re-center steering">⟲</div>
+        <div class="iconbtn" id="btnMute" title="Sound">🔊</div>
+        <div class="iconbtn" id="btnQuit" title="End run">✕</div>
+      </div>
+
+      <div class="hud-bottom">
+        <div class="boost-tag" id="boostTag">◆ Perfect rhythm — boost ◆</div>
+        <div class="thrust-wrap">
+          <button class="itembtn boost" id="btnBoost" title="Boost">⚡<span class="cnt" id="boostCnt">3</span></button>
+          <div class="thrust-bar" id="thrustBar">
+            <div class="thrust-fill" id="thrustFill"></div>
+            <div class="segments"></div>
+            <div class="gozone"></div>
+          </div>
+          <button class="itembtn shield" id="btnShield" title="Shield">🛡<span class="cnt" id="shieldCnt">2</span></button>
+        </div>
+        <div class="strokepad" id="strokepad"><span class="pulse">〰</span> <span id="padText">Tap / Space to swim</span> <span class="pulse">〰</span></div>
+      </div>
+    </div>
+
+    <div class="race hidden" id="race">
+      <div class="flag">🏁</div>
+      <div class="egg-cap">🥚</div>
+      <div class="youfill" id="youFill"></div>
+      <div class="sprint-mark" id="sprintMark"></div>
+      <div class="marker you" id="mYou">●</div>
+      <div class="marker rival" id="mRival">●</div>
+      <div class="place"><div class="pk">YOU</div><div class="pv" id="placeVal">1st</div></div>
+    </div>
+
+    <div class="count hidden" id="count"><div class="big" id="countBig">3</div><div class="lbl" id="countLbl">Hold your phone comfortably…</div></div>
+
+    <div class="overlay menu" id="start">
+      <div class="menu-hero">
+        <div class="eyebrow">🧬 featuring Spermy</div>
+        <h1 class="logo"><span class="hl">One</span> in a Million</h1>
+      </div>
+      <div class="challenge-badge hidden" id="challengeBadge"></div>
+      <div class="panels">
+        <div class="panel">
+          <div class="panel-head"><span class="picon">🏊</span><div class="panel-txt"><div class="ptitle">Practice</div><div class="psub">Single player — beat your best</div></div></div>
+          <div class="dist-chips" id="distChips">
+            <button class="chip" data-m="750">750<small>m</small></button>
+            <button class="chip sel" data-m="1000">1000<small>m</small></button>
+            <button class="chip" data-m="1250">1250<small>m</small></button>
+          </div>
+          <button class="panel-play" id="practicePlay">PLAY ▶</button>
+        </div>
+        <button class="panel tap" id="mpPanel"><div class="panel-head"><span class="picon">🟢</span><div class="panel-txt"><div class="ptitle">Multiplayer <span class="beta">BETA</span></div><div class="psub">Race real players — live room</div></div><span class="chev">›</span></div></button>
+        <button class="panel tap" id="chPanel"><div class="panel-head"><span class="picon">⚔</span><div class="panel-txt"><div class="ptitle">Challenge a friend</div><div class="psub">Send your ghost to beat</div></div><span class="chev">›</span></div></button>
+        <button class="panel tap" id="endlessPanel"><div class="panel-head"><span class="picon">∞</span><div class="panel-txt"><div class="ptitle">Endless</div><div class="psub">How far can you get?</div></div><span class="chev">›</span></div></button>
+      </div>
+      <div class="hint" id="controlHint"></div>
+      <div class="challenge-paste" id="challengePaste">Got a challenge code? Tap to enter</div>
+      <div class="challenge-paste" id="serverCfg" style="color:var(--energy)">⚙ Server settings (Supabase)</div>
+      <div class="fineprint" id="finePrint"></div>
+    </div>
+
+    <div class="overlay hidden" id="end">
+      <h2 class="result" id="resultTitle">Nice swim</h2>
+      <p class="subresult" id="resultSub"></p>
+      <div class="stats" id="endStats"></div>
+      <button class="play" id="againBtn">RACE AGAIN</button>
+      <button class="challenge-btn hidden" id="challengeBtn">⚔ Challenge a friend</button>
+    </div>
+
+    <div class="overlay hidden" id="lobby">
+      <div class="eyebrow">🟢 Live race — beta</div>
+      <h2 class="result" id="lobbyInfo">Room …</h2>
+      <p class="tag">Share the room code with friends. When everyone is in, tap START — you all race together.</p>
+      <div class="dist-chips" id="mpChips" style="max-width:320px;width:100%">
+        <button class="chip" data-m="400">400<small>m</small></button>
+        <button class="chip sel" data-m="600">600<small>m</small></button>
+        <button class="chip" data-m="800">800<small>m</small></button>
+      </div>
+      <button class="play" id="lobbyStart">START RACE</button>
+      <div class="tag" id="lobbyWait" style="display:none">⏳ Waiting for the host to start the race…</div>
+      <button class="challenge-btn" id="lobbyLeave">← Leave room</button>
+    </div>
+
+    <div class="diag" id="diag"></div>
+    <div class="toast hidden" id="toast"></div>
+  </div>
+</div>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

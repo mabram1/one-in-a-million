@@ -1,4 +1,7 @@
 node_modules/
 android/
+dist/
+.vite/
+tools/.cdn-transports.js
 .DS_Store
 *.log
