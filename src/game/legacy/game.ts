@@ -11,6 +11,7 @@
  */
 import { tuning, tuningVersion } from '../config/tuning';
 import { mulberry32, randomSeed, type Rng } from '../content/prng';
+import { encodeDeltas, decodeDeltas, interpolateAt, encodeChallengeCode, decodeChallengeCode } from '../replay/codec';
 
 export function bootGame() {
   "use strict";
@@ -215,62 +216,21 @@ export function bootGame() {
   // ---------- Ghost race (async multiplayer) ----------
   // Records the player's distance every 0.1s, encodes it into a shareable code so a
   // friend can race against this exact run as a "ghost". No server needed.
-  const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
-  function encodeGhost(dists){
-    let out='', prev=0;
-    for (const d of dists){ const r=Math.round(d); let delta=Math.max(0,Math.min(63, r-prev)); out+=B64[delta]; prev+=delta; }
-    return out;
-  }
-  function decodeGhost(str){
-    const dists=[]; let cur=0;
-    for (const ch of str){ const v=B64.indexOf(ch); if (v<0) continue; cur+=v; dists.push(cur); }
-    return dists;
-  }
-  function ghostWorldAt(t){
-    const a=G.ghost; if (!a || !a.length) return 0;
-    const idx=t/0.1, i=Math.floor(idx);
-    if (i>=a.length-1) return a[a.length-1];
-    const f=idx-i; return a[i]*(1-f)+a[i+1]*f;
-  }
-  // ---- Challenge / replay format v2 (task P1-06) --------------------------
-  // A header carries the track seed + tuning version so the friend races the
-  // SAME procedurally-generated track (fair comparison). v1 (bare delta string)
-  // still decodes and plays, but is flagged legacy and cannot be a fair time
-  // comparison because its track was not seeded.
-  //   v2 wire format: 2~<seed36>~<distM36>~<tuningVersion>~<durMs36>~<chk36>~<deltas>
-  // Fields are '~'-joined; '~' is absent from the B64 delta alphabet, and the
-  // tuning version's dots are safe inside a '~'-delimited field.
-  function fnv1a(str){ let h=2166136261>>>0; for (let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
-
+  // Replay/challenge encoding lives in the pure ../replay/codec module (no DOM/state).
+  // These thin wrappers bind it to the current game state.
+  const encodeGhost = encodeDeltas;
+  const decodeGhost = decodeDeltas;
+  function ghostWorldAt(t){ return interpolateAt(G.ghost, t); }
   function encodeChallenge(){
-    const deltas = encodeGhost(G.ghostRec);
-    const seed36  = (G.raceSeed>>>0).toString(36);
-    const distM36 = Math.round(LEVEL_LENGTH/PX_PER_UNIT).toString(36);
-    const durMs36 = Math.round(G.elapsed*1000).toString(36);
-    const chk36   = fnv1a(deltas).toString(36);
-    return ['2', seed36, distM36, tuningVersion, durMs36, chk36, deltas].join('~');
+    return encodeChallengeCode({
+      seed: G.raceSeed,
+      distM: LEVEL_LENGTH / PX_PER_UNIT,
+      tuningVersion,
+      durMs: G.elapsed * 1000,
+      dists: G.ghostRec,
+    });
   }
-  function decodeChallenge(raw){
-    raw = String(raw||'').trim();
-    if (raw.slice(0,2) === '2~'){
-      const parts = raw.split('~');
-      if (parts.length >= 7){
-        const deltas = parts.slice(6).join('~');
-        return {
-          version:2,
-          seed: parseInt(parts[1],36)>>>0,
-          distM: parseInt(parts[2],36),
-          tv: parts[3],
-          durMs: parseInt(parts[4],36),
-          dists: decodeGhost(deltas),
-          valid: fnv1a(deltas).toString(36) === parts[5],
-        };
-      }
-    }
-    // legacy v1: bare delta payload, no seed → not a fair comparison
-    const dists = decodeGhost(raw);
-    return { version:1, seed:null, distM:null, tv:null, durMs: dists.length*100, dists, valid: dists.length>=3 };
-  }
+  const decodeChallenge = decodeChallengeCode;
 
   function setChallenge(dec){
     if (!dec || !dec.dists || dec.dists.length < 3) return false;
@@ -677,7 +637,7 @@ export function bootGame() {
     if (G.charge >= CHG_MAX){ launch(); return; }                     // held too long -> fizzle
     if (!active && G.charge > launchCfg.minReleaseCharge && (t - G.chargeInputT) > CHG_RELEASE_MS){ launch(); return; }
     G.tailPhase += dt*8;
-    syncHUD();
+    // HUD is refreshed by the loop's presentation phase, not from inside the sim tick.
   }
 
   // ---------- Play update ----------
@@ -742,8 +702,7 @@ export function bootGame() {
     if (G.mode==='endless' && G.distance > G.bestDist) G.bestDist = G.distance;
 
     if (MP.active){ MP._sendT += dt; if (MP._sendT >= networkInterpolation.sendIntervalSeconds){ MP._sendT=0; broadcastState(); } prunePeers(); smoothPeers(dt); }
-
-    syncHUD();
+    // HUD refresh happens in the loop's presentation phase (see loop()).
   }
 
   function softWallBump(){ if (G.speed > CRUISE_CAP*collision.wallBumpMinSpeedFraction){ G.speed *= collision.wallBumpMultiplier; G.shake=Math.min(1,G.shake+0.25); if (navigator.vibrate) navigator.vibrate(18); } }
@@ -1030,6 +989,8 @@ export function bootGame() {
       if (el>2100){ $('count').classList.add('hidden'); G.state='charging'; G.charge=0; G.chargeInputT=t; banner('REV UP! 🔋'); }
     } else if (G.state==='charging'){ chargeUpdate(dt, t); }
     else if (G.state==='playing'){ update(dt, t); }
+    // Presentation phase: HUD (DOM) is written here, never from inside the sim tick.
+    if (G.state==='charging' || G.state==='playing') syncHUD();
     render();
     requestAnimationFrame(loop);
   }
