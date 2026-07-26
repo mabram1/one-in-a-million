@@ -268,7 +268,7 @@ export function bootGame() {
   }
 
   // ---------- Live multiplayer (serverless P2P rooms via Trystero) ----------
-  const MP = { active:false, transport:'', room:null, client:null, ch:null, id:'', code:'', name:'', peers:{}, send:null, sendGo:null, started:false, _sendT:0 };
+  const MP = { active:false, transport:'', room:null, client:null, ch:null, id:'', code:'', name:'', peers:{}, finishes:{}, send:null, sendGo:null, started:false, _sendT:0 };
   const randomCode = () => { let c='', A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; for(let i=0;i<4;i++) c+=A[Math.floor(Math.random()*A.length)]; return c; };
   function peerHue(id){ let h=0; for(const ch of id) h=(h*31 + ch.charCodeAt(0))%360; return h; }
   function peerCount(){ return Object.keys(MP.peers).length; }
@@ -314,10 +314,8 @@ export function bootGame() {
       const ch = client.channel('oiam:'+code, { config:{ broadcast:{ self:false }, presence:{ key: MP.id } } });
       MP.transport='supabase'; MP.client=client; MP.ch=ch;
       ch.on('broadcast', { event:'st' }, ({ payload }) => {
-        if (!payload || !payload.id || payload.id===MP.id) return;
-        const p = MP.peers[payload.id] || (MP.peers[payload.id]={});
-        p.td=payload.d; p.tx=payload.x; if (p.d==null){ p.d=p.td; p.x=p.tx; }   // smoothed toward target
-        p.n=payload.n; p.fin=payload.fin; p.ft=payload.ft; p.t=now();
+        if (!payload || !payload.id) return;
+        ingestPeerState(payload.id, payload);
       });
       ch.on('broadcast', { event:'go' }, ({ payload }) => { if (!MP.started) beginLiveRace(payload && payload.m, payload && payload.seed); });
       ch.on('presence', { event:'sync' }, updateLobby);
@@ -340,7 +338,7 @@ export function bootGame() {
       const [sendState, getState] = room.makeAction('st');
       const [sendGo, getGo] = room.makeAction('go');
       MP.send = sendState; MP.sendGo = sendGo;
-      getState((d, id) => { const p = MP.peers[id] || (MP.peers[id]={}); p.td=d.d; p.tx=d.x; if (p.d==null){ p.d=p.td; p.x=p.tx; } p.n=d.n; p.fin=d.fin; p.ft=d.ft; p.t=now(); });
+      getState((d, id) => ingestPeerState(id, d));
       getGo((d) => { if (!MP.started) beginLiveRace(d && d.m, d && d.seed); });
       room.onPeerJoin(()=>updateLobby());
       room.onPeerLeave(id=>{ delete MP.peers[id]; updateLobby(); });
@@ -365,12 +363,39 @@ export function bootGame() {
     try{ clearInterval(MP._finT); }catch(e){}
     try{ MP.room && MP.room.leave && MP.room.leave(); }catch(e){}
     try{ MP.ch && MP.ch.unsubscribe && MP.ch.unsubscribe(); }catch(e){}
-    MP.active=false; MP.transport=''; MP.room=null; MP.ch=null; MP.client=null; MP.peers={}; MP.started=false;
+    MP.active=false; MP.transport=''; MP.room=null; MP.ch=null; MP.client=null; MP.peers={}; MP.finishes={}; MP.started=false;
     $('lobby').classList.add('hidden'); $('start').classList.remove('hidden');
   }
   let mpM = 600;   // multiplayer track length (metres), chosen in the lobby
-  function beginLiveRace(m, seed){ MP.started=true; G.ghost=null; G._seedOverride = (seed!=null) ? (seed>>>0) : randomSeed(); setLevelLength((m||mpM||600)*PX_PER_UNIT); $('lobby').classList.add('hidden'); selectMode('level'); beginPlay(); }
+  function beginLiveRace(m, seed){ MP.started=true; MP.finishes={}; G.ghost=null; G._seedOverride = (seed!=null) ? (seed>>>0) : randomSeed(); setLevelLength((m||mpM||600)*PX_PER_UNIT); $('lobby').classList.add('hidden'); selectMode('level'); beginPlay(); }
   function broadcastState(){ if (!MP.active || !MP.send) return; MP.send({ d:Math.round(G.distance), x:+G.xNorm.toFixed(2), n:MP.name, fin:G.finished?1:0, ft:+G.elapsed.toFixed(1) }); }
+
+  // ---- Multiplayer finish authority (P1-11) ----
+  // Clients self-report position, so we cannot fully trust them without a server.
+  // What we CAN do P2P: race one shared seeded track (host broadcasts the seed), and
+  // treat each peer's FIRST physically-plausible finish time as authoritative —
+  // deduplicating repeat/contradictory reports and rejecting impossible times.
+  // Nothing can move faster than OVER_CAP, so a run shorter than this is a fabrication.
+  function minPossibleFinishSeconds(){ return LEVEL_LENGTH / OVER_CAP; }
+  function recordPeerFinish(id, ft){
+    if (ft == null || ft <= 0) return;                    // missing / nonsense
+    if (ft < minPossibleFinishSeconds()) return;          // physically impossible -> reject
+    if (MP.finishes[id] == null) MP.finishes[id] = ft;    // idempotent: first valid report wins
+  }
+  function ingestPeerState(id, d){
+    if (!d || id === MP.id) return;
+    const p = MP.peers[id] || (MP.peers[id] = {});
+    p.td = d.d; p.tx = d.x; if (p.d == null){ p.d = p.td; p.x = p.tx; }   // smoothed toward target
+    p.n = d.n; p.fin = d.fin; p.ft = d.ft; p.t = now();
+    if (d.fin) recordPeerFinish(id, d.ft);
+  }
+  // Placement from the validated finish set: how many peers legitimately finished
+  // before us. total counts everyone still present (finished peers are kept).
+  function mpPlacement(){
+    const total = peerCount() + 1;
+    const before = Object.keys(MP.finishes).filter((id) => id !== MP.id && MP.finishes[id] <= G.elapsed).length;
+    return { place: before + 1, total };
+  }
   // keep finished racers forever (they stop broadcasting) so results/placement stay correct
   function prunePeers(){ const t=now(); for (const id in MP.peers){ const p=MP.peers[id]; if (!p.fin && t-(p.t||0) > networkInterpolation.peerTimeoutMs) delete MP.peers[id]; } }
   function smoothPeers(dt){
@@ -597,9 +622,7 @@ export function bootGame() {
       // keep announcing our finish time — others still racing must learn it to place correctly
       try{ clearInterval(MP._finT); }catch(e){}
       MP._finT = setInterval(() => { if (MP.active) broadcastState(); else clearInterval(MP._finT); }, networkInterpolation.finishRebroadcastMs);
-      const others=Object.values(MP.peers);
-      const before=others.filter(p=>p.fin && p.ft!=null && p.ft <= G.elapsed).length;
-      const place=before+1, total=others.length+1;
+      const { place, total } = mpPlacement();
       G.win = finishedGoal && place===1;
       if (!finishedGoal){ title='Left the race'; sub='You bailed before the egg.'; cls='lose'; }
       else { title = place===1 ? 'You win! 🥚🏆' : 'Finished #'+place; sub='Place '+place+' of '+total+' • '+G.elapsed.toFixed(1)+'s'; cls = place===1?'win':''; }
@@ -1010,5 +1033,5 @@ export function bootGame() {
   requestAnimationFrame(loop);
 
   // Test/diagnostic handle. Not a global; production simply ignores it.
-  return { G, MP, tuning, loop, resize, competitors, setLevelLength, encodeGhost, decodeGhost, ghostWorldAt, setGhost, encodeChallenge, decodeChallenge, setChallenge };
+  return { G, MP, tuning, loop, resize, competitors, setLevelLength, encodeGhost, decodeGhost, ghostWorldAt, setGhost, encodeChallenge, decodeChallenge, setChallenge, ingestPeerState, mpPlacement };
 }

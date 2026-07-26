@@ -28,6 +28,10 @@ export interface Harness {
   encodeChallenge: () => string;
   decodeChallenge: (raw: string) => any;
   setChallenge: (dec: any) => boolean;
+  /** Feed a peer's broadcast state into the real multiplayer ingest path. */
+  ingestPeerState: (id: string, d: any) => void;
+  /** Current multiplayer placement from the validated finish set. */
+  mpPlacement: () => { place: number; total: number };
   /** Advance the fake clock and run the real loop in ~16 ms frames. */
   step: (ms: number) => void;
   /** Current fake clock value in ms. */
@@ -113,6 +117,8 @@ export function setupGame(startClockMs = 1_000_000): Harness {
     encodeChallenge: handle.encodeChallenge,
     decodeChallenge: handle.decodeChallenge,
     setChallenge: handle.setChallenge,
+    ingestPeerState: handle.ingestPeerState,
+    mpPlacement: handle.mpPlacement,
     step,
     nowMs: () => fake,
     key,
