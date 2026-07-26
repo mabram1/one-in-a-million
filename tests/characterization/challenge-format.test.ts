@@ -16,6 +16,10 @@ afterAll(() => h.restore());
 
 /** Race a full run at a fixed seed and return its shared challenge code. */
 function recordChallenge(seed: number, metres = 1000): string {
+  // Start from a clean slate: the game instance is shared across tests, and a
+  // ghost/challenge left loaded by an earlier test would make practicePlay reuse
+  // its level length instead of the fresh `metres` distance we want to record.
+  h.G.ghost = null; h.G.challengeSeed = null; h.G.challengeLegacy = false; h.G.challengeLevelUnits = 0;
   h.G._seedOverride = seed;
   const chip = [...document.querySelectorAll('#distChips .chip')]
     .find((c) => (c as HTMLElement).dataset.m === String(metres)) as HTMLElement;

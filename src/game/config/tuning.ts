@@ -13,7 +13,7 @@
  * docs/audits/handbook-baseline-audit.md §4.1). Nothing was rounded or "cleaned".
  */
 
-export const tuningVersion = '1.0.0' as const;
+export const tuningVersion = '1.1.0' as const;
 
 /** Motion/stroke detection and cadence. */
 export interface ControlsTuning {
@@ -107,6 +107,10 @@ export interface CameraTuning {
   spermYFraction: number;
   maxHalfViewportFraction: number;
   maxHalfCapPx: number;
+  /** Fixed logical viewport width (device-independent). The whole world is laid
+   *  out in logical px and uniformly scaled to fit the real screen width, so the
+   *  canal width and obstacle geometry are identical on every device (audit P1-10/H4). */
+  logicalWidth: number;
 }
 
 /** Procedural track generation. */
@@ -246,6 +250,7 @@ export const tuning: Readonly<Tuning> = Object.freeze({
     spermYFraction: 0.72,
     maxHalfViewportFraction: 0.48,
     maxHalfCapPx: 236,
+    logicalWidth: 400,
   },
   trackGeneration: {
     gapBase: 132,

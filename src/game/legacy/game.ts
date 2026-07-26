@@ -62,6 +62,7 @@ export function bootGame() {
   const GFX = {};   // cached gradients (rebuilt on resize)
   const G = {
     state:'start', mode:'level',
+    _viewScale:1,
     canalSeed:0,
     distance:0, prevDistance:0, speed:0,
     xNorm:0, steer:0, steerTarget:0,
@@ -84,10 +85,17 @@ export function bootGame() {
   // ---------- Sizing ----------
   function resize(){
     const r = canvas.getBoundingClientRect();
-    W = r.width; H = r.height;
+    const screenW = r.width, screenH = r.height;
     dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-    canvas.width = Math.round(W*dpr); canvas.height = Math.round(H*dpr);
-    ctx.setTransform(dpr,0,0,dpr,0,0);
+    canvas.width = Math.round(screenW*dpr); canvas.height = Math.round(screenH*dpr);
+    // Lay the whole world out in a fixed LOGICAL width and uniformly scale it to
+    // fill the real screen width. Canal width / obstacle geometry are then
+    // identical on every device (audit P1-10/H4); wider aspect ratios just see a
+    // little more vertical track. The simulation now uses only logical units.
+    const viewScale = screenW / camera.logicalWidth;
+    G._viewScale = viewScale;
+    ctx.setTransform(dpr*viewScale, 0, 0, dpr*viewScale, 0, 0);
+    W = camera.logicalWidth; H = screenH / viewScale;
     spermY = H*SPERM_Y_FRAC; cx = W/2; maxHalf = Math.min(W*camera.maxHalfViewportFraction, camera.maxHalfCapPx);
     // cache gradients once per resize (creating them every frame tanked Android perf)
     GFX.wallL = ctx.createLinearGradient(0,0,cx,0);
@@ -208,7 +216,7 @@ export function bootGame() {
   canvas.addEventListener('pointerdown', e => { if (G.motion.active) return; G.ptr.down=true; steerFromPointer(e); });
   canvas.addEventListener('pointermove', e => { if (G.ptr.down) steerFromPointer(e); });
   window.addEventListener('pointerup', () => { if (G.ptr.down){ G.ptr.down=false; G.steerTarget=0; } });
-  function steerFromPointer(e){ const r=canvas.getBoundingClientRect(); G.steerTarget=Math.max(-1,Math.min(1,(e.clientX-r.left - W/2)/(W*0.34))); }
+  function steerFromPointer(e){ const r=canvas.getBoundingClientRect(); const xLogical=(e.clientX-r.left)/(G._viewScale||1); G.steerTarget=Math.max(-1,Math.min(1,(xLogical - W/2)/(W*0.34))); }
 
   // ---------- Banner ----------
   function banner(text){ G.banner = { text, t: now() }; }
