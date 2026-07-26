@@ -25,6 +25,9 @@ export interface Harness {
   tuning: any;
   setLevelLength: (units: number) => void;
   competitors: () => any[];
+  encodeChallenge: () => string;
+  decodeChallenge: (raw: string) => any;
+  setChallenge: (dec: any) => boolean;
   /** Advance the fake clock and run the real loop in ~16 ms frames. */
   step: (ms: number) => void;
   /** Current fake clock value in ms. */
@@ -107,6 +110,9 @@ export function setupGame(startClockMs = 1_000_000): Harness {
     tuning: handle.tuning,
     setLevelLength: handle.setLevelLength,
     competitors: handle.competitors,
+    encodeChallenge: handle.encodeChallenge,
+    decodeChallenge: handle.decodeChallenge,
+    setChallenge: handle.setChallenge,
     step,
     nowMs: () => fake,
     key,

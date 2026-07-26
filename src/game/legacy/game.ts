@@ -9,7 +9,7 @@
  *
  * bootGame() returns a handle used by tests to drive the loop deterministically.
  */
-import { tuning } from '../config/tuning';
+import { tuning, tuningVersion } from '../config/tuning';
 import { mulberry32, randomSeed, type Rng } from '../content/prng';
 
 export function bootGame() {
@@ -70,6 +70,7 @@ export function bootGame() {
     topSpeed:0, hits:0, elapsed:0,
     obstacles:[], pickups:[], score:0, nextSpawn:0, particles:[],
     raceSeed:0, rng:(Math.random as Rng), _seedOverride:null,
+    challengeSeed:null, challengeTuning:null, challengeLegacy:false, challengeLevelUnits:0,
     ghost:null, ghostTime:0, ghostRec:[], _ghostTimer:0, lastGhostCode:'',
     hitFlash:0, shake:0, tailPhase:0, flick:0,
     rival:{ world:0, speed:0, target:60, finished:false, finishT:0, retarget:0 },
@@ -231,20 +232,71 @@ export function bootGame() {
     if (i>=a.length-1) return a[a.length-1];
     const f=idx-i; return a[i]*(1-f)+a[i+1]*f;
   }
-  function setGhost(dists){
-    if (!dists || dists.length<3) return false;
-    G.ghost = dists;
-    setLevelLength(dists[dists.length-1]);   // match the friend's track length
-    let gt = dists.length*0.1;
-    for (let i=0;i<dists.length;i++){ if (dists[i]>=LEVEL_LENGTH){ gt=i*0.1; break; } }
+  // ---- Challenge / replay format v2 (task P1-06) --------------------------
+  // A header carries the track seed + tuning version so the friend races the
+  // SAME procedurally-generated track (fair comparison). v1 (bare delta string)
+  // still decodes and plays, but is flagged legacy and cannot be a fair time
+  // comparison because its track was not seeded.
+  //   v2 wire format: 2~<seed36>~<distM36>~<tuningVersion>~<durMs36>~<chk36>~<deltas>
+  // Fields are '~'-joined; '~' is absent from the B64 delta alphabet, and the
+  // tuning version's dots are safe inside a '~'-delimited field.
+  function fnv1a(str){ let h=2166136261>>>0; for (let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+
+  function encodeChallenge(){
+    const deltas = encodeGhost(G.ghostRec);
+    const seed36  = (G.raceSeed>>>0).toString(36);
+    const distM36 = Math.round(LEVEL_LENGTH/PX_PER_UNIT).toString(36);
+    const durMs36 = Math.round(G.elapsed*1000).toString(36);
+    const chk36   = fnv1a(deltas).toString(36);
+    return ['2', seed36, distM36, tuningVersion, durMs36, chk36, deltas].join('~');
+  }
+  function decodeChallenge(raw){
+    raw = String(raw||'').trim();
+    if (raw.slice(0,2) === '2~'){
+      const parts = raw.split('~');
+      if (parts.length >= 7){
+        const deltas = parts.slice(6).join('~');
+        return {
+          version:2,
+          seed: parseInt(parts[1],36)>>>0,
+          distM: parseInt(parts[2],36),
+          tv: parts[3],
+          durMs: parseInt(parts[4],36),
+          dists: decodeGhost(deltas),
+          valid: fnv1a(deltas).toString(36) === parts[5],
+        };
+      }
+    }
+    // legacy v1: bare delta payload, no seed → not a fair comparison
+    const dists = decodeGhost(raw);
+    return { version:1, seed:null, distM:null, tv:null, durMs: dists.length*100, dists, valid: dists.length>=3 };
+  }
+
+  function setChallenge(dec){
+    if (!dec || !dec.dists || dec.dists.length < 3) return false;
+    G.ghost = dec.dists;
+    G.challengeSeed   = dec.seed;                       // null for v1
+    G.challengeTuning = dec.tv;
+    G.challengeLegacy = dec.version < 2 || dec.seed == null || (dec.tv && dec.tv !== tuningVersion);
+    const units = (dec.distM != null) ? dec.distM * PX_PER_UNIT : dec.dists[dec.dists.length-1];
+    setLevelLength(units);
+    G.challengeLevelUnits = LEVEL_LENGTH;
+    let gt = dec.dists.length*0.1;
+    for (let i=0;i<dec.dists.length;i++){ if (dec.dists[i] >= LEVEL_LENGTH){ gt=i*0.1; break; } }
     G.ghostTime = gt;
     selectMode('level');
-    const b=$('challengeBadge'); if (b){ b.classList.remove('hidden'); b.innerHTML = '⚔ Challenge — beat <b>'+gt.toFixed(1)+'s</b> to the egg'; }
+    const b=$('challengeBadge');
+    if (b){ b.classList.remove('hidden');
+      b.innerHTML = (G.challengeLegacy ? '⚠ Legacy challenge — ' : '⚔ Challenge — ') +
+                    'beat <b>'+gt.toFixed(1)+'s</b> to the egg'; }
     return true;
   }
+  // Back-compat shim (bare distance array = legacy v1).
+  function setGhost(dists){ return setChallenge({ version:1, dists, seed:null, tv:null, distM:null }); }
+
   function loadGhostFromHash(){
-    const m = (location.hash||'').match(/g=([A-Za-z0-9\-_]+)/);
-    if (m){ try { setGhost(decodeGhost(m[1])); } catch(e){} }
+    const m = (location.hash||'').match(/g=([A-Za-z0-9\-_~.]+)/);
+    if (m){ try { setChallenge(decodeChallenge(decodeURIComponent(m[1]))); } catch(e){} }
   }
 
   // ---------- Live multiplayer (serverless P2P rooms via Trystero) ----------
@@ -299,7 +351,7 @@ export function bootGame() {
         p.td=payload.d; p.tx=payload.x; if (p.d==null){ p.d=p.td; p.x=p.tx; }   // smoothed toward target
         p.n=payload.n; p.fin=payload.fin; p.ft=payload.ft; p.t=now();
       });
-      ch.on('broadcast', { event:'go' }, ({ payload }) => { if (!MP.started) beginLiveRace(payload && payload.m); });
+      ch.on('broadcast', { event:'go' }, ({ payload }) => { if (!MP.started) beginLiveRace(payload && payload.m, payload && payload.seed); });
       ch.on('presence', { event:'sync' }, updateLobby);
       ch.on('presence', { event:'join' }, updateLobby);
       ch.on('presence', { event:'leave' }, updateLobby);
@@ -321,7 +373,7 @@ export function bootGame() {
       const [sendGo, getGo] = room.makeAction('go');
       MP.send = sendState; MP.sendGo = sendGo;
       getState((d, id) => { const p = MP.peers[id] || (MP.peers[id]={}); p.td=d.d; p.tx=d.x; if (p.d==null){ p.d=p.td; p.x=p.tx; } p.n=d.n; p.fin=d.fin; p.ft=d.ft; p.t=now(); });
-      getGo((d) => { if (!MP.started) beginLiveRace(d && d.m); });
+      getGo((d) => { if (!MP.started) beginLiveRace(d && d.m, d && d.seed); });
       room.onPeerJoin(()=>updateLobby());
       room.onPeerLeave(id=>{ delete MP.peers[id]; updateLobby(); });
       showLobby();
@@ -349,7 +401,7 @@ export function bootGame() {
     $('lobby').classList.add('hidden'); $('start').classList.remove('hidden');
   }
   let mpM = 600;   // multiplayer track length (metres), chosen in the lobby
-  function beginLiveRace(m){ MP.started=true; G.ghost=null; setLevelLength((m||mpM||600)*PX_PER_UNIT); $('lobby').classList.add('hidden'); selectMode('level'); beginPlay(); }
+  function beginLiveRace(m, seed){ MP.started=true; G.ghost=null; G._seedOverride = (seed!=null) ? (seed>>>0) : randomSeed(); setLevelLength((m||mpM||600)*PX_PER_UNIT); $('lobby').classList.add('hidden'); selectMode('level'); beginPlay(); }
   function broadcastState(){ if (!MP.active || !MP.send) return; MP.send({ d:Math.round(G.distance), x:+G.xNorm.toFixed(2), n:MP.name, fin:G.finished?1:0, ft:+G.elapsed.toFixed(1) }); }
   // keep finished racers forever (they stop broadcasting) so results/placement stay correct
   function prunePeers(){ const t=now(); for (const id in MP.peers){ const p=MP.peers[id]; if (!p.fin && t-(p.t||0) > networkInterpolation.peerTimeoutMs) delete MP.peers[id]; } }
@@ -499,7 +551,7 @@ export function bootGame() {
   }
   $('againBtn').onclick = beginPlay;
   document.querySelectorAll('#distChips .chip').forEach(ch => { ch.onclick = () => { practiceM = +ch.dataset.m; document.querySelectorAll('#distChips .chip').forEach(c=>c.classList.toggle('sel', c===ch)); }; });
-  $('practicePlay').onclick = () => { setLevelLength(practiceM * PX_PER_UNIT); selectMode('level'); beginPlay(); };
+  $('practicePlay').onclick = () => { if (G.ghost){ if (G.challengeSeed != null) G._seedOverride = G.challengeSeed; setLevelLength(G.challengeLevelUnits || (practiceM*PX_PER_UNIT)); } else { setLevelLength(practiceM * PX_PER_UNIT); } selectMode('level'); beginPlay(); };
   $('endlessPanel').onclick = () => { selectMode('endless'); beginPlay(); };
   $('mpPanel').onclick = () => startLive();
   $('chPanel').onclick = () => shareChallenge();
@@ -517,14 +569,14 @@ export function bootGame() {
   function enterChallenge(){
     let code=''; try { code = prompt('Paste the challenge code or link:') || ''; } catch(e){ return; }
     if (!code) return;
-    const m = code.match(/g=([A-Za-z0-9\-_]+)/); const raw = m ? m[1] : code.trim();
-    if (setGhost(decodeGhost(raw))) toast('Challenge loaded ⚔ — race the ghost!'); else toast("Hmm, that code didn't work");
+    const m = code.match(/g=([A-Za-z0-9\-_~.]+)/); const raw = m ? decodeURIComponent(m[1]) : code.trim();
+    if (setChallenge(decodeChallenge(raw))) toast('Challenge loaded ⚔ — race the ghost!'); else toast("Hmm, that code didn't work");
   }
   $('challengeBtn').onclick = shareChallenge;
   $('challengePaste').onclick = enterChallenge;
   $('serverCfg').onclick = setSupaCfg;
   document.querySelectorAll('#mpChips .chip').forEach(ch => { ch.onclick = () => { mpM = +ch.dataset.m; document.querySelectorAll('#mpChips .chip').forEach(c=>c.classList.toggle('sel', c===ch)); }; });
-  $('lobbyStart').onclick = () => { if (!MP.isHost) return; if (MP.sendGo){ try{ MP.sendGo({ m: mpM }); }catch(e){} } beginLiveRace(mpM); };
+  $('lobbyStart').onclick = () => { if (!MP.isHost) return; const seed = randomSeed(); if (MP.sendGo){ try{ MP.sendGo({ m: mpM, seed }); }catch(e){} } beginLiveRace(mpM, seed); };
   $('lobbyLeave').onclick = leaveLobby;
 
   function resetRun(){
@@ -532,6 +584,7 @@ export function bootGame() {
     // Seed the reproducible track RNG first — canal shape and particles derive from it.
     // Priority: explicit override (tests / multiplayer host / challenge) > fresh random seed.
     G.raceSeed = (G._seedOverride != null) ? (G._seedOverride >>> 0) : randomSeed();
+    G._seedOverride = null;   // one-shot: consumed here so the next race is fresh unless re-set
     G.rng = mulberry32(G.raceSeed);
     Object.assign(G, { distance:0, prevDistance:0, speed:0, xNorm:0, steer:0, steerTarget:0,
       strokes:[], boostOn:false, sprint:false, charge:0, chargeInputT:0,
@@ -609,7 +662,7 @@ export function bootGame() {
     // build a shareable "challenge" code from this run so a friend can race your ghost
     const cbtn=$('challengeBtn');
     if (G.mode==='level' && finishedGoal && G.ghostRec.length>5){
-      G.lastGhostCode = encodeGhost(G.ghostRec);
+      G.lastGhostCode = encodeChallenge();
       try { localStorage.setItem('oiam_run', G.lastGhostCode); } catch(e){}   // so the start-screen button works next time
       if (cbtn){ cbtn.classList.remove('hidden'); cbtn.textContent='⚔ Challenge a friend'; }
     } else if (cbtn){ cbtn.classList.add('hidden'); }
@@ -988,5 +1041,5 @@ export function bootGame() {
   requestAnimationFrame(loop);
 
   // Test/diagnostic handle. Not a global; production simply ignores it.
-  return { G, MP, tuning, loop, resize, competitors, setLevelLength, encodeGhost, decodeGhost, ghostWorldAt, setGhost };
+  return { G, MP, tuning, loop, resize, competitors, setLevelLength, encodeGhost, decodeGhost, ghostWorldAt, setGhost, encodeChallenge, decodeChallenge, setChallenge };
 }
