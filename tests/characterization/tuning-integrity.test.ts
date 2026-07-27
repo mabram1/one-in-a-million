@@ -99,4 +99,13 @@ describe('protected tuning values (baseline 0088469)', () => {
     const maxHalf = Math.min(tuning.camera.logicalWidth * tuning.camera.maxHalfViewportFraction, tuning.camera.maxHalfCapPx);
     expect(maxHalf).toBe(192);
   });
+
+  it('endless checkpoint mode (P1-16 feature values)', () => {
+    expect(tuning.endless.startSeconds).toBe(18);
+    expect(tuning.endless.timePerCheckpointSeconds).toBe(6);
+    expect(tuning.endless.maxBankedSeconds).toBe(26);
+    expect(tuning.endless.firstCheckpointUnits).toBe(110);
+    expect(tuning.endless.checkpointSpacingUnits).toBe(140);
+    expect(tuning.endless.spacingGrowthUnits).toBe(14);
+  });
 });

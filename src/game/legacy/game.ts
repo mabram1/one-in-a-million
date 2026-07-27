@@ -25,7 +25,7 @@ export function bootGame() {
   // Values are NOT redefined here. Any change must go through the typed config
   // and bump tuningVersion. See handbook 7.6.
   const { controls, launch: launchCfg, momentum, steering, collision, items, finalSprint,
-          camera, trackGeneration, networkInterpolation, race, scoring } = tuning;
+          camera, trackGeneration, networkInterpolation, race, scoring, endless: END } = tuning;
   const PX_PER_UNIT    = camera.pxPerUnit;
   let   LEVEL_LENGTH   = race.defaultLevelUnits;
   let   SPRINT_START   = race.defaultSprintStartUnits;
@@ -537,7 +537,7 @@ export function bootGame() {
     $('hud').classList.remove('hidden');
     $('race').classList.toggle('hidden', G.mode!=='level');
     $('strokepad').classList.toggle('hidden', G.motion.active);
-    $('kTime').textContent = G.mode==='level' ? 'Time' : 'Best m';
+    $('kTime').textContent = G.mode==='endless' ? 'Time ⏱' : 'Time';
     $('btnQuit').textContent = G.mode==='endless' ? '⏹' : '✕';
     if (G.mode==='level'){ $('sprintMark').style.top = (100 - SPRINT_START/LEVEL_LENGTH*100) + '%'; }
     startCountdown();
@@ -585,6 +585,8 @@ export function bootGame() {
       hitFlash:0, shake:0, tailPhase:0, flick:0, bestDist:0, finished:false, win:false, banner:null,
       boostCharges:items.startingBoostCharges, shieldCharges:items.startingShieldCharges, shieldActive:false, boosting:0,
       ghostRec:[], _ghostTimer:0, lastGhostCode:'',
+      timeLeft: END.startSeconds, checkpointsHit:0, cpIndex:0,
+      nextCheckpoint: END.firstCheckpointUnits*PX_PER_UNIT,
       canalSeed: G.rng()*1000 });
     G.motion.prevMag=null; G.motion.base=G.motion.lp;
     G.rival = { world:0, speed:0, target:0.7*CRUISE_CAP, finished:false, finishT:0, retarget:0 };
@@ -636,20 +638,33 @@ export function bootGame() {
       if (!finishedGoal){ title='Gave up'; sub='You bailed before the egg.'; cls='lose'; }
       else if (G.win){ title='One in a million! 🥚'; sub='Beat your rival to the egg.'; cls='win'; }
       else { title='Rival wins'; sub='Pipped at the egg — go again.'; cls='lose'; }
-    } else {
-      G.win = G.distance >= rivalDist;
-      title = G.win ? 'New record pace!' : 'Rival went further';
-      sub = G.win ? 'You out-swam your rival.' : `Rival reached ${Math.round(rivalDist/PX_PER_UNIT)} m.`;
-      cls = G.win ? 'win' : '';
+    } else {   // endless checkpoint mode
+      const dist = Math.round(G.distance/PX_PER_UNIT);
+      let best = 0; try{ best = +(localStorage.getItem('oiam_endless_best')||0) || 0; }catch(e){}
+      const isPB = dist > best;
+      if (isPB){ try{ localStorage.setItem('oiam_endless_best', String(dist)); }catch(e){} }
+      G.win = isPB;
+      cls = isPB ? 'win' : '';
+      title = isPB ? 'New personal best! 🏁' : "Time's up ⏱";
+      sub = G.checkpointsHit+' checkpoints • '+dist+' m'+(isPB ? '' : ' • best '+best+' m');
     }
     const rt=$('resultTitle'); rt.textContent=title; rt.className='result '+cls;
     $('resultSub').textContent = sub;
     const m = v => Math.round(v/PX_PER_UNIT);
-    $('endStats').innerHTML =
-      `<div class="row"><span class="k">Score</span><span class="v">${Math.floor(G.score).toLocaleString()}</span></div>`+
-      `<div class="row"><span class="k">Distance</span><span class="v">${m(G.distance)} m</span></div>`+
-      `<div class="row"><span class="k">Time</span><span class="v">${G.elapsed.toFixed(1)} s</span></div>`+
-      `<div class="row"><span class="k">Bumps</span><span class="v">${G.hits}</span></div>`;
+    if (G.mode==='endless'){
+      let best = 0; try{ best = +(localStorage.getItem('oiam_endless_best')||0) || 0; }catch(e){}
+      $('endStats').innerHTML =
+        `<div class="row"><span class="k">Distance</span><span class="v">${m(G.distance)} m</span></div>`+
+        `<div class="row"><span class="k">Checkpoints</span><span class="v">${G.checkpointsHit}</span></div>`+
+        `<div class="row"><span class="k">Score</span><span class="v">${Math.floor(G.score).toLocaleString()}</span></div>`+
+        `<div class="row"><span class="k">Best</span><span class="v">${best} m</span></div>`;
+    } else {
+      $('endStats').innerHTML =
+        `<div class="row"><span class="k">Score</span><span class="v">${Math.floor(G.score).toLocaleString()}</span></div>`+
+        `<div class="row"><span class="k">Distance</span><span class="v">${m(G.distance)} m</span></div>`+
+        `<div class="row"><span class="k">Time</span><span class="v">${G.elapsed.toFixed(1)} s</span></div>`+
+        `<div class="row"><span class="k">Bumps</span><span class="v">${G.hits}</span></div>`;
+    }
     // build a shareable "challenge" code from this run so a friend can race your ghost
     const cbtn=$('challengeBtn');
     if (G.mode==='level' && finishedGoal && G.ghostRec.length>5){
@@ -730,7 +745,23 @@ export function bootGame() {
     for (const p of G.particles){ if (p.w < G.distance-10) p.w += H/PX_PER_UNIT + 60 + G.rng()*40; p.sway += dt*2; }
 
     if (G.mode==='level' && G.distance >= LEVEL_LENGTH && !G.finished){ G.distance=LEVEL_LENGTH; endRun(true); }
-    if (G.mode==='endless' && G.distance > G.bestDist) G.bestDist = G.distance;
+    if (G.mode==='endless' && !G.finished){
+      if (G.distance > G.bestDist) G.bestDist = G.distance;
+      // Checkpoint crossings are resolved BEFORE the clock is decremented, so a
+      // checkpoint reached on the final frame still banks its time (handbook 2.14:
+      // "a last-second checkpoint uses authoritative crossing time").
+      while (G.distance >= G.nextCheckpoint){
+        G.checkpointsHit++;
+        G.timeLeft = Math.min(END.maxBankedSeconds, G.timeLeft + END.timePerCheckpointSeconds);
+        const gapUnits = END.checkpointSpacingUnits + G.cpIndex*END.spacingGrowthUnits;   // authored bands: gaps grow
+        G.cpIndex++;
+        G.nextCheckpoint += gapUnits*PX_PER_UNIT;
+        banner('CHECKPOINT +'+END.timePerCheckpointSeconds+'s ⏱');
+        if (navigator.vibrate) navigator.vibrate(20);
+      }
+      G.timeLeft -= dt;
+      if (G.timeLeft <= 0){ G.timeLeft=0; endRun(false); }   // run ends on the clock, never on collision
+    }
 
     if (MP.active){ MP._sendT += dt; if (MP._sendT >= networkInterpolation.sendIntervalSeconds){ MP._sendT=0; broadcastState(); } prunePeers(); smoothPeers(dt); }
     // HUD refresh happens in the loop's presentation phase (see loop()).
@@ -815,12 +846,24 @@ export function bootGame() {
       $('hSpeed').textContent = Math.floor(G.score).toLocaleString();
       $('padText').textContent = 'Tap / Space to swim';
       $('strokepad').classList.remove('charging');
-      if (G.mode==='level') $('hTime').innerHTML = G.elapsed.toFixed(1)+'<small>s</small>';
-      else $('hTime').innerHTML = Math.round(G.bestDist/PX_PER_UNIT)+'<small>m</small>';
+      if (G.mode==='endless'){
+        const tl = Math.max(0, G.timeLeft);
+        $('hTime').innerHTML = tl.toFixed(1)+'<small>s</small>';
+        const ht=$('hTime'); if (ht) ht.classList.toggle('urgent', tl <= 5);   // clock running low
+      } else {
+        $('hTime').innerHTML = G.elapsed.toFixed(1)+'<small>s</small>';
+      }
       const bt=$('boostTag');
-      bt.classList.toggle('on', G.boostOn || G.sprint);
-      bt.classList.toggle('sprint', G.sprint);
-      bt.textContent = G.sprint ? '⚡ FINAL SPRINT — GO GO GO ⚡' : '◆ Perfect rhythm — boost ◆';
+      if (G.mode==='endless'){
+        // The next checkpoint target is always visible (handbook 2.14).
+        const togo = Math.max(0, Math.round((G.nextCheckpoint - G.distance)/PX_PER_UNIT));
+        bt.classList.add('on'); bt.classList.remove('sprint');
+        bt.textContent = '▶ Next checkpoint in '+togo+' m';
+      } else {
+        bt.classList.toggle('on', G.boostOn || G.sprint);
+        bt.classList.toggle('sprint', G.sprint);
+        bt.textContent = G.sprint ? '⚡ FINAL SPRINT — GO GO GO ⚡' : '◆ Perfect rhythm — boost ◆';
+      }
     }
     // items
     $('boostCnt').textContent = G.boostCharges;

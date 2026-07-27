@@ -171,6 +171,27 @@ export interface ScoringTuning {
   scorePerSpeedSecond: number;
 }
 
+/**
+ * Endless checkpoint mode (handbook 2.14): race as far as possible while
+ * reaching checkpoints before the clock runs out. These are NEW feature values
+ * (the baseline shipped a distance-only endless); they do not affect the
+ * level/multiplayer physics that `tuningVersion` guards for replay compatibility.
+ */
+export interface EndlessTuning {
+  /** Seconds on the clock at the start of a run. */
+  startSeconds: number;
+  /** Seconds granted for each checkpoint crossed. */
+  timePerCheckpointSeconds: number;
+  /** Hard ceiling on banked time so you can't stockpile forever. */
+  maxBankedSeconds: number;
+  /** Distance (world units) to the first checkpoint. */
+  firstCheckpointUnits: number;
+  /** Base gap (world units) between subsequent checkpoints. */
+  checkpointSpacingUnits: number;
+  /** Each successive gap grows by this many units — difficulty rises in bands. */
+  spacingGrowthUnits: number;
+}
+
 export interface Tuning {
   controls: ControlsTuning;
   launch: LaunchTuning;
@@ -184,6 +205,7 @@ export interface Tuning {
   networkInterpolation: NetworkInterpolationTuning;
   race: RaceTuning;
   scoring: ScoringTuning;
+  endless: EndlessTuning;
 }
 
 export const tuning: Readonly<Tuning> = Object.freeze({
@@ -300,5 +322,13 @@ export const tuning: Readonly<Tuning> = Object.freeze({
   },
   scoring: {
     scorePerSpeedSecond: 0.6,
+  },
+  endless: {
+    startSeconds: 18,
+    timePerCheckpointSeconds: 6,
+    maxBankedSeconds: 26,
+    firstCheckpointUnits: 110,
+    checkpointSpacingUnits: 140,
+    spacingGrowthUnits: 14,
   },
 });
