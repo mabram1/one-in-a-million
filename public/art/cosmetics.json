@@ -1,0 +1,28 @@
+[
+  {
+    "id": "hat_party",
+    "name": "Party Hat",
+    "slot": "hat",
+    "rarity": "rare",
+    "price": {
+      "currency": "coins",
+      "amount": 1200
+    },
+    "thumb": "store/hat_party_thumb.png",
+    "asset": "cosmetics/hat/hat_party.png",
+    "z": 60
+  },
+  {
+    "id": "trail_rainbow",
+    "name": "Rainbow Trail",
+    "slot": "trail",
+    "rarity": "epic",
+    "price": {
+      "currency": "gems",
+      "amount": 120
+    },
+    "thumb": "store/trail_rainbow_thumb.png",
+    "asset": "cosmetics/trail/trail_rainbow.png",
+    "z": 10
+  }
+]

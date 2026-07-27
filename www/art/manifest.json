@@ -1,0 +1,320 @@
+{
+  "version": "phase2-v1",
+  "assets": [
+    {
+      "path": "cosmetics/hat/hat_party.png",
+      "width": 512,
+      "height": 768,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "cosmetics/trail/trail_rainbow.png",
+      "width": 512,
+      "height": 768,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "spermy/base_body.png",
+      "width": 512,
+      "height": 768,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "spermy/face_charging.png",
+      "width": 512,
+      "height": 768,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "spermy/face_determined.png",
+      "width": 512,
+      "height": 768,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "spermy/face_hit.png",
+      "width": 512,
+      "height": 768,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "spermy/face_idle.png",
+      "width": 512,
+      "height": 768,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "spermy/face_win.png",
+      "width": 512,
+      "height": 768,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "spermy/tail_default.png",
+      "width": 512,
+      "height": 768,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "store/hat_party_thumb.png",
+      "width": 256,
+      "height": 256,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "store/trail_rainbow_thumb.png",
+      "width": 256,
+      "height": 256,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/buttons/boost_empty.png",
+      "width": 300,
+      "height": 300,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/buttons/boost_locked.png",
+      "width": 300,
+      "height": 300,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/buttons/boost_normal.png",
+      "width": 300,
+      "height": 300,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/buttons/boost_pressed.png",
+      "width": 300,
+      "height": 300,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/buttons/shield_empty.png",
+      "width": 300,
+      "height": 300,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/buttons/shield_locked.png",
+      "width": 300,
+      "height": 300,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/buttons/shield_normal.png",
+      "width": 300,
+      "height": 300,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/buttons/shield_pressed.png",
+      "width": 300,
+      "height": 300,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/banner_boost.png",
+      "width": 900,
+      "height": 180,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/banner_checkpoint_6s.png",
+      "width": 900,
+      "height": 180,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/banner_final_sprint.png",
+      "width": 900,
+      "height": 180,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/banner_go.png",
+      "width": 900,
+      "height": 180,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/banner_perfect_launch.png",
+      "width": 900,
+      "height": 180,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/banner_shield_up.png",
+      "width": 900,
+      "height": 180,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/charge_meter_charging.png",
+      "width": 900,
+      "height": 180,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/charge_meter_in_go_zone.png",
+      "width": 900,
+      "height": 180,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/charge_meter_overcooked.png",
+      "width": 900,
+      "height": 180,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/place_badge_1st.png",
+      "width": 240,
+      "height": 180,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/place_badge_2nd.png",
+      "width": 240,
+      "height": 180,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/place_badge_3rd.png",
+      "width": 240,
+      "height": 180,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/place_badge_4th.png",
+      "width": 240,
+      "height": 180,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/place_badge_5th.png",
+      "width": 240,
+      "height": 180,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/place_badge_6th.png",
+      "width": 240,
+      "height": 180,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/progress_rail_egg_cap.png",
+      "width": 150,
+      "height": 150,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/progress_rail_player_marker.png",
+      "width": 150,
+      "height": 150,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/progress_rail_rival_marker.png",
+      "width": 150,
+      "height": 150,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/progress_rail_track.png",
+      "width": 90,
+      "height": 900,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/speed_bar_fill.png",
+      "width": 780,
+      "height": 120,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/speed_bar_frame.png",
+      "width": 780,
+      "height": 120,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/stat_pill_distance.png",
+      "width": 360,
+      "height": 144,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/stat_pill_score.png",
+      "width": 360,
+      "height": 144,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "ui/hud/stat_pill_time.png",
+      "width": 360,
+      "height": 144,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "walls/wall_left.png",
+      "width": 438,
+      "height": 768,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    },
+    {
+      "path": "walls/wall_right.png",
+      "width": 438,
+      "height": 768,
+      "mode": "RGBA",
+      "color_space": "sRGB"
+    }
+  ]
+}

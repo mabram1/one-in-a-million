@@ -1,5 +1,6 @@
 import './styles/game.css';
 import { bootGame } from './game/legacy/game';
+import { loadArt } from './game/assets/store';
 
 /**
  * Optional live-multiplayer transports, loaded from a CDN at runtime.
@@ -27,6 +28,10 @@ void (async () => {
 })();
 
 bootGame();
+
+// Load the Spermy art rig in the background. The game renders its procedural
+// fallback until this resolves, then swaps to sprites — no boot blocking.
+void loadArt();
 
 // PWA service worker (parity with the pre-migration build). Registered relative to
 // the deploy base so it works on GitHub Pages subpaths, Vercel root, and Capacitor.

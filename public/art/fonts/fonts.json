@@ -1,0 +1,18 @@
+{
+  "display": {
+    "google_fonts_name": "Fredoka",
+    "recommended_weights": [
+      600,
+      700
+    ]
+  },
+  "body": {
+    "google_fonts_name": "Nunito",
+    "recommended_weights": [
+      400,
+      600,
+      700
+    ]
+  },
+  "note": "Font files are not redistributed; embed by exact Google Fonts family name."
+}

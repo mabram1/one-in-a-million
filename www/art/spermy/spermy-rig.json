@@ -1,0 +1,38 @@
+{
+  "canvas": {
+    "width": 512,
+    "height": 768
+  },
+  "anchors": {
+    "head_top": {
+      "x": 256,
+      "y": 92
+    },
+    "eye_line": {
+      "x": 256,
+      "y": 270
+    },
+    "mouth": {
+      "x": 256,
+      "y": 350
+    },
+    "tail_root": {
+      "x": 256,
+      "y": 418
+    },
+    "body_center": {
+      "x": 256,
+      "y": 270
+    }
+  },
+  "z_order": {
+    "trail": 10,
+    "body": 20,
+    "face": 30,
+    "glasses": 40,
+    "mouth": 50,
+    "hat": 60,
+    "aura": 70
+  },
+  "tail_option": "A"
+}

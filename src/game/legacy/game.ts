@@ -12,6 +12,7 @@
 import { tuning, tuningVersion } from '../config/tuning';
 import { mulberry32, randomSeed, type Rng } from '../content/prng';
 import { encodeDeltas, decodeDeltas, interpolateAt, encodeChallengeCode, decodeChallengeCode } from '../replay/codec';
+import { art } from '../assets/store';
 
 export function bootGame() {
   "use strict";
@@ -1005,10 +1006,36 @@ export function bootGame() {
     if (G.ghost) drawSpermShape(x,y,0.8,'#dbeaff','#9ec4ff',0.45, now()*0.01, false);   // friend's ghost
     else drawSpermShape(x,y,0.78,'#ffb9ae','#ff6a5c',0.55, now()*0.01, false);          // AI rival
   }
+  // Sprite render box: how many logical px one rig-canvas px maps to. Tunable —
+  // bigger = bigger Spermy. (rig canvas is 512x768.)
+  const SPRITE_SCALE = 0.24;
+  function faceFor(){
+    if (G.state==='charging') return art.img.face_charging;
+    if (G.hitFlash > 0.4) return art.img.face_hit;
+    if (G.state==='playing') return art.img.face_determined;
+    return art.img.face_idle;
+  }
+  function drawSpermSprite(x, y){
+    const rig = art.rig; const A = rig.anchors; const S = SPRITE_SCALE;
+    const bc = A.body_center || { x: rig.canvas.width/2, y: rig.canvas.height/2 };
+    // Place body_center at (x,y); every layer shares the same 512x768 canvas so
+    // they stack 1:1 (trail behind → body → face → hat), per spermy-rig.json.
+    const dw = rig.canvas.width*S, dh = rig.canvas.height*S;
+    const dx = x - bc.x*S, dy = y - bc.y*S;
+    const layer = img => { if (img && img.complete) ctx.drawImage(img, dx, dy, dw, dh); };
+    const eq = art.equipped;
+    const trail = (eq.trail && art.img[eq.trail]) ? art.img[eq.trail] : art.img.tail_default;
+    layer(trail);
+    layer(art.img.body);
+    layer(faceFor());
+    if (eq.hat && art.img[eq.hat]) layer(art.img[eq.hat]);
+    if (eq.aura && art.img[eq.aura]) layer(art.img[eq.aura]);
+  }
   function drawSperm(){
     const showAtStart = (G.state==='charging' || G.state==='playing' || G.state==='ready');
     if (!showAtStart) return;
     const x=spermScreenX();
+    if (art.ready && art.rig && art.img.body){ drawSpermSprite(x, spermY); return; }
     const glow = G.state==='charging' ? '#7cff9f' : (G.boosting>0 ? '#ffd24d' : '#43e0cf');
     drawSpermShape(x, spermY, 1, '#fbf0e0', glow, 1, G.tailPhase, true);
   }
