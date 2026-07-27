@@ -34,9 +34,10 @@ jobs:
 
       - name: Warn if the committed build looks stale
         run: |
-          # Soft check: hashed asset filenames can differ across Node versions, so this
-          # warns rather than fails. GitHub Pages serves the committed www/ today.
+          # Soft check only. Live deploys build fresh — GitHub Pages via the
+          # pages.yml workflow, Vercel via vercel.json buildCommand — so the
+          # committed www/ is a convenience snapshot, not the deploy source.
           if ! git diff --quiet -- www; then
-            echo "::warning::www/ differs from a fresh build. If deploying via committed www/, run 'npm run build' and commit."
+            echo "::warning::committed www/ differs from a fresh build (harmless; deploys rebuild). Run 'npm run build' to refresh it."
             git status --porcelain -- www || true
           fi
