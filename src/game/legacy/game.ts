@@ -1069,15 +1069,31 @@ export function bootGame() {
     if (G.state==='playing') return art.img.face_determined;
     return art.img.face_idle;
   }
-  // The lively procedural tail (the look from before) — an animated glowing wiggle
-  // that reacts to speed/charge. Drawn behind the shaded body sprite.
+  // The lively procedural tail — an animated glowing flagellum that reacts to
+  // speed/charge. Drawn as a TAPERED ribbon (thick where it meets the body,
+  // whip-thin at the tip) so it reads like a real sperm tail. Behind the body.
   function drawTailProc(x, y, glowCol, phase){
     ctx.save(); ctx.translate(x, y);
     let amp = 6 + (G.speed/CRUISE_CAP)*10 + G.flick*8;
     if (G.state==='charging') amp = 6 + G.charge*16;
-    const tail = (w) => { ctx.beginPath(); ctx.moveTo(0,10); for (let i=0;i<=16;i++){ const t=i/16; ctx.lineTo(Math.sin(phase - t*7)*amp*t, 10+t*50); } ctx.lineWidth=w; ctx.stroke(); };
-    ctx.strokeStyle=glowCol; ctx.lineCap='round'; ctx.shadowColor=glowCol; ctx.shadowBlur=14;
-    ctx.globalAlpha=0.5; tail(7); ctx.globalAlpha=1; tail(4); ctx.shadowBlur=0;
+    const N=22, TOP=6, LEN=62, BASE_HW=8;   // start y, length, base half-width
+    const c = [];
+    for (let i=0;i<=N;i++){ const t=i/N; c.push([Math.sin(phase - t*7)*amp*t, TOP + t*LEN, t]); }
+    const left=[], right=[];
+    for (let i=0;i<=N;i++){
+      const p=c[i], a=c[Math.min(N,i+1)], b=c[Math.max(0,i-1)];
+      let tx=a[0]-b[0], ty=a[1]-b[1]; const l=Math.hypot(tx,ty)||1; const nx=-ty/l, ny=tx/l;   // unit normal
+      const hw = BASE_HW*(1-p[2])*(1-p[2]) + 0.8;   // quadratic taper: thick base -> ~0.8px tip
+      left.push([p[0]+nx*hw, p[1]+ny*hw]); right.push([p[0]-nx*hw, p[1]-ny*hw]);
+    }
+    const ribbon = () => { ctx.beginPath(); ctx.moveTo(left[0][0],left[0][1]); for (const p of left) ctx.lineTo(p[0],p[1]); for (let i=right.length-1;i>=0;i--) ctx.lineTo(right[i][0],right[i][1]); ctx.closePath(); };
+    ctx.shadowColor=glowCol; ctx.shadowBlur=12;
+    ctx.fillStyle=glowCol; ctx.globalAlpha=0.4; ribbon(); ctx.fill();     // soft glow
+    ctx.shadowBlur=0;
+    ctx.globalAlpha=1; ctx.fillStyle=glowCol; ribbon(); ctx.fill();       // solid body
+    // glossy centre highlight for a bit of shine
+    ctx.strokeStyle='rgba(230,255,252,.55)'; ctx.lineCap='round'; ctx.lineWidth=1.6;
+    ctx.beginPath(); ctx.moveTo(c[0][0],c[0][1]); for (let i=1;i<N-2;i++) ctx.lineTo(c[i][0],c[i][1]); ctx.stroke();
     ctx.restore();
   }
   function drawSpermSprite(x, y){
