@@ -42,16 +42,19 @@ describe('v2 encode → decode', () => {
   it('produces a versioned code that round-trips with the seed and tuning version', () => {
     const seed = 0x0badf00d;
     const code = recordChallenge(seed, 1000);
-    expect(code.startsWith('2~')).toBe(true);
+    expect(code.startsWith('3~')).toBe(true);
 
     const dec = h.decodeChallenge(code);
-    expect(dec.version).toBe(2);
+    expect(dec.version).toBe(3);
     expect(dec.valid).toBe(true);
     expect(dec.seed).toBe(seed >>> 0);
     expect(dec.tv).toBe(tuningVersion);
     expect(dec.distM).toBe(1000);
     expect(dec.durMs).toBeGreaterThan(0);
     expect(dec.dists.length).toBeGreaterThan(5);
+    // The harness drives via the keyboard (Space), so the run is unranked (handbook 1.2).
+    expect(dec.inputClass).toBe('desktop_keyboard');
+    expect(dec.ranked).toBe(false);
   });
 
   it('detects corruption via checksum', () => {
@@ -66,8 +69,8 @@ describe('v2 encode → decode', () => {
 describe('v1 legacy compatibility (protected)', () => {
   it('still decodes a bare v1 delta string and flags it legacy', () => {
     // A v1 code is just the delta payload with no header.
-    const v2 = recordChallenge(0x999, 1000);
-    const v1 = v2.split('~').slice(6).join('~');      // strip the v2 header
+    const v3 = recordChallenge(0x999, 1000);
+    const v1 = v3.split('~').slice(7).join('~');      // strip the v3 header down to bare deltas
     const dec = h.decodeChallenge(v1);
     expect(dec.version).toBe(1);
     expect(dec.seed).toBeNull();

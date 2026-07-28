@@ -1,5 +1,14 @@
 # Handbook Changelog
 
+## 1.2 — 2026-07-24
+
+### Added
+
+- Mobile motion control is the canonical competitive input class.
+- Desktop keyboard play is explicitly unranked and limited to preview, development, and Practice.
+- Results and replay headers record the active input class.
+- Keyboard, touch-fallback, and motion results must not share ranked standings unless a future mode explicitly permits mixed input.
+
 ## 1.1 — 2026-07-24
 
 ### Accepted

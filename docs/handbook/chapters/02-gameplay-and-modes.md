@@ -45,6 +45,20 @@ type ControlFrame = {
 
 Raw sensor sampling, filtering, iOS sign correction, dead zones, calibration, and permissions remain inside adapters. Replays record normalized inputs or authoritative state samples, never raw device sensor streams.
 
+### Competitive input classes
+
+Mobile motion control is the canonical competitive input. Every result records an input class:
+
+```text
+mobile_motion
+mobile_touch_fallback
+desktop_keyboard
+```
+
+Desktop keyboard play is allowed for preview, development, accessibility testing, and unranked Practice. It must not share ranked results, records, daily-challenge standings, or strict ghost comparisons with mobile motion play. If non-motion fallback results are retained, they use a clearly labeled separate category.
+
+Device type alone is not sufficient evidence; eligibility is based on the active input class and required motion capability during the run. A run that switches from motion to keyboard or touch fallback becomes unranked unless a specific mode explicitly permits mixed input.
+
 ## 2.4 Launch quality states
 
 | State | Meter condition | Gameplay result | Feedback |
@@ -134,6 +148,8 @@ Requirements:
 
 AI should feel plausible, not psychic. It follows the same speed constraints, makes readable errors, and uses difficulty curves rather than direct rubber-banding at the finish.
 
+Desktop browsers may run Practice in keyboard-preview mode. The setup and results screens must label it `DESKTOP PRACTICE · UNRANKED`.
+
 ## 2.11 Live multiplayer
 
 **Purpose:** short real-time races accessed with minimal setup.
@@ -149,6 +165,7 @@ Current behavior:
 Rules:
 
 - server/backend time or a shared countdown establishes start time;
+- ranked/live competitive rooms require the approved mobile motion input class;
 - clients do not trust arbitrary opponent finish claims;
 - local movement feels immediate;
 - remote racers are interpolated and visually distinct;
@@ -203,6 +220,8 @@ Content generation must guarantee a viable path. Endless does not mean uncontrol
 
 All players receive the same seed, modifiers, track, and rules for the local challenge day. The daily challenge supports asynchronous ranking and a single primary scored attempt, with optional unranked practice attempts if desired.
 
+Ranked daily results require mobile motion input. Desktop keyboard attempts may preview the same course but are stored and displayed as unranked.
+
 It must display:
 
 - time remaining;
@@ -245,4 +264,3 @@ Overlay states such as pause, permission, reconnecting, and tutorial must not cr
 - Ghosts use matching seeds and tuning versions.
 - Multiplayer handles disconnect, host departure, and duplicate finish events.
 - Results use authoritative race data.
-

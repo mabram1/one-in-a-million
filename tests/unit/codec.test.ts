@@ -44,35 +44,46 @@ describe('fnv1a', () => {
   });
 });
 
-describe('challenge v2 codec', () => {
+describe('challenge v3 codec (with input class)', () => {
   const dists = [0, 8, 17, 29, 44, 60, 60, 61];
 
-  it('encodes a versioned code and decodes it back', () => {
+  it('encodes a versioned code and decodes it back (motion = ranked by default)', () => {
     const code = encodeChallengeCode({ seed: 0xdeadbeef, distM: 1000, tuningVersion: '1.0.0', durMs: 40600, dists });
-    expect(code.startsWith('2~')).toBe(true);
+    expect(code.startsWith('3~')).toBe(true);
 
     const dec = decodeChallengeCode(code);
-    expect(dec.version).toBe(2);
+    expect(dec.version).toBe(3);
     expect(dec.valid).toBe(true);
     expect(dec.seed).toBe(0xdeadbeef >>> 0);
     expect(dec.distM).toBe(1000);
     expect(dec.tv).toBe('1.0.0');
     expect(dec.durMs).toBe(40600);
     expect(dec.dists[dec.dists.length - 1]).toBe(61);
+    expect(dec.inputClass).toBe('mobile_motion');
+    expect(dec.ranked).toBe(true);
+  });
+
+  it('carries a keyboard input class and marks it unranked', () => {
+    const code = encodeChallengeCode({ seed: 7, distM: 750, tuningVersion: '1.0.0', durMs: 1000, dists, inputClass: 'desktop_keyboard' });
+    const dec = decodeChallengeCode(code);
+    expect(dec.inputClass).toBe('desktop_keyboard');
+    expect(dec.ranked).toBe(false);
   });
 
   it('flags a corrupted payload as invalid', () => {
     const code = encodeChallengeCode({ seed: 1, distM: 750, tuningVersion: '1.0.0', durMs: 1000, dists });
     const parts = code.split('~');
-    parts[6] = parts[6].slice(0, -2) + 'ZZ';           // tamper
+    parts[6] = parts[6].slice(0, -2) + 'ZZ';           // tamper the checksum
     expect(decodeChallengeCode(parts.join('~')).valid).toBe(false);
   });
 
-  it('decodes a bare v1 payload as legacy (no seed)', () => {
+  it('decodes a bare v1 payload as legacy (no seed, unknown input class)', () => {
     const v1 = encodeDeltas(dists);                    // no header
     const dec = decodeChallengeCode(v1);
     expect(dec.version).toBe(1);
     expect(dec.seed).toBeNull();
+    expect(dec.inputClass).toBeNull();
+    expect(dec.ranked).toBeNull();
     expect(dec.dists.length).toBe(dists.length);
     expect(dec.valid).toBe(true);
   });

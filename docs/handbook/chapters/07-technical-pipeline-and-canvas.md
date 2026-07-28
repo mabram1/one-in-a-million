@@ -329,6 +329,7 @@ type ReplayHeader = {
   version: number;
   gameBuild: string;
   tuningVersion: string;
+  inputClass: 'mobile_motion' | 'mobile_touch_fallback' | 'desktop_keyboard';
   trackId: string;
   trackVersion: string;
   seed: string;

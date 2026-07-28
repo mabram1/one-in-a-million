@@ -64,6 +64,7 @@ export function bootGame() {
   const G = {
     state:'start', mode:'level',
     _viewScale:1,
+    inputUsed:{ motion:false, keyboard:false, touch:false }, inputClass:'mobile_motion',
     canalSeed:0,
     distance:0, prevDistance:0, speed:0,
     xNorm:0, steer:0, steerTarget:0,
@@ -184,6 +185,7 @@ export function bootGame() {
     const g = e.accelerationIncludingGravity;
     if (!g || g.x == null) return;
     if (!G.motion.active){ G.motion.active = true; $('strokepad').classList.add('hidden'); updateHint(); }
+    if (G.state==='playing'||G.state==='charging') G.inputUsed.motion = true;   // motion is driving the run
     G.motion.lp = G.motion.lp*0.85 + g.x*0.15;
     // neutral ("straight ahead") = your natural hold, averaged right up until launch
     if (G.state === 'ready' || G.state === 'charging') G.motion.base = G.motion.base*0.92 + G.motion.lp*0.08;
@@ -203,21 +205,34 @@ export function bootGame() {
   }
 
   // ---------- Keyboard + pointer ----------
+  // Input-class governance (handbook 1.2): keyboard/touch play is unranked; only
+  // sustained mobile-motion runs are ranked. We record which inputs actually drove
+  // the run and classify it at the finish.
+  function markInput(kind){ if (G.state==='playing'||G.state==='charging'||G.state==='ready') G.inputUsed[kind]=true; }
+  function activeInputClass(){
+    const u = G.inputUsed;
+    if (u.keyboard) return 'desktop_keyboard';   // any keyboard use disqualifies from ranked
+    if (u.touch)    return 'mobile_touch_fallback';
+    if (u.motion)   return 'mobile_motion';
+    // nothing used yet → fall back to device capability
+    return G.motion.active ? 'mobile_motion' : (IS_IOS || ('ontouchstart' in window) ? 'mobile_touch_fallback' : 'desktop_keyboard');
+  }
+  function isRanked(){ return activeInputClass()==='mobile_motion'; }
   window.addEventListener('keydown', e => {
     if (e.repeat) return;
-    if (e.code==='ArrowLeft'||e.code==='KeyA'){ G.steerTarget=-1; }
-    else if (e.code==='ArrowRight'||e.code==='KeyD'){ G.steerTarget=1; }
-    else if (e.code==='Space'){ e.preventDefault(); if (G.state==='playing'||G.state==='charging') registerStroke(0.8); }
+    if (e.code==='ArrowLeft'||e.code==='KeyA'){ G.steerTarget=-1; markInput('keyboard'); }
+    else if (e.code==='ArrowRight'||e.code==='KeyD'){ G.steerTarget=1; markInput('keyboard'); }
+    else if (e.code==='Space'){ e.preventDefault(); if (G.state==='playing'||G.state==='charging'){ markInput('keyboard'); registerStroke(0.8); } }
   });
   window.addEventListener('keyup', e => {
     if ((e.code==='ArrowLeft'||e.code==='KeyA') && G.steerTarget<0) G.steerTarget=0;
     if ((e.code==='ArrowRight'||e.code==='KeyD') && G.steerTarget>0) G.steerTarget=0;
   });
-  $('strokepad').addEventListener('pointerdown', e => { e.preventDefault(); if (G.state==='playing'||G.state==='charging') registerStroke(0.85); });
+  $('strokepad').addEventListener('pointerdown', e => { e.preventDefault(); if (G.state==='playing'||G.state==='charging'){ markInput('touch'); registerStroke(0.85); } });
   canvas.addEventListener('pointerdown', e => { if (G.motion.active) return; G.ptr.down=true; steerFromPointer(e); });
   canvas.addEventListener('pointermove', e => { if (G.ptr.down) steerFromPointer(e); });
   window.addEventListener('pointerup', () => { if (G.ptr.down){ G.ptr.down=false; G.steerTarget=0; } });
-  function steerFromPointer(e){ const r=canvas.getBoundingClientRect(); const xLogical=(e.clientX-r.left)/(G._viewScale||1); G.steerTarget=Math.max(-1,Math.min(1,(xLogical - W/2)/(W*0.34))); }
+  function steerFromPointer(e){ markInput('touch'); const r=canvas.getBoundingClientRect(); const xLogical=(e.clientX-r.left)/(G._viewScale||1); G.steerTarget=Math.max(-1,Math.min(1,(xLogical - W/2)/(W*0.34))); }
 
   // ---------- Banner ----------
   function banner(text){ G.banner = { text, t: now() }; }
@@ -237,6 +252,7 @@ export function bootGame() {
       tuningVersion,
       durMs: G.elapsed * 1000,
       dists: G.ghostRec,
+      inputClass: G.inputClass || activeInputClass(),
     });
   }
   const decodeChallenge = decodeChallengeCode;
@@ -588,6 +604,7 @@ export function bootGame() {
       ghostRec:[], _ghostTimer:0, lastGhostCode:'',
       timeLeft: END.startSeconds, checkpointsHit:0, cpIndex:0,
       nextCheckpoint: END.firstCheckpointUnits*PX_PER_UNIT,
+      inputUsed:{ motion:false, keyboard:false, touch:false },
       canalSeed: G.rng()*1000 });
     G.motion.prevMag=null; G.motion.base=G.motion.lp;
     G.rival = { world:0, speed:0, target:0.7*CRUISE_CAP, finished:false, finishT:0, retarget:0 };
@@ -618,6 +635,7 @@ export function bootGame() {
 
   function endRun(finishedGoal){
     G.state='end'; G.finished=true;
+    G.inputClass = activeInputClass();   // lock in how this run was actually controlled
     const rivalDist = Math.min(G.rival.world, LEVEL_LENGTH);
     let title, sub, cls='';
     if (MP.active){
@@ -650,6 +668,8 @@ export function bootGame() {
       sub = G.checkpointsHit+' checkpoints • '+dist+' m'+(isPB ? '' : ' • best '+best+' m');
     }
     const rt=$('resultTitle'); rt.textContent=title; rt.className='result '+cls;
+    // Non-motion runs are unranked (handbook 1.2) — label it on the result.
+    if (finishedGoal && !isRanked()) sub += (G.inputClass==='desktop_keyboard' ? ' · UNRANKED (keyboard)' : ' · UNRANKED');
     $('resultSub').textContent = sub;
     const m = v => Math.round(v/PX_PER_UNIT);
     if (G.mode==='endless'){

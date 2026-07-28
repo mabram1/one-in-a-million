@@ -51,26 +51,38 @@ export function fnv1a(str: string): number {
   return h >>> 0;
 }
 
+export type InputClass = 'mobile_motion' | 'mobile_touch_fallback' | 'desktop_keyboard';
+
 export interface DecodedChallenge {
-  version: 1 | 2;
+  version: 1 | 2 | 3;
   seed: number | null;
   distM: number | null;
   tv: string | null;
+  /** Active input class recorded in the header (v3+); null for older codes. */
+  inputClass: InputClass | null;
+  /** Only mobile_motion runs are ranked (handbook 1.2 / 2.6). null = unknown (v1/v2). */
+  ranked: boolean | null;
   durMs: number;
   dists: number[];
   valid: boolean;
 }
 
-/** v2 wire format: 2~<seed36>~<distM36>~<tuningVersion>~<durMs36>~<fnv1aChk36>~<deltas> */
+// Compact one-char codes for the input class in the wire format.
+const INPUT_TO_CODE: Record<string, string> = { mobile_motion: 'm', mobile_touch_fallback: 't', desktop_keyboard: 'k' };
+const CODE_TO_INPUT: Record<string, InputClass> = { m: 'mobile_motion', t: 'mobile_touch_fallback', k: 'desktop_keyboard' };
+
+/** v3 wire format: 3~<seed36>~<distM36>~<tuningVersion>~<inputCode>~<durMs36>~<fnv1aChk36>~<deltas> */
 export function encodeChallengeCode(o: {
   seed: number; distM: number; tuningVersion: string; durMs: number; dists: readonly number[];
+  inputClass?: InputClass;
 }): string {
   const deltas = encodeDeltas(o.dists);
   return [
-    '2',
+    '3',
     (o.seed >>> 0).toString(36),
     Math.round(o.distM).toString(36),
     o.tuningVersion,
+    INPUT_TO_CODE[o.inputClass || 'mobile_motion'] || 'm',
     Math.round(o.durMs).toString(36),
     fnv1a(deltas).toString(36),
     deltas,
@@ -79,6 +91,24 @@ export function encodeChallengeCode(o: {
 
 export function decodeChallengeCode(raw: string): DecodedChallenge {
   raw = String(raw || '').trim();
+  if (raw.slice(0, 2) === '3~') {
+    const parts = raw.split('~');
+    if (parts.length >= 8) {
+      const deltas = parts.slice(7).join('~');
+      const inputClass = CODE_TO_INPUT[parts[4]] || null;
+      return {
+        version: 3,
+        seed: parseInt(parts[1], 36) >>> 0,
+        distM: parseInt(parts[2], 36),
+        tv: parts[3],
+        inputClass,
+        ranked: inputClass ? inputClass === 'mobile_motion' : null,
+        durMs: parseInt(parts[5], 36),
+        dists: decodeDeltas(deltas),
+        valid: fnv1a(deltas).toString(36) === parts[6],
+      };
+    }
+  }
   if (raw.slice(0, 2) === '2~') {
     const parts = raw.split('~');
     if (parts.length >= 7) {
@@ -88,6 +118,8 @@ export function decodeChallengeCode(raw: string): DecodedChallenge {
         seed: parseInt(parts[1], 36) >>> 0,
         distM: parseInt(parts[2], 36),
         tv: parts[3],
+        inputClass: null,   // predates the input-class rule
+        ranked: null,
         durMs: parseInt(parts[4], 36),
         dists: decodeDeltas(deltas),
         valid: fnv1a(deltas).toString(36) === parts[5],
@@ -96,5 +128,5 @@ export function decodeChallengeCode(raw: string): DecodedChallenge {
   }
   // legacy v1: bare delta payload, no seed → not a fair comparison
   const dists = decodeDeltas(raw);
-  return { version: 1, seed: null, distM: null, tv: null, durMs: dists.length * 100, dists, valid: dists.length >= 3 };
+  return { version: 1, seed: null, distM: null, tv: null, inputClass: null, ranked: null, durMs: dists.length * 100, dists, valid: dists.length >= 3 };
 }
