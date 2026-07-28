@@ -24,5 +24,109 @@
     "thumb": "store/trail_rainbow_thumb.png",
     "asset": "cosmetics/trail/trail_rainbow.png",
     "z": 10
+  },
+  {
+    "id": "sunglasses",
+    "name": "Sunglasses",
+    "slot": "glasses",
+    "rarity": "common",
+    "price": {
+      "currency": "coins",
+      "amount": 800
+    },
+    "thumb": "store/sunglasses_thumb.png",
+    "asset": "cosmetics/glasses/sunglasses.png",
+    "z": 40
+  },
+  {
+    "id": "nerd_round",
+    "name": "Round Nerd Glasses",
+    "slot": "glasses",
+    "rarity": "rare",
+    "price": {
+      "currency": "coins",
+      "amount": 1000
+    },
+    "thumb": "store/nerd_round_thumb.png",
+    "asset": "cosmetics/glasses/nerd_round.png",
+    "z": 40
+  },
+  {
+    "id": "star_shades",
+    "name": "Star Shades",
+    "slot": "glasses",
+    "rarity": "epic",
+    "price": {
+      "currency": "gems",
+      "amount": 90
+    },
+    "thumb": "store/star_shades_thumb.png",
+    "asset": "cosmetics/glasses/star_shades.png",
+    "z": 40
+  },
+  {
+    "id": "moustache",
+    "name": "Curly Moustache",
+    "slot": "mouth",
+    "rarity": "rare",
+    "price": {
+      "currency": "coins",
+      "amount": 900
+    },
+    "thumb": "store/moustache_thumb.png",
+    "asset": "cosmetics/mouth/moustache.png",
+    "z": 50
+  },
+  {
+    "id": "bowtie",
+    "name": "Bow Tie",
+    "slot": "mouth",
+    "rarity": "common",
+    "price": {
+      "currency": "coins",
+      "amount": 700
+    },
+    "thumb": "store/bowtie_thumb.png",
+    "asset": "cosmetics/mouth/bowtie.png",
+    "z": 50
+  },
+  {
+    "id": "hair_bow",
+    "name": "Hair Bow",
+    "slot": "hat",
+    "rarity": "common",
+    "price": {
+      "currency": "coins",
+      "amount": 700
+    },
+    "thumb": "store/hair_bow_thumb.png",
+    "asset": "cosmetics/hat/hair_bow.png",
+    "z": 60
+  },
+  {
+    "id": "beanie",
+    "name": "Cozy Beanie",
+    "slot": "hat",
+    "rarity": "rare",
+    "price": {
+      "currency": "coins",
+      "amount": 1200
+    },
+    "thumb": "store/beanie_thumb.png",
+    "asset": "cosmetics/hat/beanie.png",
+    "z": 60
+  },
+  {
+    "id": "crown",
+    "name": "Royal Crown",
+    "slot": "hat",
+    "rarity": "legendary",
+    "price": {
+      "currency": "gems",
+      "amount": 250
+    },
+    "thumb": "store/crown_thumb.png",
+    "asset": "cosmetics/hat/crown.png",
+    "z": 60
   }
 ]
