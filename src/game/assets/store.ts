@@ -28,9 +28,7 @@ const IMAGE_PATHS: Record<string, string> = {
   face_determined: 'spermy/face_determined.png',
   face_hit: 'spermy/face_hit.png',
   face_win: 'spermy/face_win.png',
-  // proof cosmetics (Phase 2)
-  hat_party: 'cosmetics/hat/hat_party.png',
-  trail_rainbow: 'cosmetics/trail/trail_rainbow.png',
+  // (individual cosmetics are loaded by id from cosmetics.json — see loadArt)
   // HUD button art (applied via .src so paths resolve on dev/build/Pages alike)
   boost_normal: 'ui/buttons/boost_normal.png',
   shield_normal: 'ui/buttons/shield_normal.png',
@@ -91,8 +89,19 @@ export async function loadArt(base: string = import.meta.env.BASE_URL): Promise<
     ]);
     art.rig = rig;
     art.cosmetics = cosmetics || [];
+    // Load every cosmetic's full-size overlay, keyed by its id, so the renderer and
+    // the Customize screen can use them.
+    await Promise.all(art.cosmetics.map((c) =>
+      loadImage(root + c.asset).then((im) => { art.img[c.id] = im; }).catch(() => { /* skip missing */ }),
+    ));
     if (art.rig) art.ready = true;
   } catch {
     art.ready = false;   // keep the procedural fallback
   }
+}
+
+/** Equip (or clear with null) a cosmetic slot and persist it. Rendering reads art.equipped live. */
+export function equip(slot: keyof Equipped, id: string | null): void {
+  art.equipped[slot] = id;
+  try { localStorage.setItem('oiam_equipped', JSON.stringify(art.equipped)); } catch { /* ignore */ }
 }

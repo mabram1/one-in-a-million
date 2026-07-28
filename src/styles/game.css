@@ -161,3 +161,26 @@
   .stats .row .v{ font-weight:800; font-variant-numeric:tabular-nums; color:var(--text); }
 
   @media (prefers-reduced-motion: reduce){ .count .big{ animation:none; } }
+
+  /* ---------- Customize screen ---------- */
+  #customize{ justify-content:flex-start; overflow-y:auto; padding:18px 16px 28px; gap:12px; }
+  .cust-top{ display:flex; align-items:center; gap:12px; width:100%; }
+  .cust-back{ width:42px; height:42px; flex:0 0 auto; border-radius:12px; border:1px solid rgba(67,224,207,.3); background:rgba(15,5,9,.6); color:var(--energy); font-size:20px; cursor:pointer; }
+  .cust-title{ font-family:var(--font-display); font-weight:800; font-size:20px; color:var(--text); }
+  .cust-stage{ position:relative; align-self:center; width:170px; height:200px; flex:0 0 auto; }
+  .cust-stage .cust-tail{ position:absolute; left:50%; bottom:6px; transform:translateX(-50%); width:48px; height:110px; opacity:.9; filter:drop-shadow(0 0 7px rgba(67,224,207,.6)); }
+  .cust-stage img{ position:absolute; left:0; top:-6px; width:100%; height:100%; object-fit:contain; }
+  .cust-tabs{ display:flex; gap:8px; justify-content:center; width:100%; }
+  .cust-tabs button{ flex:1; max-width:130px; padding:9px 6px; border-radius:12px; border:1px solid rgba(67,224,207,.25); background:rgba(15,5,9,.55); color:var(--muted); font-weight:800; font-size:13px; cursor:pointer; }
+  .cust-tabs button.sel{ color:#06201d; background:var(--energy); border-color:var(--energy); }
+  .cust-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; width:100%; }
+  .cust-item{ display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px 6px; border-radius:14px; border:2px solid rgba(255,255,255,.08); background:rgba(20,6,11,.6); color:var(--text); cursor:pointer; }
+  .cust-item.r-rare{ border-color:rgba(90,150,255,.4); }
+  .cust-item.r-epic{ border-color:rgba(190,110,255,.45); }
+  .cust-item.r-legendary{ border-color:rgba(255,200,80,.5); }
+  .cust-item.sel{ border-color:var(--energy); box-shadow:0 0 16px -4px var(--energy); }
+  .cust-item:active{ transform:scale(.96); }
+  .ci-thumb{ width:56px; height:56px; display:grid; place-items:center; }
+  .ci-thumb img{ width:100%; height:100%; object-fit:contain; }
+  .ci-none{ font-size:20px; color:var(--muted); border:2px dashed rgba(255,255,255,.2); border-radius:50%; width:44px; height:44px; }
+  .ci-name{ font-size:11px; font-weight:700; text-align:center; line-height:1.15; }

@@ -12,7 +12,7 @@
 import { tuning, tuningVersion } from '../config/tuning';
 import { mulberry32, randomSeed, type Rng } from '../content/prng';
 import { encodeDeltas, decodeDeltas, interpolateAt, encodeChallengeCode, decodeChallengeCode } from '../replay/codec';
-import { art } from '../assets/store';
+import { art, equip } from '../assets/store';
 
 export function bootGame() {
   "use strict";
@@ -1093,8 +1093,10 @@ export function bootGame() {
     const eq = art.equipped;
     layer(art.img.body);
     layer(faceFor());
-    if (eq.hat && art.img[eq.hat]) layer(art.img[eq.hat]);
-    if (eq.aura && art.img[eq.aura]) layer(art.img[eq.aura]);
+    if (eq.glasses && art.img[eq.glasses]) layer(art.img[eq.glasses]);   // z40
+    if (eq.mouth   && art.img[eq.mouth])   layer(art.img[eq.mouth]);     // z50
+    if (eq.hat     && art.img[eq.hat])     layer(art.img[eq.hat]);       // z60
+    if (eq.aura    && art.img[eq.aura])    layer(art.img[eq.aura]);      // z70
   }
   function drawSperm(){
     const showAtStart = (G.state==='charging' || G.state==='playing' || G.state==='ready');
@@ -1160,6 +1162,38 @@ export function bootGame() {
     render();
     requestAnimationFrame(loop);
   }
+
+  // ---------- Customize screen ----------
+  let custSlot = 'hat';
+  function updateCustPreview(){
+    const setImg = (id, key) => { const el=$(id); if(!el) return; const im = key && art.img[key]; if (im){ el.src=im.src; el.style.display=''; } else { el.style.display='none'; } };
+    setImg('custBody','body');
+    const face = art.img.face_idle; if (face && $('custFace')){ $('custFace').src=face.src; $('custFace').style.display=''; }
+    setImg('custGlasses', art.equipped.glasses);
+    setImg('custMouth',   art.equipped.mouth);
+    setImg('custHat',     art.equipped.hat);
+  }
+  function buildCustGrid(){
+    document.querySelectorAll('#custTabs button').forEach(b => b.classList.toggle('sel', b.dataset.slot===custSlot));
+    const grid = $('custGrid'); if (!grid) return; grid.innerHTML='';
+    const mkItem = (sel, inner, onclick, cls) => { const b=document.createElement('button'); b.className='cust-item'+(sel?' sel':'')+(cls?' '+cls:''); b.innerHTML=inner; b.onclick=onclick; grid.appendChild(b); };
+    mkItem(art.equipped[custSlot]==null, '<div class="ci-thumb ci-none">✕</div><div class="ci-name">None</div>',
+      () => { equip(custSlot, null); buildCustGrid(); updateCustPreview(); });
+    art.cosmetics.filter(c => c.slot===custSlot).forEach(c => {
+      const im = art.img[c.id];
+      mkItem(art.equipped[custSlot]===c.id, `<div class="ci-thumb"><img src="${im?im.src:''}" alt=""></div><div class="ci-name">${c.name}</div>`,
+        () => { equip(custSlot, c.id); buildCustGrid(); updateCustPreview(); }, 'r-'+c.rarity);
+    });
+  }
+  function openCustomize(){
+    if (!art.ready){ toast('Loading Spermy…'); return; }
+    $('start').classList.add('hidden'); $('customize').classList.remove('hidden');
+    buildCustGrid(); updateCustPreview();
+  }
+  function closeCustomize(){ $('customize').classList.add('hidden'); $('start').classList.remove('hidden'); }
+  if ($('custPanel')) $('custPanel').onclick = openCustomize;
+  if ($('custBack'))  $('custBack').onclick  = closeCustomize;
+  document.querySelectorAll('#custTabs button').forEach(b => b.onclick = () => { custSlot=b.dataset.slot; buildCustGrid(); });
 
   // ---------- Boot ----------
   setLevelLength(5000); resize(); selectMode('level'); updateHint(); loadGhostFromHash();

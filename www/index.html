@@ -13,8 +13,8 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
 <style>html,body{margin:0;background:#0d0305;}</style>
-  <script type="module" crossorigin src="./assets/index-COqOmtwN.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-NDDDkGyH.css">
+  <script type="module" crossorigin src="./assets/index-BFYFTcVQ.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DdJuLBRY.css">
 </head>
 <body>
 <div class="wrap">
@@ -78,11 +78,29 @@
         <button class="panel tap" id="mpPanel"><div class="panel-head"><span class="picon">🟢</span><div class="panel-txt"><div class="ptitle">Multiplayer <span class="beta">BETA</span></div><div class="psub">Race real players — live room</div></div><span class="chev">›</span></div></button>
         <button class="panel tap" id="chPanel"><div class="panel-head"><span class="picon">⚔</span><div class="panel-txt"><div class="ptitle">Challenge a friend</div><div class="psub">Send your ghost to beat</div></div><span class="chev">›</span></div></button>
         <button class="panel tap" id="endlessPanel"><div class="panel-head"><span class="picon">∞</span><div class="panel-txt"><div class="ptitle">Endless</div><div class="psub">Hit checkpoints, beat the clock</div></div><span class="chev">›</span></div></button>
+        <button class="panel tap" id="custPanel"><div class="panel-head"><span class="picon">🎨</span><div class="panel-txt"><div class="ptitle">Customize Spermy</div><div class="psub">Hats, glasses &amp; accessories</div></div><span class="chev">›</span></div></button>
       </div>
       <div class="hint" id="controlHint"></div>
       <div class="challenge-paste" id="challengePaste">Got a challenge code? Tap to enter</div>
       <div class="challenge-paste" id="serverCfg" style="color:var(--energy)">⚙ Server settings (Supabase)</div>
       <div class="fineprint" id="finePrint"></div>
+    </div>
+
+    <div class="overlay hidden" id="customize">
+      <div class="cust-top">
+        <button class="cust-back" id="custBack" title="Back">←</button>
+        <div class="cust-title">Customize Spermy</div>
+      </div>
+      <div class="cust-stage">
+        <svg class="cust-tail" viewBox="0 0 60 130" preserveAspectRatio="none"><path d="M30 0 C 48 28, 12 50, 30 75 C 48 100, 16 116, 30 130" fill="none" stroke="#43e0cf" stroke-width="5" stroke-linecap="round"/></svg>
+        <img id="custBody" alt=""><img id="custFace" alt=""><img id="custGlasses" alt=""><img id="custMouth" alt=""><img id="custHat" alt="">
+      </div>
+      <div class="cust-tabs" id="custTabs">
+        <button data-slot="hat" class="sel">Hat</button>
+        <button data-slot="glasses">Glasses</button>
+        <button data-slot="mouth">Mouth</button>
+      </div>
+      <div class="cust-grid" id="custGrid"></div>
     </div>
 
     <div class="overlay hidden" id="end">
