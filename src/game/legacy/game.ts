@@ -936,6 +936,27 @@ export function bootGame() {
     drawBanner();
   }
 
+  // Skin the curved wall region with the delivered membrane texture. Drawn in
+  // horizontal slices so the coral edge tracks the lane boundary at every height;
+  // the texture is world-pinned so it scrolls naturally, and tiles every 256
+  // logical px (the art is authored seamless). The crisp gloss stroke is drawn on
+  // top afterwards, hiding the slice stepping.
+  function drawWallTexture(){
+    const wl = art.img.wall_left, wr = art.img.wall_right;
+    if (!wl || !wr || !wl.complete || !wr.complete) return;
+    const texW = 146, srcW = wl.width, srcH = wl.height, tile = 256, step = 18;
+    for (let y=-step; y<=H+step; y+=step){
+      const worldY = yToWorld(y);
+      const half = wallHalf(worldY);
+      let vLog = (((worldY*PX_PER_UNIT) % tile) + tile) % tile;   // world-pinned scroll
+      let sliceLog = step;
+      if (vLog + sliceLog > tile) sliceLog = tile - vLog;         // don't read past the seam
+      if (sliceLog < 1) continue;
+      const srcY = vLog/tile*srcH, srcSliceH = sliceLog/tile*srcH;
+      ctx.drawImage(wl, 0, srcY, srcW, srcSliceH, (cx-half)-texW, y, texW, sliceLog);   // left: coral edge on the right
+      ctx.drawImage(wr, 0, srcY, srcW, srcSliceH, (cx+half),      y, texW, sliceLog);   // right: coral edge on the left
+    }
+  }
   function drawWalls(){
     const step=10, left=[], right=[];
     for (let y=-step; y<=H+step; y+=step){ const half=wallHalf(yToWorld(y)); left.push([cx-half,y]); right.push([cx+half,y]); }
@@ -943,6 +964,7 @@ export function bootGame() {
     for (const p of left) ctx.lineTo(p[0],p[1]); ctx.lineTo(-10,H+10); ctx.closePath(); ctx.fill();
     ctx.fillStyle=GFX.wallR; ctx.beginPath(); ctx.moveTo(W+10,-10);
     for (const p of right) ctx.lineTo(p[0],p[1]); ctx.lineTo(W+10,H+10); ctx.closePath(); ctx.fill();
+    if (art.ready) drawWallTexture();     // organic membrane texture over the gradient (follows the curve)
     // glossy inner edge — layered strokes instead of shadowBlur (far cheaper, same look)
     ctx.lineWidth=7; ctx.strokeStyle='rgba(255,120,150,.22)';
     ctx.beginPath(); ctx.moveTo(left[0][0],left[0][1]); for (const p of left) ctx.lineTo(p[0],p[1]); ctx.stroke();

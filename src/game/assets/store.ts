@@ -34,6 +34,9 @@ const IMAGE_PATHS: Record<string, string> = {
   // HUD button art (applied via .src so paths resolve on dev/build/Pages alike)
   boost_normal: 'ui/buttons/boost_normal.png',
   shield_normal: 'ui/buttons/shield_normal.png',
+  // canal wall membrane textures
+  wall_left: 'walls/wall_left.png',
+  wall_right: 'walls/wall_right.png',
 };
 
 /** What Spermy is wearing. Slots map to an image key (or null = nothing). */
