@@ -1074,8 +1074,9 @@ export function bootGame() {
   // whip-thin at the tip) so it reads like a real sperm tail. Behind the body.
   function drawTailProc(x, y, glowCol, phase){
     ctx.save(); ctx.translate(x, y);
-    let amp = 6 + (G.speed/CRUISE_CAP)*10 + G.flick*8;
-    if (G.state==='charging') amp = 6 + G.charge*16;
+    let amp = 5 + (G.speed/CRUISE_CAP)*5 + G.flick*3;
+    if (G.state==='charging') amp = 6 + G.charge*9;
+    amp = Math.min(amp, 13);                 // cap so the wag stays tidy at high speed
     const N=22, TOP=6, LEN=62, BASE_HW=8;   // start y, length, base half-width
     const c = [];
     for (let i=0;i<=N;i++){ const t=i/N; c.push([Math.sin(phase - t*7)*amp*t, TOP + t*LEN, t]); }
