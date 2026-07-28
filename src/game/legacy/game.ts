@@ -867,6 +867,12 @@ export function bootGame() {
       }
     }
     // items
+    if (art.ready && !G._hudSkinned && art.img.boost_normal && art.img.shield_normal){
+      const bb=$('btnBoost'), bs=$('btnShield');
+      bb.style.backgroundImage = `url(${art.img.boost_normal.src})`; bb.classList.add('sprite');
+      bs.style.backgroundImage = `url(${art.img.shield_normal.src})`; bs.classList.add('sprite');
+      G._hudSkinned = true;   // one-shot: the art carries the icon + frame from here on
+    }
     $('boostCnt').textContent = G.boostCharges;
     $('shieldCnt').textContent = G.shieldCharges;
     $('btnBoost').classList.toggle('empty', G.boostCharges<=0 || G.sprint);
@@ -1025,7 +1031,13 @@ export function bootGame() {
     const layer = img => { if (img && img.complete) ctx.drawImage(img, dx, dy, dw, dh); };
     const eq = art.equipped;
     const trail = (eq.trail && art.img[eq.trail]) ? art.img[eq.trail] : art.img.tail_default;
+    // gentle tail wag around its root so Spermy feels alive (amplitude grows with speed)
+    const tr = A.tail_root || bc;
+    const px = dx + tr.x*S, py = dy + tr.y*S;
+    const wag = Math.sin(G.tailPhase) * (0.05 + Math.min(0.06, (G.speed||0)/CRUISE_CAP*0.06));
+    ctx.save(); ctx.translate(px, py); ctx.rotate(wag); ctx.translate(-px, -py);
     layer(trail);
+    ctx.restore();
     layer(art.img.body);
     layer(faceFor());
     if (eq.hat && art.img[eq.hat]) layer(art.img[eq.hat]);

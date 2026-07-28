@@ -31,6 +31,9 @@ const IMAGE_PATHS: Record<string, string> = {
   // proof cosmetics (Phase 2)
   hat_party: 'cosmetics/hat/hat_party.png',
   trail_rainbow: 'cosmetics/trail/trail_rainbow.png',
+  // HUD button art (applied via .src so paths resolve on dev/build/Pages alike)
+  boost_normal: 'ui/buttons/boost_normal.png',
+  shield_normal: 'ui/buttons/shield_normal.png',
 };
 
 /** What Spermy is wearing. Slots map to an image key (or null = nothing). */
