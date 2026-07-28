@@ -121,6 +121,11 @@ export function bootGame() {
     half *= 1 - trackGeneration.narrowAmount*Math.pow(Math.min(1, worldY/LEVEL_LENGTH), trackGeneration.narrowPower);   // stays wide early, narrows mostly toward the egg
     return Math.max(maxHalf*trackGeneration.minHalfFraction, half);
   }
+  // VISUAL-ONLY organic edge: small layered "villi" ripples make the membrane look
+  // uneven/biological instead of a clean math curve. Collision & obstacle/sperm
+  // placement keep the smooth wallHalf() — this only perturbs what is DRAWN.
+  function villi(w, off){ return Math.sin(w*0.13+off)*4 + Math.sin(w*0.31+off*1.7)*3 + Math.sin(w*0.67+off*2.3)*2.2 + Math.sin(w*1.4+off)*1.2; }
+  function wallHalfViz(worldY, off){ return wallHalf(worldY) + villi(worldY, off); }
   const yToWorld = y => G.distance + (spermY - y)/PX_PER_UNIT;
   const worldToY = w => spermY - (w - G.distance)*PX_PER_UNIT;
 
@@ -948,8 +953,8 @@ export function bootGame() {
     const side = (img, anchorX, isLeft) => {
       ctx.save();
       ctx.beginPath();
-      if (isLeft){ ctx.moveTo(-10,-10); for (let y=-10; y<=H+10; y+=10) ctx.lineTo(cx-wallHalf(yToWorld(y)), y); ctx.lineTo(-10,H+10); }
-      else       { ctx.moveTo(W+10,-10); for (let y=-10; y<=H+10; y+=10) ctx.lineTo(cx+wallHalf(yToWorld(y)), y); ctx.lineTo(W+10,H+10); }
+      if (isLeft){ ctx.moveTo(-10,-10); for (let y=-10; y<=H+10; y+=10) ctx.lineTo(cx-wallHalfViz(yToWorld(y),0.0), y); ctx.lineTo(-10,H+10); }
+      else       { ctx.moveTo(W+10,-10); for (let y=-10; y<=H+10; y+=10) ctx.lineTo(cx+wallHalfViz(yToWorld(y),2.4), y); ctx.lineTo(W+10,H+10); }
       ctx.closePath(); ctx.clip();
       ctx.globalAlpha = 0.6;
       for (let ty=-tileH+scroll; ty < H+tileH; ty += tileH) ctx.drawImage(img, anchorX, ty, tileW, tileH);
@@ -960,7 +965,7 @@ export function bootGame() {
   }
   function drawWalls(){
     const step=10, left=[], right=[];
-    for (let y=-step; y<=H+step; y+=step){ const half=wallHalf(yToWorld(y)); left.push([cx-half,y]); right.push([cx+half,y]); }
+    for (let y=-step; y<=H+step; y+=step){ const w=yToWorld(y); left.push([cx-wallHalfViz(w,0.0),y]); right.push([cx+wallHalfViz(w,2.4),y]); }
     ctx.fillStyle=GFX.wallL; ctx.beginPath(); ctx.moveTo(-10,-10);
     for (const p of left) ctx.lineTo(p[0],p[1]); ctx.lineTo(-10,H+10); ctx.closePath(); ctx.fill();
     ctx.fillStyle=GFX.wallR; ctx.beginPath(); ctx.moveTo(W+10,-10);
