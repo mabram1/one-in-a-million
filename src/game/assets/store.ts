@@ -42,11 +42,11 @@ export interface Equipped {
   hat: string | null; trail: string | null; aura: string | null;
 }
 
-// TEMPORARY proof default: equip the two Phase 2 cosmetics so the customization
-// stack is visible before the Customize screen exists. Real default is classic.
+// Classic default look (no cosmetics) — matches the original feel. Cosmetics are
+// chosen in the Customize screen (Phase 4) and persisted to localStorage.
 const DEFAULT_EQUIPPED: Equipped = {
   skin: null, glasses: null, mouth: null,
-  hat: 'hat_party', trail: 'trail_rainbow', aura: null,
+  hat: null, trail: null, aura: null,
 };
 
 export const art = {

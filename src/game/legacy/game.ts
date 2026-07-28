@@ -1034,30 +1034,35 @@ export function bootGame() {
   }
   // Sprite render box: how many logical px one rig-canvas px maps to. Tunable —
   // bigger = bigger Spermy. (rig canvas is 512x768.)
-  const SPRITE_SCALE = 0.24;
+  const SPRITE_SCALE = 0.13;
   function faceFor(){
     if (G.state==='charging') return art.img.face_charging;
     if (G.hitFlash > 0.4) return art.img.face_hit;
     if (G.state==='playing') return art.img.face_determined;
     return art.img.face_idle;
   }
+  // The lively procedural tail (the look from before) — an animated glowing wiggle
+  // that reacts to speed/charge. Drawn behind the shaded body sprite.
+  function drawTailProc(x, y, glowCol, phase){
+    ctx.save(); ctx.translate(x, y);
+    let amp = 6 + (G.speed/CRUISE_CAP)*10 + G.flick*8;
+    if (G.state==='charging') amp = 6 + G.charge*16;
+    const tail = (w) => { ctx.beginPath(); ctx.moveTo(0,10); for (let i=0;i<=16;i++){ const t=i/16; ctx.lineTo(Math.sin(phase - t*7)*amp*t, 10+t*50); } ctx.lineWidth=w; ctx.stroke(); };
+    ctx.strokeStyle=glowCol; ctx.lineCap='round'; ctx.shadowColor=glowCol; ctx.shadowBlur=14;
+    ctx.globalAlpha=0.5; tail(7); ctx.globalAlpha=1; tail(4); ctx.shadowBlur=0;
+    ctx.restore();
+  }
   function drawSpermSprite(x, y){
+    // 1) lively animated tail (state-coloured), behind everything
+    const glow = G.state==='charging' ? '#7cff9f' : (G.boosting>0 ? '#ffd24d' : '#43e0cf');
+    drawTailProc(x, y, glow, G.tailPhase);
+    // 2) shaded body + face + equipped head cosmetics, aligned to body_center
     const rig = art.rig; const A = rig.anchors; const S = SPRITE_SCALE;
     const bc = A.body_center || { x: rig.canvas.width/2, y: rig.canvas.height/2 };
-    // Place body_center at (x,y); every layer shares the same 512x768 canvas so
-    // they stack 1:1 (trail behind → body → face → hat), per spermy-rig.json.
     const dw = rig.canvas.width*S, dh = rig.canvas.height*S;
     const dx = x - bc.x*S, dy = y - bc.y*S;
     const layer = img => { if (img && img.complete) ctx.drawImage(img, dx, dy, dw, dh); };
     const eq = art.equipped;
-    const trail = (eq.trail && art.img[eq.trail]) ? art.img[eq.trail] : art.img.tail_default;
-    // gentle tail wag around its root so Spermy feels alive (amplitude grows with speed)
-    const tr = A.tail_root || bc;
-    const px = dx + tr.x*S, py = dy + tr.y*S;
-    const wag = Math.sin(G.tailPhase) * (0.05 + Math.min(0.06, (G.speed||0)/CRUISE_CAP*0.06));
-    ctx.save(); ctx.translate(px, py); ctx.rotate(wag); ctx.translate(-px, -py);
-    layer(trail);
-    ctx.restore();
     layer(art.img.body);
     layer(faceFor());
     if (eq.hat && art.img[eq.hat]) layer(art.img[eq.hat]);
