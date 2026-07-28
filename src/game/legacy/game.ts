@@ -736,7 +736,10 @@ export function bootGame() {
     // momentum: shaking pushes speed UP gently (smooth, never snaps); always bleeds slowly.
     const ceil = (G.boostOn || G.sprint || G.boosting>0) ? OVER_CAP : CRUISE_CAP;
     const thrust01 = Math.min(1, rate/DRIVE_RATE);
-    const accel = ACCEL_UP;   // no sprint accel bonus — full speed must be earned by hammering hard
+    // Hammering hard in the sprint pushes more, so flat-out hammering holds a high
+    // speed (~96%) instead of decaying to the base equilibrium; stop hammering and
+    // the fast bleed still drags you down.
+    const accel = G.sprint ? ACCEL_UP * finalSprint.hammerAccelMultiplier : ACCEL_UP;
     if (G.speed < ceil) G.speed = Math.min(ceil, G.speed + accel*thrust01*dt);
     if (G.boosting>0){ G.boosting -= dt; G.speed = Math.max(G.speed, OVER_CAP); }  // ⚡ boost burst
     const decay = G.sprint ? DECAY_SPRINT : DECAY_CRUISE;

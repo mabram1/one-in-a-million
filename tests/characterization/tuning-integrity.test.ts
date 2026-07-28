@@ -10,9 +10,9 @@ import { tuning, tuningVersion } from '../../src/game/config/tuning';
 
 describe('tuning version', () => {
   it('is the current approved version', () => {
-    // 1.0.0 = verbatim baseline 0088469. 1.1.0 added camera.logicalWidth for the
-    // device-independent viewport (P1-10, owner-approved 2026-07-26).
-    expect(tuningVersion).toBe('1.1.0');
+    // 1.0.0 = verbatim baseline 0088469. 1.1.0 added camera.logicalWidth (P1-10).
+    // 1.2.0 added finalSprint.hammerAccelMultiplier (owner-approved 2026-07-28).
+    expect(tuningVersion).toBe('1.2.0');
   });
 
   it('is frozen so nothing can mutate it at runtime', () => {
@@ -86,6 +86,12 @@ describe('protected tuning values (baseline 0088469)', () => {
   it('final sprint geometry', () => {
     expect(tuning.finalSprint.zoneMaxUnits).toBe(700);
     expect(tuning.finalSprint.zoneFraction).toBe(0.24);
+    expect(tuning.finalSprint.hammerAccelMultiplier).toBe(1.12);
+    // Sustainable sprint speed = accel / decay; the multiplier lifts it to ~96% of
+    // over-cap so flat-out hammering holds high instead of bleeding to ~86%.
+    const sustain = (tuning.momentum.accelUp * tuning.finalSprint.hammerAccelMultiplier) / tuning.momentum.decaySprint;
+    expect(sustain / tuning.momentum.overCap).toBeGreaterThan(0.93);
+    expect(sustain / tuning.momentum.overCap).toBeLessThan(1.0);
   });
 
   it('camera — fixed logical viewport (device-independent, P1-10)', () => {

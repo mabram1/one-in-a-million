@@ -13,7 +13,7 @@
  * docs/audits/handbook-baseline-audit.md §4.1). Nothing was rounded or "cleaned".
  */
 
-export const tuningVersion = '1.1.0' as const;
+export const tuningVersion = '1.2.0' as const;
 
 /** Motion/stroke detection and cadence. */
 export interface ControlsTuning {
@@ -99,6 +99,10 @@ export interface FinalSprintTuning {
   zoneMaxUnits: number;
   zoneFraction: number;
   minLevelUnits: number;
+  /** Hammering harder in the sprint pushes speed more, so flat-out hammering holds
+   *  a high speed (~96% of max) instead of bleeding down to the base equilibrium.
+   *  The fast bleed still applies when you stop hammering. */
+  hammerAccelMultiplier: number;
 }
 
 /** View/projection. */
@@ -266,6 +270,7 @@ export const tuning: Readonly<Tuning> = Object.freeze({
     zoneMaxUnits: 700,
     zoneFraction: 0.24,
     minLevelUnits: 700,
+    hammerAccelMultiplier: 1.12,
   },
   camera: {
     pxPerUnit: 5.0,
