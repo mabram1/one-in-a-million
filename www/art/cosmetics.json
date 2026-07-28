@@ -128,5 +128,83 @@
     "thumb": "store/crown_thumb.png",
     "asset": "cosmetics/hat/crown.png",
     "z": 60
+  },
+  {
+    "id": "heart_shades",
+    "name": "Heart Shades",
+    "slot": "glasses",
+    "rarity": "rare",
+    "price": {
+      "currency": "coins",
+      "amount": 1100
+    },
+    "thumb": "store/heart_shades_thumb.png",
+    "asset": "cosmetics/glasses/heart_shades.png",
+    "z": 40
+  },
+  {
+    "id": "monocle",
+    "name": "Golden Monocle",
+    "slot": "glasses",
+    "rarity": "epic",
+    "price": {
+      "currency": "gems",
+      "amount": 80
+    },
+    "thumb": "store/monocle_thumb.png",
+    "asset": "cosmetics/glasses/monocle.png",
+    "z": 40
+  },
+  {
+    "id": "pacifier",
+    "name": "Pacifier",
+    "slot": "mouth",
+    "rarity": "rare",
+    "price": {
+      "currency": "coins",
+      "amount": 950
+    },
+    "thumb": "store/pacifier_thumb.png",
+    "asset": "cosmetics/mouth/pacifier.png",
+    "z": 50
+  },
+  {
+    "id": "pirate_hat",
+    "name": "Pirate Hat",
+    "slot": "hat",
+    "rarity": "epic",
+    "price": {
+      "currency": "gems",
+      "amount": 130
+    },
+    "thumb": "store/pirate_hat_thumb.png",
+    "asset": "cosmetics/hat/pirate_hat.png",
+    "z": 60
+  },
+  {
+    "id": "propeller_cap",
+    "name": "Propeller Cap",
+    "slot": "hat",
+    "rarity": "rare",
+    "price": {
+      "currency": "coins",
+      "amount": 1400
+    },
+    "thumb": "store/propeller_cap_thumb.png",
+    "asset": "cosmetics/hat/propeller_cap.png",
+    "z": 60
+  },
+  {
+    "id": "halo",
+    "name": "Golden Halo",
+    "slot": "hat",
+    "rarity": "legendary",
+    "price": {
+      "currency": "gems",
+      "amount": 220
+    },
+    "thumb": "store/halo_thumb.png",
+    "asset": "cosmetics/hat/halo.png",
+    "z": 60
   }
 ]
