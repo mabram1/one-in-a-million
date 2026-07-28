@@ -936,26 +936,27 @@ export function bootGame() {
     drawBanner();
   }
 
-  // Skin the curved wall region with the delivered membrane texture. Drawn in
-  // horizontal slices so the coral edge tracks the lane boundary at every height;
-  // the texture is world-pinned so it scrolls naturally, and tiles every 256
-  // logical px (the art is authored seamless). The crisp gloss stroke is drawn on
-  // top afterwards, hiding the slice stepping.
+  // Skin the canal with the membrane texture as a semi-transparent overlay,
+  // CLIPPED to the smooth wall path so the inner edge stays smooth (no stepping)
+  // and tiled seamlessly (no seams). The procedural coral edge + gloss stroke are
+  // drawn on top afterwards for the crisp boundary; this just adds organic veins.
   function drawWallTexture(){
     const wl = art.img.wall_left, wr = art.img.wall_right;
     if (!wl || !wr || !wl.complete || !wr.complete) return;
-    const texW = 146, srcW = wl.width, srcH = wl.height, tile = 256, step = 18;
-    for (let y=-step; y<=H+step; y+=step){
-      const worldY = yToWorld(y);
-      const half = wallHalf(worldY);
-      let vLog = (((worldY*PX_PER_UNIT) % tile) + tile) % tile;   // world-pinned scroll
-      let sliceLog = step;
-      if (vLog + sliceLog > tile) sliceLog = tile - vLog;         // don't read past the seam
-      if (sliceLog < 1) continue;
-      const srcY = vLog/tile*srcH, srcSliceH = sliceLog/tile*srcH;
-      ctx.drawImage(wl, 0, srcY, srcW, srcSliceH, (cx-half)-texW, y, texW, sliceLog);   // left: coral edge on the right
-      ctx.drawImage(wr, 0, srcY, srcW, srcSliceH, (cx+half),      y, texW, sliceLog);   // right: coral edge on the left
-    }
+    const tileW = 146, tileH = 256;
+    const scroll = (((G.distance*PX_PER_UNIT) % tileH) + tileH) % tileH;   // world-pinned vertical scroll
+    const side = (img, anchorX, isLeft) => {
+      ctx.save();
+      ctx.beginPath();
+      if (isLeft){ ctx.moveTo(-10,-10); for (let y=-10; y<=H+10; y+=10) ctx.lineTo(cx-wallHalf(yToWorld(y)), y); ctx.lineTo(-10,H+10); }
+      else       { ctx.moveTo(W+10,-10); for (let y=-10; y<=H+10; y+=10) ctx.lineTo(cx+wallHalf(yToWorld(y)), y); ctx.lineTo(W+10,H+10); }
+      ctx.closePath(); ctx.clip();
+      ctx.globalAlpha = 0.6;
+      for (let ty=-tileH+scroll; ty < H+tileH; ty += tileH) ctx.drawImage(img, anchorX, ty, tileW, tileH);
+      ctx.restore();
+    };
+    side(wl, 0, true);           // left wall: texture anchored to the screen edge
+    side(wr, W-tileW, false);    // right wall: texture anchored to the screen edge
   }
   function drawWalls(){
     const step=10, left=[], right=[];
