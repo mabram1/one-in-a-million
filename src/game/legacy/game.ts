@@ -1182,13 +1182,30 @@ export function bootGame() {
     if (eq.hat     && art.img[eq.hat])     layer(art.img[eq.hat]);       // z60
     if (eq.aura    && art.img[eq.aura])    layer(art.img[eq.aura]);      // z70
   }
+  // Protective bubble shown while a shield is active — it absorbs the next hit (no
+  // speed loss). Glossy teal sphere around Spermy.
+  function drawShieldBubble(x, y){
+    const br = 44, pulse = 1 + 0.04*Math.sin(now()*0.006);
+    const r = br*pulse;
+    ctx.save();
+    const g = ctx.createRadialGradient(x, y, r*0.45, x, y, r);
+    g.addColorStop(0, 'rgba(67,224,207,0)'); g.addColorStop(0.78, 'rgba(67,224,207,.07)'); g.addColorStop(1, 'rgba(67,224,207,.24)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.28); ctx.fill();
+    ctx.strokeStyle = 'rgba(120,245,232,.9)'; ctx.lineWidth = 2.5; ctx.shadowColor = '#43e0cf'; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 6.28); ctx.stroke(); ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.beginPath(); ctx.ellipse(x - r*0.34, y - r*0.42, r*0.14, r*0.26, -0.5, 0, 6.28); ctx.fill();
+    ctx.restore();
+  }
   function drawSperm(){
     const showAtStart = (G.state==='charging' || G.state==='playing' || G.state==='ready');
     if (!showAtStart) return;
     const x=spermScreenX();
-    if (art.ready && art.rig && art.img.body){ drawSpermSprite(x, spermY); return; }
-    const glow = G.state==='charging' ? '#7cff9f' : (G.boosting>0 ? '#ffd24d' : '#43e0cf');
-    drawSpermShape(x, spermY, 1, '#fbf0e0', glow, 1, G.tailPhase, true);
+    if (art.ready && art.rig && art.img.body){ drawSpermSprite(x, spermY); }
+    else {
+      const glow = G.state==='charging' ? '#7cff9f' : (G.boosting>0 ? '#ffd24d' : '#43e0cf');
+      drawSpermShape(x, spermY, 1, '#fbf0e0', glow, 1, G.tailPhase, true);
+    }
+    if (G.shieldActive) drawShieldBubble(x, spermY);
   }
   function drawSpermShape(x,y,scale,headCol,glowCol,alpha,phase,eyes){
     ctx.save(); ctx.globalAlpha=alpha; ctx.translate(x,y); ctx.scale(scale,scale);
