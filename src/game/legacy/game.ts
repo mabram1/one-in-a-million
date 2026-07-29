@@ -989,8 +989,10 @@ export function bootGame() {
   function drawParticles(){
     // ambient red blood cells drifting in the canal
     const rbc = art.ready && art.img.rbc && art.img.rbc.complete ? art.img.rbc : null;
-    ctx.globalAlpha=0.5;
-    for (const p of G.particles){
+    ctx.globalAlpha=0.42;
+    for (let i=0;i<G.particles.length;i++){
+      if (i % 9 < 4) continue;                    // thin the ambient cells (~55% shown) — decor only
+      const p=G.particles[i];
       const y=worldToY(p.w); if (y<-14||y>H+14) continue;
       const half=wallHalf(p.w)-8; const x=cx+p.lane*half+Math.sin(p.sway)*5; const r=p.s*2.4;
       if (rbc){ const d=r*3; ctx.drawImage(rbc, x-d/2, y-d/2, d, d); }
@@ -1051,6 +1053,12 @@ export function bootGame() {
       if (p.taken) continue;
       const y=worldToY(p.world); if (y<-22||y>H+22) continue;
       const x=cx+p.lane*(wallHalf(p.world)-p.r), bob=Math.sin(now()*0.004+p.ph)*3;
+      // Collectible glow halo so bonuses clearly read as "grab me" vs matte obstacles.
+      const gcol = p.kind==='shield' ? '#43e0cf' : p.kind==='speed' ? '#7cff9f' : '#ffd24d';
+      const pulse = 0.82 + 0.18*Math.sin(now()*0.006 + p.ph);
+      const gr = ctx.createRadialGradient(x, y+bob, p.r*0.2, x, y+bob, p.r*2.0*pulse);
+      gr.addColorStop(0, gcol+'99'); gr.addColorStop(0.55, gcol+'33'); gr.addColorStop(1, gcol+'00');
+      ctx.save(); ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(x, y+bob, p.r*2.0*pulse, 0, 6.28); ctx.fill(); ctx.restore();
       const sprite = art.ready && (p.kind==='shield' ? art.img.shield : p.kind==='speed' ? art.img.speedorb : (p.kind==='star'||!p.kind) ? art.img.star : null);
       if (sprite && sprite.complete){
         const d=p.r*2.6;
