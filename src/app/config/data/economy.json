@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "startingWallet": {
+    "coins": 1000,
+    "gems": 20
+  },
+  "tutorial": {
+    "completionCoins": 100
+  },
+  "raceRewards": {
+    "mobileMotion": {
+      "completionCoins": 40,
+      "distanceMilestoneMeters": 250,
+      "coinsPerDistanceMilestone": 8,
+      "distanceCoinCap": 40,
+      "perfectLaunchCoins": 5,
+      "placementCoins": {
+        "1": 30,
+        "2": 20,
+        "3": 10
+      },
+      "firstRaceOfDayCoins": 50
+    },
+    "mobileTouch": {
+      "completionCoins": 40,
+      "distanceMilestoneMeters": 250,
+      "coinsPerDistanceMilestone": 8,
+      "distanceCoinCap": 40,
+      "perfectLaunchCoins": 5,
+      "placementCoins": {},
+      "firstRaceOfDayCoins": 50
+    },
+    "desktopKeyboard": {
+      "persistentRewardsEnabled": false
+    },
+    "endless": {
+      "baseCoins": 15,
+      "coinsPerCheckpoint": 8,
+      "checkpointCoinCap": 120
+    },
+    "challenge": {
+      "firstCompletionCoins": 50,
+      "winCoins": 20
+    }
+  },
+  "xp": {
+    "completion": 50,
+    "placement": {
+      "1": 25,
+      "2": 15,
+      "3": 10
+    },
+    "perfectLaunch": 5,
+    "firstRaceOfDay": 25,
+    "endlessBase": 10,
+    "endlessPerCheckpoint": 5,
+    "endlessCap": 100,
+    "levelBase": 100,
+    "levelGrowth": 1.18,
+    "displayLevelCap": 30,
+    "gemsEveryLevels": 5,
+    "levelMilestoneGems": 10
+  },
+  "wallet": {
+    "integerOnly": true,
+    "allowNegative": false
+  },
+  "realMoney": {
+    "enabled": false,
+    "reason": "Platform SKUs, receipt validation, restore purchases, and billing compliance are not finalized."
+  }
+}

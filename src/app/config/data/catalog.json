@@ -1,0 +1,165 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "hat_party",
+      "name": "Party Hat",
+      "slot": "hat",
+      "rarity": "rare",
+      "price": { "currency": "coins", "amount": 1200 },
+      "thumb": "store/hat_party_thumb.png",
+      "asset": "cosmetics/hat/hat_party.png",
+      "z": 60
+    },
+    {
+      "id": "trail_rainbow",
+      "name": "Rainbow Trail",
+      "slot": "trail",
+      "rarity": "epic",
+      "price": { "currency": "gems", "amount": 120 },
+      "thumb": "store/trail_rainbow_thumb.png",
+      "asset": "cosmetics/trail/trail_rainbow.png",
+      "z": 10
+    },
+    {
+      "id": "sunglasses",
+      "name": "Sunglasses",
+      "slot": "glasses",
+      "rarity": "common",
+      "price": { "currency": "coins", "amount": 800 },
+      "thumb": "store/sunglasses_thumb.png",
+      "asset": "cosmetics/glasses/sunglasses.png",
+      "z": 40
+    },
+    {
+      "id": "nerd_round",
+      "name": "Round Nerd Glasses",
+      "slot": "glasses",
+      "rarity": "rare",
+      "price": { "currency": "coins", "amount": 1000 },
+      "thumb": "store/nerd_round_thumb.png",
+      "asset": "cosmetics/glasses/nerd_round.png",
+      "z": 40
+    },
+    {
+      "id": "star_shades",
+      "name": "Star Shades",
+      "slot": "glasses",
+      "rarity": "epic",
+      "price": { "currency": "gems", "amount": 90 },
+      "thumb": "store/star_shades_thumb.png",
+      "asset": "cosmetics/glasses/star_shades.png",
+      "z": 40
+    },
+    {
+      "id": "moustache",
+      "name": "Curly Moustache",
+      "slot": "mouth",
+      "rarity": "rare",
+      "price": { "currency": "coins", "amount": 900 },
+      "thumb": "store/moustache_thumb.png",
+      "asset": "cosmetics/mouth/moustache.png",
+      "z": 50
+    },
+    {
+      "id": "bowtie",
+      "name": "Bow Tie",
+      "slot": "mouth",
+      "rarity": "common",
+      "price": { "currency": "coins", "amount": 700 },
+      "thumb": "store/bowtie_thumb.png",
+      "asset": "cosmetics/mouth/bowtie.png",
+      "z": 50
+    },
+    {
+      "id": "hair_bow",
+      "name": "Hair Bow",
+      "slot": "hat",
+      "rarity": "common",
+      "price": { "currency": "coins", "amount": 700 },
+      "thumb": "store/hair_bow_thumb.png",
+      "asset": "cosmetics/hat/hair_bow.png",
+      "z": 60
+    },
+    {
+      "id": "beanie",
+      "name": "Cozy Beanie",
+      "slot": "hat",
+      "rarity": "rare",
+      "price": { "currency": "coins", "amount": 1200 },
+      "thumb": "store/beanie_thumb.png",
+      "asset": "cosmetics/hat/beanie.png",
+      "z": 60
+    },
+    {
+      "id": "crown",
+      "name": "Royal Crown",
+      "slot": "hat",
+      "rarity": "legendary",
+      "price": { "currency": "gems", "amount": 250 },
+      "thumb": "store/crown_thumb.png",
+      "asset": "cosmetics/hat/crown.png",
+      "z": 60
+    },
+    {
+      "id": "heart_shades",
+      "name": "Heart Shades",
+      "slot": "glasses",
+      "rarity": "rare",
+      "price": { "currency": "coins", "amount": 1100 },
+      "thumb": "store/heart_shades_thumb.png",
+      "asset": "cosmetics/glasses/heart_shades.png",
+      "z": 40
+    },
+    {
+      "id": "monocle",
+      "name": "Golden Monocle",
+      "slot": "glasses",
+      "rarity": "epic",
+      "price": { "currency": "gems", "amount": 80 },
+      "thumb": "store/monocle_thumb.png",
+      "asset": "cosmetics/glasses/monocle.png",
+      "z": 40
+    },
+    {
+      "id": "pacifier",
+      "name": "Pacifier",
+      "slot": "mouth",
+      "rarity": "rare",
+      "price": { "currency": "coins", "amount": 950 },
+      "thumb": "store/pacifier_thumb.png",
+      "asset": "cosmetics/mouth/pacifier.png",
+      "z": 50
+    },
+    {
+      "id": "pirate_hat",
+      "name": "Pirate Hat",
+      "slot": "hat",
+      "rarity": "epic",
+      "price": { "currency": "gems", "amount": 130 },
+      "thumb": "store/pirate_hat_thumb.png",
+      "asset": "cosmetics/hat/pirate_hat.png",
+      "z": 60
+    },
+    {
+      "id": "propeller_cap",
+      "name": "Propeller Cap",
+      "slot": "hat",
+      "rarity": "rare",
+      "price": { "currency": "coins", "amount": 1400 },
+      "thumb": "store/propeller_cap_thumb.png",
+      "asset": "cosmetics/hat/propeller_cap.png",
+      "z": 60
+    },
+    {
+      "id": "halo",
+      "name": "Golden Halo",
+      "slot": "hat",
+      "rarity": "legendary",
+      "price": { "currency": "gems", "amount": 220 },
+      "thumb": "store/halo_thumb.png",
+      "asset": "cosmetics/hat/halo.png",
+      "z": 60
+    }
+  ]
+}

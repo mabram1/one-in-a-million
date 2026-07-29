@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "routes": [
+    { "id": "splash", "path": "/boot", "shell": false },
+    { "id": "intro", "path": "/intro", "shell": false },
+    { "id": "onboarding", "path": "/onboarding", "shell": false },
+    { "id": "home", "path": "/", "shell": true },
+    { "id": "customize", "path": "/customize", "shell": true },
+    { "id": "store", "path": "/store", "shell": true },
+    { "id": "profile", "path": "/profile", "shell": true },
+    { "id": "settings", "path": "/settings", "shell": true },
+    { "id": "practice", "path": "/play/practice", "shell": false },
+    { "id": "multiplayer", "path": "/play/multiplayer", "shell": false },
+    { "id": "challenge", "path": "/challenge/:code", "shell": false },
+    { "id": "endless", "path": "/play/endless", "shell": false }
+  ],
+  "bottomNavigation": ["home", "customize", "store", "profile"]
+}
