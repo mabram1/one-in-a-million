@@ -1,0 +1,24 @@
+{
+  "locale": "sl",
+  "wordmark": "One in a Million",
+  "primaryAction": "NA DIRKO",
+  "practice": "VAJA",
+  "multiplayer": "VEČ IGRALCEV",
+  "challenge": "IZZIV",
+  "endless": "NESKONČNO",
+  "dailyChallenge": "DNEVNI IZZIV",
+  "dailyExample": "Premagaj 3 tekmece v eni dirki",
+  "distanceLabel": "DOLŽINA DIRKE",
+  "distances": ["750 m", "1000 m", "1250 m"],
+  "home": "DOMOV",
+  "customize": "PREOBLECI",
+  "store": "TRGOVINA",
+  "profile": "PROFIL",
+  "offline": "BREZ POVEZAVE",
+  "desktopDemo": "NAMIZNI PREIZKUS",
+  "desktopNotice": "Dirke s tipkovnico imajo ločene rekorde.",
+  "motionReady": "SENZORJI PRIPRAVLJENI",
+  "guest": "Gost",
+  "level": "NIVO {level}"
+}
+

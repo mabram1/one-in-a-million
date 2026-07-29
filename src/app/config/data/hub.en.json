@@ -1,0 +1,24 @@
+{
+  "locale": "en",
+  "wordmark": "One in a Million",
+  "primaryAction": "RACE NOW",
+  "practice": "PRACTICE",
+  "multiplayer": "MULTIPLAYER",
+  "challenge": "CHALLENGE",
+  "endless": "ENDLESS",
+  "dailyChallenge": "DAILY CHALLENGE",
+  "dailyExample": "Beat 3 rivals in one run",
+  "distanceLabel": "RACE DISTANCE",
+  "distances": ["750 m", "1000 m", "1250 m"],
+  "home": "HOME",
+  "customize": "CUSTOMIZE",
+  "store": "STORE",
+  "profile": "PROFILE",
+  "offline": "OFFLINE",
+  "desktopDemo": "DESKTOP DEMO",
+  "desktopNotice": "Keyboard runs have separate records.",
+  "motionReady": "MOTION READY",
+  "guest": "Guest",
+  "level": "LEVEL {level}"
+}
+

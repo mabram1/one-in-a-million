@@ -1,7 +1,9 @@
 import './styles/game.css';
+import './styles/main-hub.css';
 import { bootGame } from './game/legacy/game';
 import { loadArt } from './game/assets/store';
 import { maybeShowHowToPlay, openHowToPlay } from './app/screens/howToPlay';
+import { hubV2Enabled, setHubV2, show as showHub } from './app/screens/mainHub';
 
 /**
  * Optional live-multiplayer transports, loaded from a CDN at runtime.
@@ -39,6 +41,10 @@ void loadArt();
 const startPractice = () => { (document.getElementById('practicePlay') as HTMLElement | null)?.click(); };
 (document.getElementById('howtoLink') as HTMLElement | null)?.addEventListener('click', () => openHowToPlay(startPractice));
 maybeShowHowToPlay(startPractice);
+
+// Main Hub v2 (beta, flag-gated). Enable from the classic menu link or ?hub=v2.
+(document.getElementById('hubBetaLink') as HTMLElement | null)?.addEventListener('click', () => { setHubV2(true); showHub(); });
+if (hubV2Enabled()) showHub();
 
 // PWA service worker (parity with the pre-migration build). Registered relative to
 // the deploy base so it works on GitHub Pages subpaths, Vercel root, and Capacitor.
