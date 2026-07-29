@@ -934,6 +934,7 @@ export function bootGame() {
 
     drawWalls(); drawParticles(); drawObstacles(); drawPickups();
     if (G.mode==='level'){ drawSprintLine(); drawEgg(); }
+    else if (G.mode==='endless'){ drawCheckpoints(); }
     drawRivalGhost(); if (MP.active) drawPeers(); drawSperm();
     ctx.restore();
 
@@ -986,13 +987,14 @@ export function bootGame() {
     ctx.fillStyle=GFX.vig;  ctx.fillRect(0,0,W,H);
   }
   function drawParticles(){
-    // ambient red blood cells — flat fills (a gradient per cell per frame was the Android bottleneck)
+    // ambient red blood cells drifting in the canal
+    const rbc = art.ready && art.img.rbc && art.img.rbc.complete ? art.img.rbc : null;
     ctx.globalAlpha=0.5;
     for (const p of G.particles){
       const y=worldToY(p.w); if (y<-14||y>H+14) continue;
       const half=wallHalf(p.w)-8; const x=cx+p.lane*half+Math.sin(p.sway)*5; const r=p.s*2.4;
-      ctx.fillStyle='#c8404c'; ctx.beginPath(); ctx.ellipse(x,y,r,r*0.82,0,0,6.28); ctx.fill();
-      ctx.fillStyle='#7c1a24'; ctx.beginPath(); ctx.arc(x,y,r*0.42,0,6.28); ctx.fill();
+      if (rbc){ const d=r*3; ctx.drawImage(rbc, x-d/2, y-d/2, d, d); }
+      else { ctx.fillStyle='#c8404c'; ctx.beginPath(); ctx.ellipse(x,y,r,r*0.82,0,0,6.28); ctx.fill(); ctx.fillStyle='#7c1a24'; ctx.beginPath(); ctx.arc(x,y,r*0.42,0,6.28); ctx.fill(); }
     }
     ctx.globalAlpha=1;
   }
@@ -1001,15 +1003,21 @@ export function bootGame() {
       const y=worldToY(o.world); if (y<-60||y>H+60) continue;
       if (o.type==='cell'){
         const x=cx+o.lane*(wallHalf(o.world)-o.r);
-        ctx.save(); ctx.translate(x,y);
-        const grd=ctx.createRadialGradient(-o.r*0.3,-o.r*0.3,o.r*0.2,0,0,o.r);
-        grd.addColorStop(0,o.hit?'#c9b7a8':'#f3e7d6'); grd.addColorStop(1,o.hit?'#8a7566':'#c9a98f');
-        ctx.fillStyle=grd;
-        ctx.beginPath(); for (let a=0;a<6.28;a+=0.4){ const rr=o.r*(0.86+0.14*Math.sin(a*3+o.ph)); const px=Math.cos(a)*rr, py=Math.sin(a)*rr; a===0?ctx.moveTo(px,py):ctx.lineTo(px,py); } ctx.closePath(); ctx.fill();
-        const ng=ctx.createRadialGradient(o.r*0.05,0,o.r*0.1, o.r*0.15,o.r*0.1,o.r*0.45);
-        ng.addColorStop(0,'#a06bc0'); ng.addColorStop(1,'#5e3480');
-        ctx.fillStyle=ng; ctx.beginPath(); ctx.arc(o.r*0.15,o.r*0.1,o.r*0.42,0,6.28); ctx.fill();
-        ctx.fillStyle='rgba(255,255,255,.35)'; ctx.beginPath(); ctx.arc(o.r*0.02,o.r*-0.05,o.r*0.14,0,6.28); ctx.fill(); ctx.restore();
+        const img = art.ready && (o.r<19 ? art.img.wbc_s : o.r<24 ? art.img.wbc_m : art.img.wbc_l);
+        if (img && img.complete){
+          const d=o.r*2.3;
+          ctx.save(); ctx.translate(x,y); if (o.hit) ctx.globalAlpha=0.55; ctx.drawImage(img,-d/2,-d/2,d,d); ctx.restore();
+        } else {
+          ctx.save(); ctx.translate(x,y);
+          const grd=ctx.createRadialGradient(-o.r*0.3,-o.r*0.3,o.r*0.2,0,0,o.r);
+          grd.addColorStop(0,o.hit?'#c9b7a8':'#f3e7d6'); grd.addColorStop(1,o.hit?'#8a7566':'#c9a98f');
+          ctx.fillStyle=grd;
+          ctx.beginPath(); for (let a=0;a<6.28;a+=0.4){ const rr=o.r*(0.86+0.14*Math.sin(a*3+o.ph)); const px=Math.cos(a)*rr, py=Math.sin(a)*rr; a===0?ctx.moveTo(px,py):ctx.lineTo(px,py); } ctx.closePath(); ctx.fill();
+          const ng=ctx.createRadialGradient(o.r*0.05,0,o.r*0.1, o.r*0.15,o.r*0.1,o.r*0.45);
+          ng.addColorStop(0,'#a06bc0'); ng.addColorStop(1,'#5e3480');
+          ctx.fillStyle=ng; ctx.beginPath(); ctx.arc(o.r*0.15,o.r*0.1,o.r*0.42,0,6.28); ctx.fill();
+          ctx.fillStyle='rgba(255,255,255,.35)'; ctx.beginPath(); ctx.arc(o.r*0.02,o.r*-0.05,o.r*0.14,0,6.28); ctx.fill(); ctx.restore();
+        }
       } else {
         const half=wallHalf(o.world), gcx=cx+o.gapLane*(half*0.8), gw=o.gapHalf*half;
         ctx.fillStyle=o.hit?'rgba(120,60,80,.5)':'rgba(150,30,60,.85)';
@@ -1023,6 +1031,12 @@ export function bootGame() {
       if (p.taken) continue;
       const y=worldToY(p.world); if (y<-22||y>H+22) continue;
       const x=cx+p.lane*(wallHalf(p.world)-p.r), bob=Math.sin(now()*0.004+p.ph)*3;
+      const sprite = art.ready && (p.kind==='shield' ? art.img.shield : p.kind==='speed' ? art.img.speedorb : (p.kind==='star'||!p.kind) ? art.img.star : null);
+      if (sprite && sprite.complete){
+        const d=p.r*2.6;
+        ctx.save(); ctx.translate(x,y+bob); ctx.drawImage(sprite,-d/2,-d/2,d,d); ctx.restore();
+        continue;
+      }
       const col = p.kind==='shield' ? '#43e0cf' : (p.kind==='speed' ? '#7cff9f' : '#ffd24d');
       const icon = p.kind==='boost' ? '⚡' : p.kind==='shield' ? '🛡' : p.kind==='speed' ? '✦' : '★';
       ctx.save(); ctx.translate(x,y+bob);
@@ -1042,8 +1056,24 @@ export function bootGame() {
     ctx.font='800 14px "Trebuchet MS", system-ui, sans-serif'; ctx.textAlign='center'; ctx.fillStyle='#ffd24d';
     ctx.fillText('⚡ SPRINT ⚡', cx, y-9); ctx.restore();
   }
+  // Endless: the glowing gate the player flies through at the next checkpoint.
+  function drawCheckpoints(){
+    if (!art.ready || !art.img.checkpoint_ring || !art.img.checkpoint_ring.complete) return;
+    const y=worldToY(G.nextCheckpoint); if (y<-80||y>H+80) return;
+    const half=wallHalf(G.nextCheckpoint);
+    const w=Math.min(half*2.1, 360), h=w*(270/900);
+    ctx.save(); ctx.globalAlpha=0.96; ctx.drawImage(art.img.checkpoint_ring, cx-w/2, y-h/2, w, h); ctx.restore();
+  }
   function drawEgg(){
     const y=worldToY(LEVEL_LENGTH); if (y>H+180) return; const R=72;
+    if (art.ready && art.img.egg && art.img.egg.complete){
+      ctx.save(); ctx.translate(cx,y);
+      const eggD=150, haloD=eggD*3;
+      if (art.img.egg_halo && art.img.egg_halo.complete){ const pz=(0.92+0.08*Math.sin(now()*0.003))*haloD; ctx.globalAlpha=0.9; ctx.drawImage(art.img.egg_halo,-pz/2,-pz/2,pz,pz); }
+      if (art.img.egg_rays && art.img.egg_rays.complete){ ctx.save(); ctx.rotate((now()*0.0004)%6.283); ctx.globalAlpha=0.5; ctx.drawImage(art.img.egg_rays,-haloD/2,-haloD/2,haloD,haloD); ctx.restore(); }
+      ctx.globalAlpha=1; ctx.drawImage(art.img.egg,-eggD/2,-eggD/2,eggD,eggD);
+      ctx.restore(); return;
+    }
     ctx.save(); ctx.translate(cx,y);
     // radiant halo + rotating sun rays
     const halo=ctx.createRadialGradient(0,0,R*0.5,0,0,R*2.8); halo.addColorStop(0,'rgba(255,205,120,.6)'); halo.addColorStop(1,'rgba(255,205,120,0)');

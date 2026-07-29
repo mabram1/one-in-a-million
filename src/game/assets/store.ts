@@ -35,6 +35,19 @@ const IMAGE_PATHS: Record<string, string> = {
   // canal wall membrane textures
   wall_left: 'walls/wall_left.png',
   wall_right: 'walls/wall_right.png',
+  // gameplay world (Phase 3)
+  wbc_s: 'obstacles/wbc_s.png',
+  wbc_m: 'obstacles/wbc_m.png',
+  wbc_l: 'obstacles/wbc_l.png',
+  rbc: 'obstacles/rbc.png',
+  membrane: 'obstacles/membrane.png',
+  star: 'pickups/star.png',
+  shield: 'pickups/shield.png',
+  speedorb: 'pickups/speedorb.png',
+  checkpoint_ring: 'pickups/checkpoint_ring.png',
+  egg: 'goal/egg.png',
+  egg_halo: 'goal/egg_halo.png',
+  egg_rays: 'goal/egg_rays.png',
 };
 
 /** What Spermy is wearing. Slots map to an image key (or null = nothing). */
