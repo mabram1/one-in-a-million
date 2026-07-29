@@ -13,7 +13,7 @@
  * docs/audits/handbook-baseline-audit.md §4.1). Nothing was rounded or "cleaned".
  */
 
-export const tuningVersion = '1.4.0' as const;
+export const tuningVersion = '1.5.0' as const;
 
 /** Motion/stroke detection and cadence. */
 export interface ControlsTuning {
@@ -128,6 +128,12 @@ export interface TrackGenerationTuning {
   cellSizeBase: number;
   cellSizeRandom: number;
   cellShrinkByProgress: number;
+  /** Obstacle spacing/size scale with LOCAL lane width: wider canal => more &
+   *  bigger obstacles, narrow canal => fewer & smaller (kept passable). 0 disables. */
+  widthDensityBias: number;
+  widthSizeBias: number;
+  /** A single cell never exceeds this fraction of the lane half-width (passability). */
+  maxCellLaneFraction: number;
   clusterSpacingUnits: number;
   cellLaneSpread: number;
   bandGapBase: number;
@@ -280,15 +286,18 @@ export const tuning: Readonly<Tuning> = Object.freeze({
     logicalWidth: 400,
   },
   trackGeneration: {
-    gapBase: 100,
-    gapPerWorldUnit: 0.05,
+    gapBase: 108,
+    gapPerWorldUnit: 0,
     gapMax: 235,
     graceUntilUnits: 150,
     cellProbability: 0.66,
     clusterProbability: 0.42,
     cellSizeBase: 14,
     cellSizeRandom: 13,
-    cellShrinkByProgress: 0.4,
+    cellShrinkByProgress: 0,
+    widthDensityBias: 0.6,
+    widthSizeBias: 0.5,
+    maxCellLaneFraction: 0.44,
     clusterSpacingUnits: 22,
     cellLaneSpread: 1.6,
     bandGapBase: 0.44,

@@ -11,9 +11,10 @@ import { tuning, tuningVersion } from '../../src/game/config/tuning';
 describe('tuning version', () => {
   it('is the current approved version', () => {
     // 1.0.0 = verbatim baseline 0088469. 1.1.0 added camera.logicalWidth (P1-10).
-    // 1.2.0 added finalSprint.hammerAccelMultiplier. 1.3.0 + 1.4.0 raised obstacle
-    // density (gapBase/gapMax/cellProbability) — all owner-approved 2026-07-28.
-    expect(tuningVersion).toBe('1.4.0');
+    // 1.2.0 finalSprint.hammerAccelMultiplier. 1.3.0/1.4.0 raised obstacle density.
+    // 1.5.0 width-driven distribution (wide=more+bigger, narrow=fewer+smaller).
+    // All owner-approved 2026-07-28.
+    expect(tuningVersion).toBe('1.5.0');
   });
 
   it('is frozen so nothing can mutate it at runtime', () => {

@@ -493,11 +493,17 @@ export function bootGame() {
     const spawnLimit = (G.mode==='level') ? SPRINT_START : Infinity; // clear straight for the sprint
     while (G.nextSpawn < horizon){
       const prog = Math.min(1, G.nextSpawn/LEVEL_LENGTH);   // 0 at the wide start -> 1 at the narrow egg
-      const gap = Math.min(trackGeneration.gapMax, trackGeneration.gapBase + G.nextSpawn*trackGeneration.gapPerWorldUnit);    // dense at the start, sparser toward the end
+      // Distribute by LOCAL lane width: wide canal => denser obstacles, narrow => sparser.
+      const wf = Math.max(0.3, Math.min(1, wallHalf(G.nextSpawn)/maxHalf));
+      const gap = Math.max(60, Math.min(trackGeneration.gapMax,
+        trackGeneration.gapBase * (1 + trackGeneration.widthDensityBias*(0.5 - wf)) + G.nextSpawn*trackGeneration.gapPerWorldUnit));
       if (G.nextSpawn > trackGeneration.graceUntilUnits && G.nextSpawn < spawnLimit){
         if (G.rng() < trackGeneration.cellProbability){
           const n = 1 + (G.rng() < trackGeneration.clusterProbability*(1-prog) ? 1 : 0);        // clusters early, singles late
-          const size = (trackGeneration.cellSizeBase + G.rng()*trackGeneration.cellSizeRandom) * (1 - trackGeneration.cellShrinkByProgress*prog);         // obstacles shrink toward the end
+          // wider canal => bigger cells; capped to a fraction of the lane so it stays passable
+          const size = Math.min(
+            (trackGeneration.cellSizeBase + G.rng()*trackGeneration.cellSizeRandom) * (1 + trackGeneration.widthSizeBias*(wf - 0.5)),
+            wallHalf(G.nextSpawn) * trackGeneration.maxCellLaneFraction);
           for (let i=0;i<n;i++) G.obstacles.push({ type:'cell', world:G.nextSpawn + i*trackGeneration.clusterSpacingUnits, lane:(G.rng()*trackGeneration.cellLaneSpread-trackGeneration.cellLaneSpread/2), r:size, hit:false, ph:G.rng()*6.28 });
         } else {
           G.obstacles.push({ type:'band', world:G.nextSpawn, gapLane:(G.rng()*trackGeneration.bandLaneSpread-trackGeneration.bandLaneSpread/2), gapHalf:Math.min(trackGeneration.bandGapMax, trackGeneration.bandGapBase + prog*trackGeneration.bandGapByProgress), hit:false });
