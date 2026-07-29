@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "cards": [
+    {
+      "eyebrow": "HOW TO SWIM • 1 OF 5",
+      "title": "WAKE UP\nTHE TAIL!",
+      "body": "Shake your phone to fill the charge meter.\nYes, enthusiasm counts.",
+      "button": "NEXT",
+      "callout": "SHAKE • SHAKE • SHAKE"
+    },
+    {
+      "eyebrow": "HOW TO SWIM • 2 OF 5",
+      "title": "GREEN\nMEANS GO!",
+      "body": "Stop shaking inside the green zone for a perfect launch.\nToo early: sleepy. Too late: crispy.",
+      "button": "NEXT",
+      "callout": "PERFECT!",
+      "state_labels": [
+        "EARLY",
+        "PERFECT",
+        "TOO LATE"
+      ]
+    },
+    {
+      "eyebrow": "HOW TO SWIM • 3 OF 5",
+      "title": "LEAN\nINTO IT",
+      "body": "Tilt left and right to dodge the squishy stuff.\nYour phone moves. You don’t have to.",
+      "button": "NEXT",
+      "callout": "TILT TO STEER"
+    },
+    {
+      "eyebrow": "HOW TO SWIM • 4 OF 5",
+      "title": "SPEED OR\nSTEERING",
+      "body": "While shaking, Spermy swims straight. Release to aim.\nMultitasking is overrated.",
+      "button": "NEXT",
+      "callout": "SHAKE = STRAIGHT",
+      "choice_labels": [
+        "SHAKE",
+        "RELEASE + TILT"
+      ]
+    },
+    {
+      "eyebrow": "HOW TO SWIM • 5 OF 5",
+      "title": "ONE JOB.\nONE OVUM.",
+      "body": "Dodge, recharge, and reach the glowing ovum first.\nNo pressure. You’re only one in a million.",
+      "button": "LET’S SWIM!",
+      "callout": "PRACTICE RUN • NO RANKING • NO SHAME"
+    }
+  ]
+}

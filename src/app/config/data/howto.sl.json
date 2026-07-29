@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "cards": [
+    {
+      "eyebrow": "KAKO PLAVATI • 1 OD 5",
+      "title": "ZBUDI\nREPEK!",
+      "body": "Stresi telefon, da napolniš merilnik.\nJa, navdušenje šteje.",
+      "button": "NAPREJ",
+      "callout": "TRESI • TRESI • TRESI"
+    },
+    {
+      "eyebrow": "KAKO PLAVATI • 2 OD 5",
+      "title": "ZELENA\nPOMENI GREM!",
+      "body": "Nehaj tresti v zeleni coni za popoln štart.\nPrezgodaj: zaspan. Prepozno: zapečen.",
+      "button": "NAPREJ",
+      "callout": "POPOLNO!",
+      "state_labels": [
+        "PREZGODAJ",
+        "POPOLNO",
+        "PREPOZNO"
+      ]
+    },
+    {
+      "eyebrow": "KAKO PLAVATI • 3 OD 5",
+      "title": "NAGNI SE\nV ZAVOJ",
+      "body": "Nagni telefon levo ali desno in se izogni mehkim nevšečnostim.\nTelefon se nagiba. Tebi ni treba.",
+      "button": "NAPREJ",
+      "callout": "NAGNI ZA SMER"
+    },
+    {
+      "eyebrow": "KAKO PLAVATI • 4 OD 5",
+      "title": "HITROST\nALI SMER",
+      "body": "Med tresenjem Spermy plava naravnost. Spusti in ciljaj.\nVečopravilnost je precenjena.",
+      "button": "NAPREJ",
+      "callout": "TRESENJE = NARAVNOST",
+      "choice_labels": [
+        "TRESI",
+        "SPUSTI + NAGNI"
+      ]
+    },
+    {
+      "eyebrow": "KAKO PLAVATI • 5 OD 5",
+      "title": "ENA NALOGA.\nEN OVUM.",
+      "body": "Izogibaj se, obnovi hitrost in prvi dosezi svetleči ovum.\nBrez pritiska. Samo eden na milijon.",
+      "button": "ZAPLAVAJMO!",
+      "callout": "VAJA • BREZ RANKINGA • BREZ SRAMU"
+    }
+  ]
+}
