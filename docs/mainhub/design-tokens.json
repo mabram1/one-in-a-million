@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": 1,
+  "colors": {
+    "void": "#0d0305",
+    "backgroundDeep": "#1c060b",
+    "panel": "#210710",
+    "panelRaised": "#42101f",
+    "wallDeep": "#5e1229",
+    "membrane": "#7c1836",
+    "coral": "#b8304f",
+    "membraneGlow": "#ffb9c8",
+    "player": "#43e0cf",
+    "perfect": "#7cff9f",
+    "rival": "#ff6a5c",
+    "cream": "#f8ecdb",
+    "creamShade": "#d9c6b2",
+    "text": "#ffe6dc",
+    "muted": "#c6959e",
+    "gold": "#ffd24d",
+    "goldDeep": "#f2b25f"
+  },
+  "spacingPx": {
+    "1": 4,
+    "2": 8,
+    "3": 12,
+    "4": 16,
+    "5": 20,
+    "6": 24,
+    "8": 32
+  },
+  "radiusPx": {
+    "control": 14,
+    "panel": 18,
+    "hero": 28,
+    "modal": 24,
+    "pill": 999
+  },
+  "typography": {
+    "displayFont": "Fredoka",
+    "bodyFont": "Nunito",
+    "numericVariant": "tabular-nums",
+    "minimumBodyPx": 14,
+    "minimumControlPx": 16
+  },
+  "motionMs": {
+    "press": 100,
+    "fast": 160,
+    "standard": 240,
+    "screen": 320
+  },
+  "shadows": {
+    "panel": "0 14px 40px rgba(13,3,5,.48)",
+    "teal": "0 0 24px rgba(67,224,207,.34)",
+    "gold": "0 0 28px rgba(255,210,77,.30)"
+  },
+  "minimumTouchTargetPx": 44
+}
+

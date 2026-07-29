@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "referenceViewportCssPx": {
+    "width": 390,
+    "height": 844
+  },
+  "contentMaxWidthPx": 480,
+  "safePaddingPx": {
+    "top": 12,
+    "right": 12,
+    "bottom": 10,
+    "left": 12
+  },
+  "standard": {
+    "topAccountBar": { "height": 60 },
+    "wordmark": { "height": 64, "marginTop": 8 },
+    "liveTrack": { "height": 330, "marginTop": 4 },
+    "primaryButton": { "height": 62, "overlapTrackBy": 31 },
+    "distanceSelector": { "height": 38, "position": "inside-live-track-top" },
+    "modeStrip": { "height": 92, "marginTop": 14 },
+    "dailyCard": { "height": 62, "marginTop": 10 },
+    "bottomNavigation": { "height": 76, "position": "fixed-safe-bottom" }
+  },
+  "compactHeightBelowPx": 700,
+  "compact": {
+    "topAccountBar": { "height": 52 },
+    "wordmark": { "height": 42 },
+    "liveTrack": { "height": 270 },
+    "primaryButton": { "height": 54, "overlapTrackBy": 27 },
+    "modeStrip": { "height": 78 },
+    "dailyCard": { "display": "collapsed-chip" },
+    "bottomNavigation": { "height": 68 }
+  },
+  "tallHeightAtLeastPx": 900,
+  "tall": {
+    "liveTrackMaxHeight": 410,
+    "heroMascotScale": 1.08,
+    "dailyCard": { "display": "full" }
+  },
+  "rules": [
+    "Primary race action and all mode buttons must be visible without scrolling at 390x844.",
+    "At 360x640 use compact layout and collapse Daily Challenge to a chip.",
+    "At tablet widths keep the interactive content phone-like and centered.",
+    "Bottom navigation must include env(safe-area-inset-bottom).",
+    "Never scale UI text with the Canvas2D backing-store ratio."
+  ]
+}
+

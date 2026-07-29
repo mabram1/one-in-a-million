@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "policy": "Use bundled accepted files or map them to identical existing project assets. Do not regenerate or substitute the mascot.",
+  "assets": {
+    "mascotBody": {
+      "path": "assets/reuse/spermy/base_body.png",
+      "sourcePackage": "one-in-a-million-mascot-expansion-delivery",
+      "render": "DOM layer in account avatar; Canvas2D in live track"
+    },
+    "mascotFaceIdle": {
+      "path": "assets/reuse/spermy/face_idle.png",
+      "sourcePackage": "one-in-a-million-mascot-expansion-delivery"
+    },
+    "mascotTail": {
+      "path": "assets/reuse/spermy/tail_default.png",
+      "sourcePackage": "one-in-a-million-phase2-delivery"
+    },
+    "mascotRig": {
+      "path": "assets/reuse/spermy/spermy-rig.json",
+      "sourcePackage": "one-in-a-million-mascot-expansion-delivery"
+    },
+    "goal": {
+      "path": "assets/reuse/goal/egg.png",
+      "sourcePackage": "one-in-a-million-phase3-expanded-world"
+    },
+    "goalHalo": {
+      "path": "assets/reuse/goal/egg_halo.png",
+      "sourcePackage": "one-in-a-million-phase3-expanded-world"
+    },
+    "goalRays": {
+      "path": "assets/reuse/goal/egg_rays.png",
+      "sourcePackage": "one-in-a-million-phase3-expanded-world"
+    },
+    "wbcPreview": {
+      "path": "assets/reuse/obstacles/wbc_s.png",
+      "sourcePackage": "one-in-a-million-phase3-expanded-world"
+    },
+    "virusPreview": {
+      "path": "assets/reuse/obstacles/virus_s.png",
+      "sourcePackage": "one-in-a-million-phase3-expanded-world"
+    },
+    "menuIcons": {
+      "path": "assets/menu/menu-icons.svg",
+      "render": "External SVG symbol sprite used by DOM controls"
+    }
+  },
+  "notRasterAssets": [
+    "wordmark: render as live text",
+    "panels and buttons: CSS gradients/borders",
+    "particles and tunnel depth: Canvas2D",
+    "currency values and labels: live DOM text"
+  ]
+}
+
