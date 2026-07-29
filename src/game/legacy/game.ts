@@ -1020,9 +1020,17 @@ export function bootGame() {
         }
       } else {
         const half=wallHalf(o.world), gcx=cx+o.gapLane*(half*0.8), gw=o.gapHalf*half;
-        ctx.fillStyle=o.hit?'rgba(120,60,80,.5)':'rgba(150,30,60,.85)';
-        ctx.fillRect(cx-half,y-9,(gcx-gw)-(cx-half),18); ctx.fillRect(gcx+gw,y-9,(cx+half)-(gcx+gw),18);
-        ctx.strokeStyle='rgba(67,224,207,.5)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(gcx-gw,y); ctx.lineTo(gcx+gw,y); ctx.stroke();
+        const mem = art.ready && art.img.membrane && art.img.membrane.complete ? art.img.membrane : null;
+        if (mem){
+          const bandH=42, tw=bandH*(360/270);
+          const seg = (x0,x1) => { const w=x1-x0; if (w<=2) return; ctx.save(); if (o.hit) ctx.globalAlpha=0.5; ctx.beginPath(); ctx.rect(x0,y-bandH/2,w,bandH); ctx.clip(); for (let tx=x0; tx<x1; tx+=tw) ctx.drawImage(mem, tx, y-bandH/2, tw, bandH); ctx.restore(); };
+          seg(cx-half, gcx-gw); seg(gcx+gw, cx+half);
+          ctx.strokeStyle='rgba(67,224,207,.55)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(gcx-gw,y); ctx.lineTo(gcx+gw,y); ctx.stroke();   // passable gap
+        } else {
+          ctx.fillStyle=o.hit?'rgba(120,60,80,.5)':'rgba(150,30,60,.85)';
+          ctx.fillRect(cx-half,y-9,(gcx-gw)-(cx-half),18); ctx.fillRect(gcx+gw,y-9,(cx+half)-(gcx+gw),18);
+          ctx.strokeStyle='rgba(67,224,207,.5)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(gcx-gw,y); ctx.lineTo(gcx+gw,y); ctx.stroke();
+        }
       }
     }
   }
