@@ -1003,10 +1003,22 @@ export function bootGame() {
       const y=worldToY(o.world); if (y<-60||y>H+60) continue;
       if (o.type==='cell'){
         const x=cx+o.lane*(wallHalf(o.world)-o.r);
-        const img = art.ready && (o.r<19 ? art.img.wbc_s : o.r<24 ? art.img.wbc_m : art.img.wbc_l);
+        // Variant is a deterministic function of world position (NOT rng), so the
+        // seeded track stays identical for everyone and ghosts stay compatible.
+        if (o._cv==null){ const h=Math.abs((Math.sin(o.world*0.9161+2.1)*43758.5453)%1); o._cv = h<0.30?'virus' : h<0.44?'cluster' : h<0.58?'pod' : 'wbc'; }
+        let img=null;
+        if (art.ready){
+          if (o._cv==='virus') img = o.r<19?art.img.virus_s : o.r<24?art.img.virus_m : art.img.virus_l;
+          else if (o._cv==='cluster') img = art.img.cell_cluster;
+          else if (o._cv==='pod') img = art.img.immune_pod;
+          else img = o.r<19?art.img.wbc_s : o.r<24?art.img.wbc_m : art.img.wbc_l;
+        }
         if (img && img.complete){
-          const d=o.r*2.3;
-          ctx.save(); ctx.translate(x,y); if (o.hit) ctx.globalAlpha=0.55; ctx.drawImage(img,-d/2,-d/2,d,d); ctx.restore();
+          let d=o.r*2.3;
+          ctx.save(); ctx.translate(x,y); if (o.hit) ctx.globalAlpha=0.55;
+          if (o._cv==='cluster') ctx.rotate((now()*0.0006 + o.ph)%6.283);          // slow spin
+          if (o._cv==='pod') d *= 1 + 0.06*Math.sin(now()*0.005 + o.ph);            // pulse
+          ctx.drawImage(img,-d/2,-d/2,d,d); ctx.restore();
         } else {
           ctx.save(); ctx.translate(x,y);
           const grd=ctx.createRadialGradient(-o.r*0.3,-o.r*0.3,o.r*0.2,0,0,o.r);
