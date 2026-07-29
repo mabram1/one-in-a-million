@@ -13,7 +13,7 @@
  * docs/audits/handbook-baseline-audit.md §4.1). Nothing was rounded or "cleaned".
  */
 
-export const tuningVersion = '1.3.0' as const;
+export const tuningVersion = '1.4.0' as const;
 
 /** Motion/stroke detection and cadence. */
 export interface ControlsTuning {
@@ -280,11 +280,11 @@ export const tuning: Readonly<Tuning> = Object.freeze({
     logicalWidth: 400,
   },
   trackGeneration: {
-    gapBase: 112,
+    gapBase: 100,
     gapPerWorldUnit: 0.05,
-    gapMax: 255,
+    gapMax: 235,
     graceUntilUnits: 150,
-    cellProbability: 0.62,
+    cellProbability: 0.66,
     clusterProbability: 0.42,
     cellSizeBase: 14,
     cellSizeRandom: 13,
