@@ -1019,15 +1019,17 @@ export function bootGame() {
     side(wr, W-tileW, false);    // right wall: texture anchored to the screen edge
   }
   function drawWalls(){
+    // The tunnel background art IS the canal now — no procedural side walls or membrane
+    // overlay (that produced a doubled-bubble look). Just a soft corner vignette so the
+    // clean tunnel image reads with focus toward the centre.
+    if (art.ready && art.img.tunnel_bg && art.img.tunnel_bg.complete){ ctx.fillStyle=GFX.vig; ctx.fillRect(0,0,W,H); return; }
+    // Fallback (art not loaded): keep the old procedural walls so the canal still reads.
     const step=10, left=[], right=[];
     for (let y=-step; y<=H+step; y+=step){ const w=yToWorld(y); left.push([cx-wallHalfViz(w,0.0),y]); right.push([cx+wallHalfViz(w,2.4),y]); }
     ctx.fillStyle=GFX.wallL; ctx.beginPath(); ctx.moveTo(-10,-10);
     for (const p of left) ctx.lineTo(p[0],p[1]); ctx.lineTo(-10,H+10); ctx.closePath(); ctx.fill();
     ctx.fillStyle=GFX.wallR; ctx.beginPath(); ctx.moveTo(W+10,-10);
     for (const p of right) ctx.lineTo(p[0],p[1]); ctx.lineTo(W+10,H+10); ctx.closePath(); ctx.fill();
-    if (art.ready) drawWallTexture();     // bubbly membrane texture runs right up to the open lane (no edge line)
-    // (removed the bright coral gloss edge — the bubbly walls now meet the canal directly)
-    // depth: shadow cast inward from the walls, plus corner vignette
     ctx.fillStyle=GFX.edge; ctx.fillRect(0,0,W,H);
     ctx.fillStyle=GFX.vig;  ctx.fillRect(0,0,W,H);
   }
