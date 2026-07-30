@@ -1011,7 +1011,7 @@ export function bootGame() {
       if (isLeft){ ctx.moveTo(-10,-10); for (let y=-10; y<=H+10; y+=10) ctx.lineTo(cx-wallHalfViz(yToWorld(y),0.0), y); ctx.lineTo(-10,H+10); }
       else       { ctx.moveTo(W+10,-10); for (let y=-10; y<=H+10; y+=10) ctx.lineTo(cx+wallHalfViz(yToWorld(y),2.4), y); ctx.lineTo(W+10,H+10); }
       ctx.closePath(); ctx.clip();
-      ctx.globalAlpha = 0.6;
+      ctx.globalAlpha = 0.96;   // near-opaque so the walls read crisply and don't double with the tunnel bg
       for (let ty=-tileH+scroll; ty < H+tileH; ty += tileH) ctx.drawImage(img, anchorX, ty, tileW, tileH);
       ctx.restore();
     };
@@ -1022,7 +1022,10 @@ export function bootGame() {
     // The tunnel background art IS the canal now — no procedural side walls or membrane
     // overlay (that produced a doubled-bubble look). Just a soft corner vignette so the
     // clean tunnel image reads with focus toward the centre.
-    if (art.ready && art.img.tunnel_bg && art.img.tunnel_bg.complete){ ctx.fillStyle=GFX.vig; ctx.fillRect(0,0,W,H); return; }
+    if (art.ready && art.img.tunnel_bg && art.img.tunnel_bg.complete){
+      if (art.img.wall_left) drawWallTexture();   // crisp bubbly membrane walls framing the tunnel bg
+      ctx.fillStyle=GFX.vig; ctx.fillRect(0,0,W,H); return;
+    }
     // Fallback (art not loaded): keep the old procedural walls so the canal still reads.
     const step=10, left=[], right=[];
     for (let y=-step; y<=H+step; y+=step){ const w=yToWorld(y); left.push([cx-wallHalfViz(w,0.0),y]); right.push([cx+wallHalfViz(w,2.4),y]); }
