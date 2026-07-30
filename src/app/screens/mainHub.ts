@@ -95,7 +95,7 @@ function template(): string {
       <div class="main-hub__currency" data-kind="gem"><svg width="18" height="18" aria-hidden="true"><use href="${icon('gem')}"></use></svg><span>0</span></div>
       <button class="main-hub__icon-button" type="button" data-route="settings" aria-label="Settings"><svg width="22" height="22" aria-hidden="true"><use href="${icon('settings')}"></use></svg></button>
     </header>
-    <h1 class="main-hub__wordmark"><span><strong>One</strong> in a Million</span></h1>
+    <h1 class="main-hub__wordmark"><img src="${B}art/menu/menu-wordmark.svg" alt="One in a Million"></h1>
     <div class="main-hub__spacer"></div>
     <div class="main-hub__distance" role="group" aria-label="${c.distanceLabel}">
       ${distBtn(750, c.distances[0])}${distBtn(1000, c.distances[1])}${distBtn(1250, c.distances[2])}

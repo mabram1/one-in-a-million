@@ -502,3 +502,10 @@
 .main-hub__daily strong { font-size: 13px; color: var(--oim-gold); letter-spacing: .04em; }
 .main-hub__daily small { font-size: 11px; color: var(--oim-muted); }
 .main-hub__daily b { font-size: 13px; color: var(--oim-text); }
+
+/* wordmark as the SVG logo + account bar overflow safety */
+.main-hub__wordmark { display: grid; place-items: center; margin: 2px 0 0; }
+.main-hub__wordmark img { width: min(74%, 300px); height: auto; display: block; }
+.main-hub__account { grid-template-columns: 46px minmax(60px, 1fr) auto auto 40px; }
+.main-hub__account .main-hub__currency { min-width: 0; padding: 4px 8px; font-size: 13px; }
+.main-hub__account .main-hub__currency span { overflow: hidden; text-overflow: ellipsis; }
