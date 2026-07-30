@@ -1025,14 +1025,8 @@ export function bootGame() {
     for (const p of left) ctx.lineTo(p[0],p[1]); ctx.lineTo(-10,H+10); ctx.closePath(); ctx.fill();
     ctx.fillStyle=GFX.wallR; ctx.beginPath(); ctx.moveTo(W+10,-10);
     for (const p of right) ctx.lineTo(p[0],p[1]); ctx.lineTo(W+10,H+10); ctx.closePath(); ctx.fill();
-    if (art.ready) drawWallTexture();     // organic membrane texture over the gradient (follows the curve)
-    // glossy inner edge — layered strokes instead of shadowBlur (far cheaper, same look)
-    ctx.lineWidth=7; ctx.strokeStyle='rgba(255,120,150,.22)';
-    ctx.beginPath(); ctx.moveTo(left[0][0],left[0][1]); for (const p of left) ctx.lineTo(p[0],p[1]); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(right[0][0],right[0][1]); for (const p of right) ctx.lineTo(p[0],p[1]); ctx.stroke();
-    ctx.lineWidth=2.5; ctx.strokeStyle='rgba(255,185,200,.75)';
-    ctx.beginPath(); ctx.moveTo(left[0][0],left[0][1]); for (const p of left) ctx.lineTo(p[0],p[1]); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(right[0][0],right[0][1]); for (const p of right) ctx.lineTo(p[0],p[1]); ctx.stroke();
+    if (art.ready) drawWallTexture();     // bubbly membrane texture runs right up to the open lane (no edge line)
+    // (removed the bright coral gloss edge — the bubbly walls now meet the canal directly)
     // depth: shadow cast inward from the walls, plus corner vignette
     ctx.fillStyle=GFX.edge; ctx.fillRect(0,0,W,H);
     ctx.fillStyle=GFX.vig;  ctx.fillRect(0,0,W,H);
