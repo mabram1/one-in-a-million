@@ -1,6 +1,6 @@
 // Network-first so fresh deploys show up immediately while iterating; falls back to
 // cache when offline. (Cache-first was serving stale builds during testing.)
-const CACHE = 'oiam-v2';
+const CACHE = 'oiam-v3';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
