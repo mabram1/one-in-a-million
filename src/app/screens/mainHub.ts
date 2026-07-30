@@ -74,7 +74,7 @@ function template(): string {
   const distBtn = (m: PracticeDistance, label: string) =>
     `<button type="button" aria-pressed="${m === dist}" data-distance="${m}">${label}</button>`;
   const mode = (m: string, label: string) =>
-    `<button class="main-hub__mode" type="button" data-mode="${m}"><svg aria-hidden="true"><use href="${icon(m)}"></use></svg><span>${label}</span></button>`;
+    `<button class="main-hub__mode main-hub__mode--${m}" type="button" data-mode="${m}"><span class="main-hub__mode-disc"><img src="${B}art/menu/art_icons/${m}.svg" alt=""></span><span class="main-hub__mode-label">${label}</span></button>`;
   const nav = (r: string, label: string, cur = false) =>
     `<button type="button" data-route="${r}"${cur ? ' aria-current="page"' : ''}><svg aria-hidden="true"><use href="${icon(r)}"></use></svg><span>${label}</span></button>`;
   return `

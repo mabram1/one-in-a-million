@@ -476,3 +476,29 @@
 .main-hub__spacer { flex: 1 1 auto; min-height: 22vh; }
 .main-hub__distance { position: static !important; margin: 0 auto; }
 .main-hub__race-now { position: static !important; margin: 0 !important; width: 100%; }
+
+/* ===== match the target reference: circular mode buttons, teal race, daily ===== */
+.main-hub__modes { display: grid !important; grid-template-columns: repeat(4, 1fr); gap: 8px; align-items: start; }
+.main-hub__mode { background: none !important; border: none !important; padding: 0 !important; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; color: var(--oim-text); }
+.main-hub__mode-disc { width: 66px; height: 66px; border-radius: 50%; display: grid; place-items: center; border: 3px solid; box-shadow: 0 6px 18px rgba(0,0,0,.45), inset 0 3px 10px rgba(255,255,255,.15); }
+.main-hub__mode-disc img { width: 72%; height: 72%; object-fit: contain; }
+.main-hub__mode-label { font-size: 10px; font-weight: 800; letter-spacing: .04em; }
+.main-hub__mode--practice .main-hub__mode-disc { background: radial-gradient(circle at 50% 32%, #33cbb8, #0d675e); border-color: var(--oim-player); }
+.main-hub__mode--multiplayer .main-hub__mode-disc { background: radial-gradient(circle at 50% 32%, #e75a6d, #7c1836); border-color: var(--oim-rival); }
+.main-hub__mode--challenge .main-hub__mode-disc { background: radial-gradient(circle at 50% 32%, #7d54c0, #3a1f5e); border-color: #a479e0; }
+.main-hub__mode--endless .main-hub__mode-disc { background: radial-gradient(circle at 50% 32%, #ffd76a, #d98b2f); border-color: var(--oim-gold); }
+.main-hub__mode:active .main-hub__mode-disc { transform: scale(.94); }
+/* RACE NOW — big teal pill with dark text (reference) */
+.main-hub__race-now { background: linear-gradient(180deg, #5eeede, #23bbaa) !important; color: #06231f !important; border: none !important; border-radius: 999px !important; min-height: 60px; font-family: "Fredoka", var(--font-display); font-weight: 800; font-size: 22px; letter-spacing: .04em; box-shadow: 0 10px 26px rgba(67,224,207,.34); }
+.main-hub__race-now svg { fill: #06231f; }
+/* distance selector as centered pills */
+.main-hub__distance { display: flex; gap: 8px; justify-content: center; }
+.main-hub__distance button { min-width: 66px; min-height: 36px; border-radius: 999px; border: 1px solid rgba(67,224,207,.35); background: rgba(13,3,5,.5); color: var(--oim-muted); font-weight: 800; font-size: 13px; }
+.main-hub__distance button[aria-pressed="true"] { color: #06231f; background: var(--oim-player); border-color: var(--oim-player); box-shadow: 0 0 16px rgba(67,224,207,.4); }
+/* daily card */
+.main-hub__daily { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 10px 14px; border-radius: 16px; border: 1px solid rgba(255,210,77,.28); background: rgba(33,7,16,.7); color: var(--oim-text); }
+.main-hub__daily svg { width: 26px; height: 26px; flex: 0 0 auto; }
+.main-hub__daily span { flex: 1; display: flex; flex-direction: column; }
+.main-hub__daily strong { font-size: 13px; color: var(--oim-gold); letter-spacing: .04em; }
+.main-hub__daily small { font-size: 11px; color: var(--oim-muted); }
+.main-hub__daily b { font-size: 13px; color: var(--oim-text); }
