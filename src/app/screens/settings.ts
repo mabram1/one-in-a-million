@@ -16,7 +16,7 @@ export function openSettings(onReplaySwim?: () => void): void {
   const t = T[locale()];
   const root = document.createElement('div');
   root.className = 'settings-overlay';
-  const hubOn = new URLSearchParams(location.search).get('hub') === 'v2';
+  const hubOn = new URLSearchParams(location.search).get('hub') !== 'classic';
   root.innerHTML = `
     <div class="settings-sheet" role="dialog" aria-label="${t.title}">
       <h2>${t.title}</h2>
@@ -31,7 +31,7 @@ export function openSettings(onReplaySwim?: () => void): void {
     if (el === root) { close(); return; }                       // backdrop
     const act = (el.closest('[data-act]') as HTMLElement | null)?.dataset.act;
     if (act === 'replay') { close(); openHowToPlay(onReplaySwim); }
-    else if (act === 'menu') { setHubV2(!hubOn); location.href = hubOn ? location.pathname : location.pathname + '?hub=v2'; }
+    else if (act === 'menu') { setHubV2(!hubOn); location.href = hubOn ? location.pathname + '?hub=classic' : location.pathname; }
     else if (act === 'server') { close(); (document.getElementById('serverCfg') as HTMLElement | null)?.click(); }
     else if (act === 'close') close();
   });

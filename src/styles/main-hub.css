@@ -509,3 +509,7 @@
 .main-hub__account { grid-template-columns: 46px minmax(60px, 1fr) auto auto 40px; }
 .main-hub__account .main-hub__currency { min-width: 0; padding: 4px 8px; font-size: 13px; }
 .main-hub__account .main-hub__currency span { overflow: hidden; text-overflow: ellipsis; }
+
+/* CRITICAL FIX: overlay the hub on top of the game, not in normal flow after it
+   (was pushed a full viewport below the fold -> only the fixed nav was visible). */
+.main-hub { position: fixed; inset: 0; z-index: 30; overflow-y: auto; -webkit-overflow-scrolling: touch; }

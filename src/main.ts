@@ -46,11 +46,11 @@ const startPractice = () => { (document.getElementById('practicePlay') as HTMLEl
 // How to Play auto-shows exactly once on first run.
 maybeShowHowToPlay(startPractice);
 
-// Landing: the classic menu is the default. The new Main Hub is opt-in ONLY via an
-// explicit ?hub=v2 in the URL this load (a stale saved flag no longer hijacks the
-// start screen), so players always land on the working menu.
-void hubV2Enabled;   // kept for Settings labelling
-if (new URLSearchParams(location.search).get('hub') === 'v2') showHub();
+// Landing: the Main Hub is the default product UI (production Phase A). The classic
+// menu stays as a debug fallback via ?hub=classic. (The hub is a fixed overlay now,
+// so it renders correctly instead of falling below the fold.)
+void hubV2Enabled;
+if (new URLSearchParams(location.search).get('hub') !== 'classic') showHub();
 
 // PWA service worker (parity with the pre-migration build). Registered relative to
 // the deploy base so it works on GitHub Pages subpaths, Vercel root, and Capacitor.
