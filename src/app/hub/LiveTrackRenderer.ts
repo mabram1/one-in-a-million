@@ -304,11 +304,9 @@ export class LiveTrackRenderer {
     const pulse = this.options.reducedMotion ? 1 : 1 + Math.sin(time * 2.2) * 0.06;
     ctx.save();
     ctx.globalCompositeOperation = "screen";
+    // Restrained halo pulse only — no rotating sunburst rays (goalRays) around the
+    // ovum, matching the finish-scene direction (no sun rays anywhere).
     this.drawCentered(ctx, this.assets.goalHalo, x, y, size * 3.1 * pulse);
-    ctx.translate(x, y);
-    ctx.rotate(this.options.reducedMotion ? 0 : time * 0.09);
-    ctx.translate(-x, -y);
-    this.drawCentered(ctx, this.assets.goalRays, x, y, size * 2.25);
     ctx.restore();
     this.drawCentered(ctx, this.assets.goal, x, y, size);
   }

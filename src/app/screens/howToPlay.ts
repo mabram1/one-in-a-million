@@ -70,7 +70,7 @@ function illustration(i: number, c: Card): string {
       <div class="htp-half"><span class="htp-updown">↑</span>${spermy('face_determined')}<b>${c.choice_labels?.[0] || ''}</b></div>
       <div class="htp-half"><span class="htp-curve">↪</span>${spermy('face_idle')}<b>${c.choice_labels?.[1] || ''}</b></div></div>`;
     default: return `<div class="htp-art col">
-      <span class="htp-goal"><img src="${art('goal/egg_rays.png')}" class="rays" alt=""><img src="${art('goal/egg_halo.png')}" class="halo" alt=""><img src="${art('goal/egg.png')}" class="egg" alt=""></span>
+      <span class="htp-goal"><img src="${art('goal/egg_halo.png')}" class="halo" alt=""><img src="${art('goal/egg.png')}" class="egg" alt=""></span>
       ${spermy('face_win')}</div>`;
   }
 }
