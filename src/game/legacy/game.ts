@@ -65,6 +65,7 @@ export function bootGame() {
     state:'start', mode:'level',
     _viewScale:1,
     inputUsed:{ motion:false, keyboard:false, touch:false }, inputClass:'mobile_motion',
+    externalChallenge:false, isPersonalBest:false, _soloPractice:false,
     canalSeed:0,
     distance:0, prevDistance:0, speed:0,
     xNorm:0, steer:0, steerTarget:0,
@@ -274,6 +275,8 @@ export function bootGame() {
     let gt = dec.dists.length*0.1;
     for (let i=0;i<dec.dists.length;i++){ if (dec.dists[i] >= LEVEL_LENGTH){ gt=i*0.1; break; } }
     G.ghostTime = gt;
+    G.externalChallenge = true;   // a loaded ghost is an external challenge by default (PB load resets this)
+    G.isPersonalBest = false;
     selectMode('level');
     const b=$('challengeBadge');
     if (b){ b.classList.remove('hidden');
@@ -286,7 +289,7 @@ export function bootGame() {
 
   function loadGhostFromHash(){
     const m = (location.hash||'').match(/g=([A-Za-z0-9\-_~.]+)/);
-    if (m){ try { setChallenge(decodeChallenge(decodeURIComponent(m[1]))); } catch(e){} }
+    if (m){ try { if (setChallenge(decodeChallenge(decodeURIComponent(m[1])))) G.externalChallenge = true; } catch(e){} }
   }
 
   // ---------- Live multiplayer (serverless P2P rooms via Trystero) ----------
@@ -572,7 +575,36 @@ export function bootGame() {
   }
   $('againBtn').onclick = beginPlay;
   document.querySelectorAll('#distChips .chip').forEach(ch => { ch.onclick = () => { practiceM = +ch.dataset.m; document.querySelectorAll('#distChips .chip').forEach(c=>c.classList.toggle('sel', c===ch)); }; });
-  $('practicePlay').onclick = () => { if (G.ghost){ if (G.challengeSeed != null) G._seedOverride = G.challengeSeed; setLevelLength(G.challengeLevelUnits || (practiceM*PX_PER_UNIT)); } else { setLevelLength(practiceM * PX_PER_UNIT); } selectMode('level'); beginPlay(); };
+  // Personal-best ghost storage (per distance + input class). Racing your own best
+  // run is the Practice pacer instead of a generic AI rival.
+  function pbKey(distM, ic){ return 'oiam_pb_' + ic + '_' + Math.round(distM); }
+  function loadPB(distM, ic){ try{ return JSON.parse(localStorage.getItem(pbKey(distM, ic)) || 'null'); }catch(e){ return null; } }
+  function savePB(distM, ic, code, time){ try{ localStorage.setItem(pbKey(distM, ic), JSON.stringify({ code, time })); }catch(e){} }
+
+  $('practicePlay').onclick = () => {
+    if (G.ghost && G.externalChallenge){                       // a friend's challenge was loaded
+      if (G.challengeSeed != null) G._seedOverride = G.challengeSeed;
+      setLevelLength(G.challengeLevelUnits || (practiceM*PX_PER_UNIT));
+      G._soloPractice = false;
+    } else {
+      setLevelLength(practiceM * PX_PER_UNIT);
+      G.ghost = null; G.isPersonalBest = false; G.externalChallenge = false;
+      let raced = false;
+      const pb = (G._seedOverride == null) ? loadPB(practiceM, activeInputClass()) : null;   // respect an explicitly forced seed
+      if (pb && pb.code){
+        try {
+          const dec = decodeChallenge(pb.code);
+          if (dec && dec.dists && dec.dists.length >= 3 && dec.seed != null && dec.tv === tuningVersion){
+            setChallenge(dec); G._seedOverride = G.challengeSeed; G.externalChallenge = false; G.isPersonalBest = true; raced = true;
+            const b=$('challengeBadge'); if (b){ b.classList.remove('hidden'); b.innerHTML = '⏱ YOUR BEST — beat <b>'+(pb.time||G.ghostTime).toFixed(1)+'s</b>'; }
+          }
+        } catch(e){}
+      }
+      G._soloPractice = !raced;                                // no personal best yet -> solo first run
+      if (!raced){ G.ghost = null; const b=$('challengeBadge'); if (b) b.classList.add('hidden'); }
+    }
+    selectMode('level'); beginPlay();
+  };
   $('endlessPanel').onclick = () => { selectMode('endless'); beginPlay(); };
   $('mpPanel').onclick = () => startLive();
   $('chPanel').onclick = () => shareChallenge();
@@ -591,7 +623,7 @@ export function bootGame() {
     let code=''; try { code = prompt('Paste the challenge code or link:') || ''; } catch(e){ return; }
     if (!code) return;
     const m = code.match(/g=([A-Za-z0-9\-_~.]+)/); const raw = m ? decodeURIComponent(m[1]) : code.trim();
-    if (setChallenge(decodeChallenge(raw))) toast('Challenge loaded ⚔ — race the ghost!'); else toast("Hmm, that code didn't work");
+    if (setChallenge(decodeChallenge(raw))){ G.externalChallenge = true; toast('Challenge loaded ⚔ — race the ghost!'); } else toast("Hmm, that code didn't work");
   }
   $('challengeBtn').onclick = shareChallenge;
   $('challengePaste').onclick = enterChallenge;
@@ -702,6 +734,12 @@ export function bootGame() {
     if (G.mode==='level' && finishedGoal && G.ghostRec.length>5){
       G.lastGhostCode = encodeChallenge();
       try { localStorage.setItem('oiam_run', G.lastGhostCode); } catch(e){}   // so the start-screen button works next time
+      // Save as your personal-best ghost for this distance + input class (plain Practice only).
+      if (!G.externalChallenge){
+        const distM = LEVEL_LENGTH/PX_PER_UNIT;
+        const pb = loadPB(distM, G.inputClass);
+        if (!pb || G.elapsed < pb.time){ savePB(distM, G.inputClass, G.lastGhostCode, +G.elapsed.toFixed(2)); }
+      }
       if (cbtn){ cbtn.classList.remove('hidden'); cbtn.textContent='⚔ Challenge a friend'; }
     } else if (cbtn){ cbtn.classList.add('hidden'); }
     $('hud').classList.add('hidden'); $('race').classList.add('hidden'); $('count').classList.add('hidden');
@@ -845,7 +883,7 @@ export function bootGame() {
   }
 
   function updateRival(dt, t){
-    if (MP.active) return;   // live peers replace the AI rival
+    if (MP.active || G._soloPractice) return;   // live peers replace the AI rival; solo practice has none
     const r = G.rival; if (r.finished) return;
     if (G.ghost){   // race the friend's recorded run
       r.world = ghostWorldAt(G.elapsed);
@@ -1121,11 +1159,14 @@ export function bootGame() {
     ctx.restore();
   }
   function drawRivalGhost(){
-    if (MP.active || G.mode!=='level' || G.rival.finished) return;
+    if (MP.active || G.mode!=='level' || G.rival.finished || G._soloPractice) return;
     const y=worldToY(G.rival.world); if (y<-40||y>H+40) return;
     const x=cx + 0.45*(wallHalf(G.rival.world)-22);
-    if (G.ghost) drawSpermShape(x,y,0.8,'#dbeaff','#9ec4ff',0.45, now()*0.01, false);   // friend's ghost
-    else drawSpermShape(x,y,0.78,'#ffb9ae','#ff6a5c',0.55, now()*0.01, false);          // AI rival
+    if (G.ghost){
+      // your personal best = pale teal "ghost of you"; a friend's challenge = blue
+      if (G.isPersonalBest) drawSpermShape(x,y,0.8,'#d6fff6','#43e0cf',0.42, now()*0.01, false);
+      else drawSpermShape(x,y,0.8,'#dbeaff','#9ec4ff',0.45, now()*0.01, false);
+    } else drawSpermShape(x,y,0.78,'#ffb9ae','#ff6a5c',0.55, now()*0.01, false);          // AI rival
   }
   // Sprite render box: how many logical px one rig-canvas px maps to. Tunable —
   // bigger = bigger Spermy. (rig canvas is 512x768.)
