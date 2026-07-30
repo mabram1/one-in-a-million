@@ -4,7 +4,7 @@
  * toggle and the existing Supabase server settings.
  */
 import { openHowToPlay } from './howToPlay';
-import { hubV2Enabled, setHubV2 } from './mainHub';
+import { setHubV2 } from './mainHub';
 
 function locale(): 'sl' | 'en' { try { return (navigator.language || '').toLowerCase().startsWith('sl') ? 'sl' : 'en'; } catch { return 'en'; } }
 const T = {
@@ -16,7 +16,7 @@ export function openSettings(onReplaySwim?: () => void): void {
   const t = T[locale()];
   const root = document.createElement('div');
   root.className = 'settings-overlay';
-  const hubOn = hubV2Enabled();
+  const hubOn = new URLSearchParams(location.search).get('hub') === 'v2';
   root.innerHTML = `
     <div class="settings-sheet" role="dialog" aria-label="${t.title}">
       <h2>${t.title}</h2>
@@ -31,7 +31,7 @@ export function openSettings(onReplaySwim?: () => void): void {
     if (el === root) { close(); return; }                       // backdrop
     const act = (el.closest('[data-act]') as HTMLElement | null)?.dataset.act;
     if (act === 'replay') { close(); openHowToPlay(onReplaySwim); }
-    else if (act === 'menu') { setHubV2(!hubOn); location.reload(); }
+    else if (act === 'menu') { setHubV2(!hubOn); location.href = hubOn ? location.pathname : location.pathname + '?hub=v2'; }
     else if (act === 'server') { close(); (document.getElementById('serverCfg') as HTMLElement | null)?.click(); }
     else if (act === 'close') close();
   });
