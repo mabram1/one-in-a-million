@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" style="color:#f8ecdb"><defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#fff1a6"/><stop offset=".5" stop-color="#ffd24d"/><stop offset="1" stop-color="#f2b25f"/>
+    </linearGradient>
+    <linearGradient id="teal" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#9afff4"/><stop offset=".52" stop-color="#43e0cf"/><stop offset="1" stop-color="#23bbaa"/>
+    </linearGradient>
+    <linearGradient id="coral" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#ffb9c8"/><stop offset=".5" stop-color="#ff6a5c"/><stop offset="1" stop-color="#b8304f"/>
+    </linearGradient>
+    <linearGradient id="violet" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#e7c1ff"/><stop offset=".55" stop-color="#a871c7"/><stop offset="1" stop-color="#6c3d91"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0d0305" flood-opacity=".55"/>
+    </filter>
+    <filter id="teal-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="0" stdDeviation="7" flood-color="#43e0cf" flood-opacity=".48"/>
+    </filter>
+  </defs>
+    <circle cx="74" cy="86" r="54" fill="#f8ecdb" stroke="#ff6a5c" stroke-width="9" filter="url(#glow)"/>
+    <circle cx="74" cy="86" r="35" fill="#ff6a5c" fill-opacity=".22" stroke="#ff6a5c" stroke-width="8"/>
+    <circle cx="74" cy="86" r="15" fill="url(#gold)"/>
+    <path d="m93 67 47-47-8 25 16 1-25 8z" fill="url(#teal)" stroke="#f8ecdb" stroke-width="3" stroke-linejoin="round"/>
+  </svg>

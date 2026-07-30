@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 168" style="color:#f8ecdb"><defs>
+    <linearGradient id="panel-fill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#42101f" stop-opacity=".94"/>
+      <stop offset=".58" stop-color="#210710" stop-opacity=".96"/>
+      <stop offset="1" stop-color="#0d0305" stop-opacity=".98"/>
+    </linearGradient>
+    <linearGradient id="panel-gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#ffb9c8" stop-opacity=".20"/>
+      <stop offset=".34" stop-color="#ffb9c8" stop-opacity=".03"/>
+      <stop offset="1" stop-color="#0d0305" stop-opacity=".18"/>
+    </linearGradient>
+    <linearGradient id="teal-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#82fff1"/>
+      <stop offset=".45" stop-color="#43e0cf"/>
+      <stop offset="1" stop-color="#23bbaa"/>
+    </linearGradient>
+    <linearGradient id="teal-pressed" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#24b6a7"/>
+      <stop offset="1" stop-color="#167d74"/>
+    </linearGradient>
+    <linearGradient id="gold-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#fff1a6"/>
+      <stop offset=".45" stop-color="#ffd24d"/>
+      <stop offset="1" stop-color="#f2b25f"/>
+    </linearGradient>
+    <linearGradient id="coral-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#ff9cb2"/>
+      <stop offset=".55" stop-color="#d1607c"/>
+      <stop offset="1" stop-color="#b8304f"/>
+    </linearGradient>
+    <linearGradient id="violet-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#dba5ff"/>
+      <stop offset=".55" stop-color="#a871c7"/>
+      <stop offset="1" stop-color="#6c3d91"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-40%" width="160%" height="190%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#0d0305" flood-opacity=".62"/>
+    </filter>
+    <filter id="teal-glow" x="-40%" y="-60%" width="180%" height="220%">
+      <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#43e0cf" flood-opacity=".48"/>
+    </filter>
+    <filter id="gold-glow" x="-40%" y="-60%" width="180%" height="220%">
+      <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#ffd24d" flood-opacity=".38"/>
+    </filter>
+  </defs>
+    <rect x="12" y="12" width="776" height="144" rx="72" fill="url(#teal-fill)" stroke="#bafff7" stroke-width="5" filter="url(#teal-glow)"/>
+    <path d="M82 33h636" stroke="#ffffff" stroke-opacity=".42" stroke-width="10" stroke-linecap="round"/>
+    <path d="M84 140h632" stroke="#0d0305" stroke-opacity=".18" stroke-width="8" stroke-linecap="round"/>
+  </svg>

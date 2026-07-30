@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#fff1a6"/><stop offset=".5" stop-color="#ffd24d"/><stop offset="1" stop-color="#f2b25f"/>
+    </linearGradient>
+    <linearGradient id="teal" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#9afff4"/><stop offset=".52" stop-color="#43e0cf"/><stop offset="1" stop-color="#23bbaa"/>
+    </linearGradient>
+    <linearGradient id="coral" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#ffb9c8"/><stop offset=".5" stop-color="#ff6a5c"/><stop offset="1" stop-color="#b8304f"/>
+    </linearGradient>
+    <linearGradient id="violet" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#e7c1ff"/><stop offset=".55" stop-color="#a871c7"/><stop offset="1" stop-color="#6c3d91"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0d0305" flood-opacity=".55"/>
+    </filter>
+    <filter id="teal-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="0" stdDeviation="7" flood-color="#43e0cf" flood-opacity=".48"/>
+    </filter>
+  </defs>
+
+  <symbol id="art-practice" viewBox="0 0 160 160">
+    <circle cx="74" cy="86" r="54" fill="#f8ecdb" stroke="#ff6a5c" stroke-width="9" filter="url(#glow)"/>
+    <circle cx="74" cy="86" r="35" fill="#ff6a5c" fill-opacity=".22" stroke="#ff6a5c" stroke-width="8"/>
+    <circle cx="74" cy="86" r="15" fill="url(#gold)"/>
+    <path d="m93 67 47-47-8 25 16 1-25 8z" fill="url(#teal)" stroke="#f8ecdb" stroke-width="3" stroke-linejoin="round"/>
+  </symbol>
+
+  <symbol id="art-multiplayer" viewBox="0 0 160 160">
+    <path d="M56 28c-24 4-40 32-38 61 2 25 17 43 38 43s37-18 38-43C96 60 80 32 56 28Z" fill="url(#coral)" stroke="#f8ecdb" stroke-width="4" filter="url(#glow)"/>
+    <path d="M105 38c-22 4-36 29-34 55 1 23 15 39 34 39s33-16 35-39c1-26-13-51-35-55Z" fill="url(#violet)" stroke="#f8ecdb" stroke-width="4"/>
+    <g fill="#0d0305"><circle cx="47" cy="81" r="6"/><circle cx="67" cy="81" r="6"/><circle cx="97" cy="86" r="5"/><circle cx="114" cy="86" r="5"/></g>
+    <g fill="#fff"><circle cx="45" cy="79" r="2"/><circle cx="65" cy="79" r="2"/><circle cx="95" cy="84" r="2"/><circle cx="112" cy="84" r="2"/></g>
+    <path d="M47 100q10 9 20 0M97 103q8 7 16 0" fill="none" stroke="#0d0305" stroke-width="4" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-challenge" viewBox="0 0 160 160">
+    <path d="m33 24 93 112M127 24 34 136" stroke="#f8ecdb" stroke-width="14" stroke-linecap="round" filter="url(#glow)"/>
+    <path d="M24 16h52L59 43l17 23H24z" fill="url(#coral)" stroke="#ffd24d" stroke-width="4"/>
+    <path d="M136 16H84l17 27-17 23h52z" fill="url(#violet)" stroke="#ffd24d" stroke-width="4"/>
+    <circle cx="80" cy="82" r="20" fill="url(#gold)" stroke="#f8ecdb" stroke-width="4"/>
+    <path d="m80 67 5 10 11 2-8 8 2 11-10-5-10 5 2-11-8-8 11-2z" fill="#b8304f"/>
+  </symbol>
+
+  <symbol id="art-endless" viewBox="0 0 160 160">
+    <path d="M18 82c19-42 44-43 62 0s43 42 62 0c-19-43-44-43-62 0s-43 42-62 0Z" fill="none" stroke="url(#teal)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" filter="url(#teal-glow)"/>
+    <path d="M28 74c14-22 29-23 44 4" fill="none" stroke="#fff" stroke-opacity=".38" stroke-width="5" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-daily" viewBox="0 0 160 160">
+    <rect x="20" y="28" width="120" height="116" rx="26" fill="#f8ecdb" stroke="#ffd24d" stroke-width="7" filter="url(#glow)"/>
+    <path d="M20 62h120" stroke="#b8304f" stroke-width="10"/>
+    <path d="M50 17v27M110 17v27" stroke="#ff6a5c" stroke-width="12" stroke-linecap="round"/>
+    <path d="m80 78 12 24 27 4-20 19 5 27-24-13-24 13 5-27-20-19 27-4z" fill="url(#gold)"/>
+  </symbol>
+
+  <symbol id="art-coin" viewBox="0 0 120 120">
+    <circle cx="60" cy="60" r="51" fill="url(#gold)" stroke="#ffce97" stroke-width="6" filter="url(#glow)"/>
+    <circle cx="60" cy="60" r="38" fill="none" stroke="#f2b25f" stroke-width="5"/>
+    <path d="M72 39c-7-5-25-6-25 5 0 15 29 5 29 22 0 13-20 14-30 6M60 30v60" fill="none" stroke="#b56e18" stroke-width="8" stroke-linecap="round"/>
+    <path d="M30 37a40 40 0 0 1 44-19" fill="none" stroke="#fff" stroke-opacity=".52" stroke-width="7" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-gem" viewBox="0 0 120 120">
+    <path d="m60 9 35 15 17 30-52 58L8 54l17-30z" fill="url(#coral)" stroke="#ffb9c8" stroke-width="5" filter="url(#glow)"/>
+    <path d="M25 24 42 54 60 9l18 45 17-30M8 54h104M42 54l18 58 18-58" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="4"/>
+  </symbol>
+</svg>
+

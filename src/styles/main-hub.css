@@ -464,3 +464,15 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+/* ===== v4 menu-world (dynamic scrolling-canal canvas + bg fallback) ===== */
+.main-hub { position: relative; }
+.main-hub__world { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.main-hub__world-layer { position: absolute; inset: -1%; width: 102%; height: 102%; object-fit: cover; object-position: 50% 50%; -webkit-user-drag: none; }
+.main-hub__world-layer--background { z-index: 0; }
+.main-hub__world-canvas { position: absolute; inset: 0; z-index: 10; width: 100%; height: 100%; }
+/* content floats over the world */
+.main-hub__content { position: relative; z-index: 100; display: flex; flex-direction: column; gap: 12px; }
+.main-hub__spacer { flex: 1 1 auto; min-height: 22vh; }
+.main-hub__distance { position: static !important; margin: 0 auto; }
+.main-hub__race-now { position: static !important; margin: 0 !important; width: 100%; }

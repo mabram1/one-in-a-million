@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "formatPolicy": "SVG for scalable UI; PNG for menu world and organic character art",
+  "sprites": {
+    "components": "assets/menu/menu-components.svg",
+    "premiumArtIcons": "assets/menu/mode-art-icons.svg",
+    "utilityIcons": "assets/menu/menu-icons.svg"
+  },
+  "standaloneDirectories": {
+    "components": "assets/menu/components",
+    "premiumArtIcons": "assets/menu/art_icons",
+    "utilityIcons": "assets/menu/icons"
+  },
+  "wordmark": "assets/menu/menu-wordmark.svg",
+  "components": [
+    { "id": "frame-top-account", "file": "components/frame-top-account.svg", "viewBox": "0 0 1000 144" },
+    { "id": "frame-track-window", "file": "components/frame-track-window.svg", "viewBox": "0 0 1000 900" },
+    { "id": "frame-avatar", "file": "components/frame-avatar.svg", "viewBox": "0 0 132 132" },
+    { "id": "badge-level", "file": "components/badge-level.svg", "viewBox": "0 0 100 100" },
+    { "id": "frame-xp", "file": "components/frame-xp.svg", "viewBox": "0 0 420 36" },
+    { "id": "fill-xp", "file": "components/fill-xp.svg", "viewBox": "0 0 420 36", "rule": "crop container width; never stretch non-uniformly" },
+    { "id": "pill-currency", "file": "components/pill-currency.svg", "viewBox": "0 0 230 90" },
+    { "id": "button-plus", "file": "components/button-plus.svg", "viewBox": "0 0 90 90" },
+    { "id": "button-primary-normal", "file": "components/button-primary-normal.svg", "viewBox": "0 0 800 168" },
+    { "id": "button-primary-pressed", "file": "components/button-primary-pressed.svg", "viewBox": "0 0 800 168" },
+    { "id": "button-primary-disabled", "file": "components/button-primary-disabled.svg", "viewBox": "0 0 800 168" },
+    { "id": "chip-normal", "file": "components/chip-normal.svg", "viewBox": "0 0 240 96" },
+    { "id": "chip-selected", "file": "components/chip-selected.svg", "viewBox": "0 0 240 96" },
+    { "id": "chip-locked", "file": "components/chip-locked.svg", "viewBox": "0 0 240 96" },
+    { "id": "card-mode-practice", "file": "components/card-mode-practice.svg", "viewBox": "0 0 240 260" },
+    { "id": "card-mode-multiplayer", "file": "components/card-mode-multiplayer.svg", "viewBox": "0 0 240 260" },
+    { "id": "card-mode-challenge", "file": "components/card-mode-challenge.svg", "viewBox": "0 0 240 260" },
+    { "id": "card-mode-endless", "file": "components/card-mode-endless.svg", "viewBox": "0 0 240 260" },
+    { "id": "card-daily", "file": "components/card-daily.svg", "viewBox": "0 0 960 150" },
+    { "id": "frame-bottom-nav", "file": "components/frame-bottom-nav.svg", "viewBox": "0 0 1000 190" },
+    { "id": "nav-active-disc", "file": "components/nav-active-disc.svg", "viewBox": "0 0 150 150" },
+    { "id": "pill-status-teal", "file": "components/pill-status-teal.svg", "viewBox": "0 0 320 74" },
+    { "id": "pill-status-coral", "file": "components/pill-status-coral.svg", "viewBox": "0 0 320 74" },
+    { "id": "pill-status-gold", "file": "components/pill-status-gold.svg", "viewBox": "0 0 320 74" }
+  ],
+  "premiumArtIcons": [
+    { "id": "art-practice", "file": "art_icons/practice.svg" },
+    { "id": "art-multiplayer", "file": "art_icons/multiplayer.svg" },
+    { "id": "art-challenge", "file": "art_icons/challenge.svg" },
+    { "id": "art-endless", "file": "art_icons/endless.svg" },
+    { "id": "art-daily", "file": "art_icons/daily.svg" },
+    { "id": "art-coin", "file": "art_icons/coin.svg" },
+    { "id": "art-gem", "file": "art_icons/gem.svg" }
+  ],
+  "utilityIcons": [
+    "challenge",
+    "chevron",
+    "coin",
+    "customize",
+    "daily",
+    "endless",
+    "gem",
+    "home",
+    "lock",
+    "multiplayer",
+    "offline",
+    "play",
+    "practice",
+    "profile",
+    "race",
+    "settings",
+    "store"
+  ],
+  "textRule": "Do not rasterize labels. Place localized DOM text above frames.",
+  "stateRule": "Pressed, disabled, locked, selected, offline, and active states must not rely on color alone."
+}
+

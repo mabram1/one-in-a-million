@@ -62,6 +62,8 @@ export interface LiveTrackAssetPaths {
   goalRays: string;
   wbc: string;
   virus: string;
+  wallLeft: string;
+  wallRight: string;
 }
 
 export interface LiveTrackOptions {
@@ -70,4 +72,3 @@ export interface LiveTrackOptions {
   inputClass: InputClass;
   seed?: number;
 }
-

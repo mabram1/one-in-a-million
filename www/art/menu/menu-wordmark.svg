@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 250" role="img" aria-labelledby="title">
+  <title id="title">One in a Million</title>
+  <defs>
+    <filter id="soft-shadow" x="-20%" y="-30%" width="140%" height="170%">
+      <feDropShadow dx="0" dy="7" stdDeviation="8" flood-color="#0d0305" flood-opacity=".72"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#ffb9c8" flood-opacity=".17"/>
+    </filter>
+    <linearGradient id="teal" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#8ffff3"/><stop offset=".52" stop-color="#43e0cf"/><stop offset="1" stop-color="#23bbaa"/>
+    </linearGradient>
+    <linearGradient id="cream" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#ffffff"/><stop offset=".55" stop-color="#f8ecdb"/><stop offset="1" stop-color="#d9c6b2"/>
+    </linearGradient>
+  </defs>
+  <g filter="url(#soft-shadow)" font-family="Fredoka, Nunito, sans-serif" font-weight="700" text-anchor="middle">
+    <text x="390" y="105" font-size="105">
+      <tspan fill="url(#teal)">One</tspan>
+      <tspan fill="url(#cream)" font-size="64"> in a</tspan>
+    </text>
+    <text x="390" y="218" fill="url(#cream)" font-size="126">Million</text>
+  </g>
+  <path d="M186 229q204 30 408 0" fill="none" stroke="#b8304f" stroke-width="8" stroke-linecap="round"/>
+</svg>

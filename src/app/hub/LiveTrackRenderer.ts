@@ -160,7 +160,7 @@ export class LiveTrackRenderer {
     const ctx = this.context;
     ctx.clearRect(0, 0, width, height);
     this.drawBackground(ctx, width, height, time);
-    this.drawTunnel(ctx, width, height);
+    this.drawDynamicWalls(ctx, width, height, time);
     this.drawParticles(ctx, width, height);
     if (this.assets) {
       this.drawGoal(ctx, width, height, time);
@@ -193,68 +193,75 @@ export class LiveTrackRenderer {
     ctx.fillRect(0, 0, width, height);
   }
 
-  private drawTunnel(
+  private drawDynamicWalls(
     ctx: CanvasRenderingContext2D,
     width: number,
-    height: number
+    height: number,
+    time: number
   ): void {
-    const center = width / 2;
-    const topHalf = width * 0.13;
-    const bottomHalf = width * 0.49;
-    const wall = ctx.createLinearGradient(0, 0, width, 0);
-    wall.addColorStop(0, COLORS.wall);
-    wall.addColorStop(0.45, COLORS.coral);
-    wall.addColorStop(0.55, COLORS.coral);
-    wall.addColorStop(1, COLORS.wall);
+    if (!this.assets) return;
+    const logicalScale = width / 400;
+    const sourceOpaqueWidth = 158;
+    const sourceHeight = this.assets.wallLeft.naturalHeight;
+    const sourceWidth = this.assets.wallLeft.naturalWidth;
+    const sliceDestinationHeight = Math.max(3, Math.round(logicalScale * 2));
+    const scrollLogical = this.options.reducedMotion ? 0 : time * 42;
+    const narrowHalfByDistance: Record<PracticeDistance, number> = {
+      750: 78,
+      1000: 64,
+      1250: 54
+    };
+    const wideHalf = 192;
+    const narrowHalf = narrowHalfByDistance[this.options.selectedDistance];
 
-    ctx.save();
-    ctx.fillStyle = wall;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(center - topHalf, 0);
-    ctx.bezierCurveTo(
-      center - width * 0.2,
-      height * 0.32,
-      center - bottomHalf,
-      height * 0.63,
-      center - bottomHalf,
-      height
-    );
-    ctx.lineTo(0, height);
-    ctx.closePath();
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(width, 0);
-    ctx.lineTo(center + topHalf, 0);
-    ctx.bezierCurveTo(
-      center + width * 0.2,
-      height * 0.32,
-      center + bottomHalf,
-      height * 0.63,
-      center + bottomHalf,
-      height
-    );
-    ctx.lineTo(width, height);
-    ctx.closePath();
-    ctx.fill();
+    for (let y = 0; y < height; y += sliceDestinationHeight) {
+      const progressToGoal = 1 - y / height;
+      const smoothProgress =
+        progressToGoal * progressToGoal * (3 - 2 * progressToGoal);
+      const worldY = y / logicalScale - scrollLogical;
+      const undulation = Math.sin(worldY * 0.035) * 0.08;
+      const wallHalfLogical =
+        (wideHalf + (narrowHalf - wideHalf) * smoothProgress) *
+        (1 + undulation);
+      const wallHalfPx = wallHalfLogical * logicalScale;
+      const leftEdge = width / 2 - wallHalfPx;
+      const rightEdge = width / 2 + wallHalfPx;
 
-    ctx.strokeStyle = COLORS.glow;
-    ctx.globalAlpha = 0.55;
-    ctx.lineWidth = Math.max(2, width * 0.008);
-    for (const side of [-1, 1]) {
-      ctx.beginPath();
-      ctx.moveTo(center + side * topHalf, 0);
-      ctx.bezierCurveTo(
-        center + side * width * 0.2,
-        height * 0.32,
-        center + side * bottomHalf,
-        height * 0.63,
-        center + side * bottomHalf,
-        height
+      const tilePosition = ((worldY * 3) % sourceHeight + sourceHeight) % sourceHeight;
+      const tileIndex = Math.floor((worldY * 3) / sourceHeight);
+      const sourceY =
+        Math.abs(tileIndex) % 2 === 0
+          ? tilePosition
+          : sourceHeight - 1 - tilePosition;
+      const sourceSliceHeight = Math.min(
+        4,
+        sourceHeight - Math.floor(sourceY)
       );
-      ctx.stroke();
+      if (sourceSliceHeight <= 0) continue;
+
+      ctx.drawImage(
+        this.assets.wallLeft,
+        0,
+        Math.floor(sourceY),
+        sourceOpaqueWidth,
+        sourceSliceHeight,
+        0,
+        y,
+        Math.max(0, leftEdge),
+        sliceDestinationHeight + 1
+      );
+      ctx.drawImage(
+        this.assets.wallRight,
+        sourceWidth - sourceOpaqueWidth,
+        Math.floor(sourceY),
+        sourceOpaqueWidth,
+        sourceSliceHeight,
+        rightEdge,
+        y,
+        Math.max(0, width - rightEdge),
+        sliceDestinationHeight + 1
+      );
     }
-    ctx.restore();
   }
 
   private drawParticles(
@@ -433,4 +440,3 @@ export class LiveTrackRenderer {
     ctx.drawImage(image, x - width / 2, y - height / 2, width, height);
   }
 }
-

@@ -1,0 +1,174 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="panel-fill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#42101f" stop-opacity=".94"/>
+      <stop offset=".58" stop-color="#210710" stop-opacity=".96"/>
+      <stop offset="1" stop-color="#0d0305" stop-opacity=".98"/>
+    </linearGradient>
+    <linearGradient id="panel-gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#ffb9c8" stop-opacity=".20"/>
+      <stop offset=".34" stop-color="#ffb9c8" stop-opacity=".03"/>
+      <stop offset="1" stop-color="#0d0305" stop-opacity=".18"/>
+    </linearGradient>
+    <linearGradient id="teal-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#82fff1"/>
+      <stop offset=".45" stop-color="#43e0cf"/>
+      <stop offset="1" stop-color="#23bbaa"/>
+    </linearGradient>
+    <linearGradient id="teal-pressed" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#24b6a7"/>
+      <stop offset="1" stop-color="#167d74"/>
+    </linearGradient>
+    <linearGradient id="gold-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#fff1a6"/>
+      <stop offset=".45" stop-color="#ffd24d"/>
+      <stop offset="1" stop-color="#f2b25f"/>
+    </linearGradient>
+    <linearGradient id="coral-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#ff9cb2"/>
+      <stop offset=".55" stop-color="#d1607c"/>
+      <stop offset="1" stop-color="#b8304f"/>
+    </linearGradient>
+    <linearGradient id="violet-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#dba5ff"/>
+      <stop offset=".55" stop-color="#a871c7"/>
+      <stop offset="1" stop-color="#6c3d91"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-40%" width="160%" height="190%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#0d0305" flood-opacity=".62"/>
+    </filter>
+    <filter id="teal-glow" x="-40%" y="-60%" width="180%" height="220%">
+      <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#43e0cf" flood-opacity=".48"/>
+    </filter>
+    <filter id="gold-glow" x="-40%" y="-60%" width="180%" height="220%">
+      <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#ffd24d" flood-opacity=".38"/>
+    </filter>
+  </defs>
+
+  <symbol id="frame-top-account" viewBox="0 0 1000 144">
+    <rect x="8" y="8" width="984" height="128" rx="48" fill="url(#panel-fill)" stroke="#ffb9c8" stroke-opacity=".32" stroke-width="3" filter="url(#shadow)"/>
+    <rect x="14" y="14" width="972" height="54" rx="38" fill="url(#panel-gloss)"/>
+    <path d="M55 126h890" stroke="#7c1836" stroke-opacity=".42" stroke-width="2"/>
+  </symbol>
+
+  <symbol id="frame-track-window" viewBox="0 0 1000 900">
+    <rect x="12" y="12" width="976" height="876" rx="72" fill="#0d0305" fill-opacity=".22" stroke="#ffb9c8" stroke-opacity=".45" stroke-width="4" filter="url(#shadow)"/>
+    <rect x="24" y="24" width="952" height="852" rx="62" fill="none" stroke="#b8304f" stroke-opacity=".22" stroke-width="2"/>
+    <path d="M92 45h816" stroke="#ffffff" stroke-opacity=".12" stroke-width="5" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="frame-avatar" viewBox="0 0 132 132">
+    <circle cx="66" cy="66" r="61" fill="#0d0305" stroke="url(#teal-fill)" stroke-width="7" filter="url(#teal-glow)"/>
+    <circle cx="66" cy="66" r="52" fill="none" stroke="#ffffff" stroke-opacity=".16" stroke-width="3"/>
+  </symbol>
+
+  <symbol id="badge-level" viewBox="0 0 100 100">
+    <path d="M50 5 87 25v50L50 95 13 75V25z" fill="url(#panel-fill)" stroke="#43e0cf" stroke-width="5" filter="url(#teal-glow)"/>
+    <path d="M50 14 78 30v37L50 84 22 67V30z" fill="#43e0cf" fill-opacity=".10"/>
+  </symbol>
+
+  <symbol id="frame-xp" viewBox="0 0 420 36">
+    <rect x="2" y="2" width="416" height="32" rx="16" fill="#0d0305" stroke="#7c1836" stroke-width="3"/>
+    <rect x="8" y="8" width="404" height="10" rx="5" fill="#ffffff" fill-opacity=".07"/>
+  </symbol>
+
+  <symbol id="fill-xp" viewBox="0 0 420 36">
+    <rect x="4" y="4" width="412" height="28" rx="14" fill="url(#teal-fill)" filter="url(#teal-glow)"/>
+    <path d="M18 10h382" stroke="#ffffff" stroke-opacity=".36" stroke-width="5" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="pill-currency" viewBox="0 0 230 90">
+    <rect x="4" y="4" width="222" height="82" rx="41" fill="url(#panel-fill)" stroke="#ffb9c8" stroke-opacity=".24" stroke-width="3" filter="url(#shadow)"/>
+    <path d="M33 17h164" stroke="#ffffff" stroke-opacity=".11" stroke-width="5" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="button-plus" viewBox="0 0 90 90">
+    <rect x="5" y="5" width="80" height="80" rx="25" fill="url(#coral-fill)" stroke="#ffb9c8" stroke-width="3" filter="url(#shadow)"/>
+    <path d="M45 25v40M25 45h40" stroke="#f8ecdb" stroke-width="9" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="button-primary-normal" viewBox="0 0 800 168">
+    <rect x="12" y="12" width="776" height="144" rx="72" fill="url(#teal-fill)" stroke="#bafff7" stroke-width="5" filter="url(#teal-glow)"/>
+    <path d="M82 33h636" stroke="#ffffff" stroke-opacity=".42" stroke-width="10" stroke-linecap="round"/>
+    <path d="M84 140h632" stroke="#0d0305" stroke-opacity=".18" stroke-width="8" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="button-primary-pressed" viewBox="0 0 800 168">
+    <rect x="18" y="20" width="764" height="134" rx="67" fill="url(#teal-pressed)" stroke="#43e0cf" stroke-width="4"/>
+    <path d="M88 38h624" stroke="#ffffff" stroke-opacity=".18" stroke-width="7" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="button-primary-disabled" viewBox="0 0 800 168">
+    <rect x="12" y="12" width="776" height="144" rx="72" fill="#5d4a50" stroke="#8c747b" stroke-width="4"/>
+    <path d="M82 34h636" stroke="#ffffff" stroke-opacity=".10" stroke-width="8" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="chip-normal" viewBox="0 0 240 96">
+    <rect x="4" y="4" width="232" height="88" rx="44" fill="#0d0305" fill-opacity=".88" stroke="#7c1836" stroke-width="3"/>
+    <path d="M34 18h172" stroke="#ffffff" stroke-opacity=".08" stroke-width="4" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="chip-selected" viewBox="0 0 240 96">
+    <rect x="4" y="4" width="232" height="88" rx="44" fill="#43e0cf" fill-opacity=".16" stroke="#43e0cf" stroke-width="5" filter="url(#teal-glow)"/>
+    <path d="M35 17h170" stroke="#ffffff" stroke-opacity=".22" stroke-width="5" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="chip-locked" viewBox="0 0 240 96">
+    <rect x="4" y="4" width="232" height="88" rx="44" fill="#0d0305" fill-opacity=".72" stroke="#6c5860" stroke-width="3"/>
+    <path d="M35 18h170" stroke="#ffffff" stroke-opacity=".05" stroke-width="4" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="card-mode-practice" viewBox="0 0 240 260">
+    <rect x="7" y="7" width="226" height="246" rx="44" fill="url(#panel-fill)" stroke="#ff6a5c" stroke-opacity=".78" stroke-width="5" filter="url(#shadow)"/>
+    <ellipse cx="120" cy="74" rx="92" ry="66" fill="#ff6a5c" fill-opacity=".16"/>
+    <path d="M42 25h156" stroke="#ffffff" stroke-opacity=".12" stroke-width="6" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="card-mode-multiplayer" viewBox="0 0 240 260">
+    <rect x="7" y="7" width="226" height="246" rx="44" fill="url(#panel-fill)" stroke="#a871c7" stroke-opacity=".84" stroke-width="5" filter="url(#shadow)"/>
+    <ellipse cx="120" cy="74" rx="92" ry="66" fill="#a871c7" fill-opacity=".18"/>
+    <path d="M42 25h156" stroke="#ffffff" stroke-opacity=".12" stroke-width="6" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="card-mode-challenge" viewBox="0 0 240 260">
+    <rect x="7" y="7" width="226" height="246" rx="44" fill="url(#panel-fill)" stroke="#ffd24d" stroke-opacity=".76" stroke-width="5" filter="url(#shadow)"/>
+    <ellipse cx="120" cy="74" rx="92" ry="66" fill="#ffd24d" fill-opacity=".14"/>
+    <path d="M42 25h156" stroke="#ffffff" stroke-opacity=".12" stroke-width="6" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="card-mode-endless" viewBox="0 0 240 260">
+    <rect x="7" y="7" width="226" height="246" rx="44" fill="url(#panel-fill)" stroke="#43e0cf" stroke-opacity=".72" stroke-width="5" filter="url(#shadow)"/>
+    <ellipse cx="120" cy="74" rx="92" ry="66" fill="#43e0cf" fill-opacity=".12"/>
+    <path d="M42 25h156" stroke="#ffffff" stroke-opacity=".12" stroke-width="6" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="card-daily" viewBox="0 0 960 150">
+    <rect x="7" y="7" width="946" height="136" rx="38" fill="url(#panel-fill)" stroke="#ffd24d" stroke-opacity=".38" stroke-width="4" filter="url(#shadow)"/>
+    <path d="M66 28h828" stroke="#ffffff" stroke-opacity=".10" stroke-width="6" stroke-linecap="round"/>
+    <rect x="510" y="104" width="270" height="17" rx="8.5" fill="#0d0305" stroke="#7c1836" stroke-width="2"/>
+  </symbol>
+
+  <symbol id="frame-bottom-nav" viewBox="0 0 1000 190">
+    <path d="M60 7h880c30 0 53 24 53 53v123H7V60C7 31 31 7 60 7Z" fill="url(#panel-fill)" stroke="#ffb9c8" stroke-opacity=".26" stroke-width="4" filter="url(#shadow)"/>
+    <path d="M72 28h856" stroke="#ffffff" stroke-opacity=".11" stroke-width="6" stroke-linecap="round"/>
+    <path d="M250 42v116M500 42v116M750 42v116" stroke="#7c1836" stroke-opacity=".42" stroke-width="2"/>
+  </symbol>
+
+  <symbol id="nav-active-disc" viewBox="0 0 150 150">
+    <rect x="5" y="5" width="140" height="140" rx="42" fill="#43e0cf" fill-opacity=".14" stroke="#43e0cf" stroke-width="4" filter="url(#teal-glow)"/>
+    <path d="M33 24h84" stroke="#ffffff" stroke-opacity=".18" stroke-width="6" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="pill-status-teal" viewBox="0 0 320 74">
+    <rect x="4" y="4" width="312" height="66" rx="33" fill="#0d0305" fill-opacity=".82" stroke="#43e0cf" stroke-width="3" filter="url(#teal-glow)"/>
+  </symbol>
+
+  <symbol id="pill-status-coral" viewBox="0 0 320 74">
+    <rect x="4" y="4" width="312" height="66" rx="33" fill="#0d0305" fill-opacity=".82" stroke="#ff6a5c" stroke-width="3"/>
+  </symbol>
+
+  <symbol id="pill-status-gold" viewBox="0 0 320 74">
+    <rect x="4" y="4" width="312" height="66" rx="33" fill="#0d0305" fill-opacity=".82" stroke="#ffd24d" stroke-width="3" filter="url(#gold-glow)"/>
+  </symbol>
+</svg>
+

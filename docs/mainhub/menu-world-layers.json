@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "canvas": {
+    "width": 1080,
+    "height": 1920,
+    "colorSpace": "sRGB",
+    "referenceAspect": "9:16"
+  },
+  "fit": {
+    "mode": "cover",
+    "position": "50% 50%",
+    "minimumScale": 1,
+    "tabletPolicy": "keep a centered phone-like crop; do not stretch horizontally"
+  },
+  "layers": [
+    {
+      "z": 0,
+      "id": "deep_background",
+      "path": "assets/menu_world/menu_bg_deep.png",
+      "alpha": false,
+      "blendMode": "normal",
+      "motion": "static"
+    },
+    {
+      "z": 10,
+      "id": "track",
+      "path": "assets/menu_world/menu_track_overlay.png",
+      "alpha": true,
+      "blendMode": "normal",
+      "motion": {
+        "type": "parallax",
+        "maxTranslateCssPx": 3,
+        "durationSeconds": 8
+      }
+    },
+    {
+      "z": 20,
+      "id": "goal_layers",
+      "paths": [
+        "assets/reuse/goal/egg_halo.png",
+        "assets/reuse/goal/egg_rays.png",
+        "assets/reuse/goal/egg.png"
+      ],
+      "anchorDesignPx": { "x": 540, "y": 335 },
+      "motion": {
+        "haloPulseSeconds": 2.8,
+        "raysRotationSeconds": 24
+      }
+    },
+    {
+      "z": 30,
+      "id": "preview_objects",
+      "paths": [
+        "assets/reuse/obstacles/wbc_s.png",
+        "assets/reuse/obstacles/virus_s.png"
+      ],
+      "motion": "slow deterministic drift"
+    },
+    {
+      "z": 40,
+      "id": "mascot_rig",
+      "paths": [
+        "assets/reuse/spermy/tail_default.png",
+        "assets/reuse/spermy/base_body.png",
+        "assets/reuse/spermy/face_idle.png"
+      ],
+      "anchorDesignPx": { "x": 540, "y": 1275 },
+      "canonicalCanvas": { "width": 512, "height": 768 },
+      "motion": "accepted tail wave plus gentle body bob"
+    },
+    {
+      "z": 50,
+      "id": "atmosphere",
+      "path": "assets/menu_world/menu_atmosphere.png",
+      "alpha": true,
+      "blendMode": "screen",
+      "motion": {
+        "type": "vertical drift",
+        "maxTranslateCssPx": 5,
+        "durationSeconds": 12
+      }
+    },
+    {
+      "z": 60,
+      "id": "wall_frame",
+      "path": "assets/menu_world/menu_wall_frame.png",
+      "alpha": true,
+      "blendMode": "normal",
+      "motion": {
+        "type": "breathing scale",
+        "scaleFrom": 1,
+        "scaleTo": 1.008,
+        "durationSeconds": 7
+      }
+    },
+    {
+      "z": 100,
+      "id": "dom_ui",
+      "description": "All account, wordmark, buttons, labels, cards, and navigation remain live DOM/CSS."
+    }
+  ],
+  "reducedMotion": {
+    "disable": [
+      "parallax",
+      "vertical drift",
+      "rays rotation",
+      "halo pulse",
+      "breathing scale",
+      "body bob"
+    ],
+    "render": "static layer positions"
+  }
+}
+

@@ -17,6 +17,7 @@ const FLAG_KEY = 'oiam_hub_v2';
 const DIST_KEY = 'oiam_practice_dist';
 const B = (import.meta as any).env?.BASE_URL || './';
 const art = (p: string) => `${B}art/${p}`;
+const world = (p: string) => `${B}art/menu_world/${p}`;
 const icon = (id: string) => `${B}art/menu/menu-icons.svg#icon-${id}`;
 
 type Copy = typeof en;
@@ -76,7 +77,11 @@ function template(): string {
   const nav = (r: string, label: string, cur = false) =>
     `<button type="button" data-route="${r}"${cur ? ' aria-current="page"' : ''}><svg aria-hidden="true"><use href="${icon(r)}"></use></svg><span>${label}</span></button>`;
   return `
-  <div class="main-hub__content">
+  <div class="main-hub__world" aria-hidden="true">
+    <img class="main-hub__world-layer main-hub__world-layer--background" src="${world('menu_bg_deep.png')}" alt="">
+    <canvas class="main-hub__world-canvas"></canvas>
+  </div>
+  <div class="main-hub__content main-hub__ui">
     <header class="main-hub__account" aria-label="Player account">
       <div class="main-hub__avatar" aria-hidden="true"><img src="${art('spermy/base_body.png')}" alt=""><img src="${art('spermy/face_idle.png')}" alt=""></div>
       <div class="main-hub__identity">
@@ -90,14 +95,11 @@ function template(): string {
       <button class="main-hub__icon-button" type="button" data-route="settings" aria-label="Settings"><svg width="22" height="22" aria-hidden="true"><use href="${icon('settings')}"></use></svg></button>
     </header>
     <h1 class="main-hub__wordmark"><span><strong>One</strong> in a Million</span></h1>
-    <section class="main-hub__track-wrap">
-      <div class="main-hub__track"><canvas aria-hidden="true"></canvas></div>
-      <div class="main-hub__distance" role="group" aria-label="${c.distanceLabel}">
-        ${distBtn(750, c.distances[0])}${distBtn(1000, c.distances[1])}${distBtn(1250, c.distances[2])}
-      </div>
-      <div class="main-hub__platform-pill">${c.motionReady}</div>
-      <button class="main-hub__race-now" type="button"><svg aria-hidden="true"><use href="${icon('play')}"></use></svg>${c.primaryAction}</button>
-    </section>
+    <div class="main-hub__spacer"></div>
+    <div class="main-hub__distance" role="group" aria-label="${c.distanceLabel}">
+      ${distBtn(750, c.distances[0])}${distBtn(1000, c.distances[1])}${distBtn(1250, c.distances[2])}
+    </div>
+    <button class="main-hub__race-now" type="button"><svg aria-hidden="true"><use href="${icon('play')}"></use></svg>${c.primaryAction}</button>
     <nav class="main-hub__modes" aria-label="Game modes">
       ${mode('practice', c.practice)}${mode('multiplayer', c.multiplayer)}${mode('challenge', c.challenge)}${mode('endless', c.endless)}
     </nav>
@@ -106,7 +108,7 @@ function template(): string {
       <span><strong>${c.dailyChallenge}</strong><small>${c.dailyExample}</small></span><b>0 / 3 · 500</b>
     </button>
   </div>
-  <nav class="main-hub__nav" aria-label="Main navigation">
+  <nav class="main-hub__nav main-hub__ui" aria-label="Main navigation">
     ${nav('home', c.home, true)}${nav('customize', c.customize)}${nav('store', c.store)}${nav('profile', c.profile)}
   </nav>`;
 }
@@ -168,7 +170,7 @@ export function show(): void {
     root.innerHTML = template();
     document.body.appendChild(root);
     wire();
-    const canvas = root.querySelector('.main-hub__track canvas') as HTMLCanvasElement;
+    const canvas = root.querySelector('.main-hub__world-canvas') as HTMLCanvasElement;
     try {
       renderer = new LiveTrackRenderer(canvas, {
         selectedDistance: getDistance(),
@@ -179,12 +181,12 @@ export function show(): void {
         mascotBody: art('spermy/base_body.png'), mascotFace: art('spermy/face_idle.png'), mascotTail: art('spermy/tail_default.png'),
         goal: art('goal/egg.png'), goalHalo: art('goal/egg_halo.png'), goalRays: art('goal/egg_rays.png'),
         wbc: art('obstacles/wbc_s.png'), virus: art('obstacles/virus_s.png'),
+        wallLeft: art('walls/wall_left.png'), wallRight: art('walls/wall_right.png'),
       }).then(() => renderer?.start());
-    } catch { /* canvas unavailable — hub still usable */ }
+    } catch { /* canvas unavailable — bg image still shows */ }
   }
   root.classList.remove('hidden');
   bindProfile();
   renderer?.start();
-  // hide the classic menu while the hub is up
   $('start')?.classList.add('hidden');
 }
