@@ -20,6 +20,8 @@ const B = (import.meta as any).env?.BASE_URL || './';
 const art = (p: string) => `${B}art/${p}`;
 const world = (p: string) => `${B}art/menu_world/${p}`;
 const icon = (id: string) => `${B}art/menu/menu-icons.svg#icon-${id}`;
+/** A kit SVG component as a stretched background (premium chrome frame). */
+const frame = (n: string) => `url(${B}art/menu/components/${n}.svg) center / 100% 100% no-repeat`;
 
 type Copy = typeof en;
 function copy(): Copy { try { return (navigator.language || '').toLowerCase().startsWith('sl') ? (sl as Copy) : en; } catch { return en; } }
@@ -61,7 +63,7 @@ function bindProfile(): void {
   const info = levelInfo(p.xp);
   const c = copy();
   (root.querySelector('.main-hub__name') as HTMLElement).textContent = p.displayName || c.guest;
-  (root.querySelector('.main-hub__level') as HTMLElement).textContent = String(info.displayLevel);
+  (root.querySelector('.main-hub__lvl-badge') as HTMLElement).textContent = String(info.displayLevel);
   const pct = info.xpForNext > 0 ? Math.min(100, (info.xpIntoLevel / info.xpForNext) * 100) : 0;
   (root.querySelector('.main-hub__xp-fill') as HTMLElement).style.setProperty('--xp-progress', pct + '%');
   (root.querySelector('[data-kind="coin"] span') as HTMLElement).textContent = fmt(p.wallet.coins);
@@ -83,16 +85,16 @@ function template(): string {
     <canvas class="main-hub__world-canvas"></canvas>
   </div>
   <div class="main-hub__content main-hub__ui">
-    <header class="main-hub__account" aria-label="Player account">
-      <div class="main-hub__avatar" aria-hidden="true"><img src="${art('spermy/base_body.png')}" alt=""><img src="${art('spermy/face_idle.png')}" alt=""></div>
+    <header class="main-hub__account" aria-label="Player account" style="background:${frame('frame-top-account')}">
+      <div class="main-hub__avatar" aria-hidden="true"><img src="${art('spermy/base_body.png')}" alt=""><img src="${art('spermy/face_idle.png')}" alt=""><span class="main-hub__lvl-badge" style="background:${frame('badge-level')}">1</span></div>
       <div class="main-hub__identity">
         <div class="main-hub__name">${c.guest}</div>
-        <div class="main-hub__xp"><span class="main-hub__level">1</span>
+        <div class="main-hub__xp">
           <div class="main-hub__xp-track" role="progressbar" aria-label="Experience"><div class="main-hub__xp-fill" style="--xp-progress:0%"></div></div>
         </div>
       </div>
-      <div class="main-hub__currency" data-kind="coin"><svg width="18" height="18" aria-hidden="true"><use href="${icon('coin')}"></use></svg><span>0</span></div>
-      <div class="main-hub__currency" data-kind="gem"><svg width="18" height="18" aria-hidden="true"><use href="${icon('gem')}"></use></svg><span>0</span></div>
+      <div class="main-hub__currency" data-kind="coin" style="background:${frame('pill-currency')}"><svg width="18" height="18" aria-hidden="true"><use href="${icon('coin')}"></use></svg><span>0</span></div>
+      <div class="main-hub__currency" data-kind="gem" style="background:${frame('pill-currency')}"><svg width="18" height="18" aria-hidden="true"><use href="${icon('gem')}"></use></svg><span>0</span></div>
       <button class="main-hub__icon-button" type="button" data-route="settings" aria-label="Settings"><svg width="22" height="22" aria-hidden="true"><use href="${icon('settings')}"></use></svg></button>
     </header>
     <h1 class="main-hub__wordmark"><img src="${B}art/menu/menu-wordmark.svg" alt="One in a Million"></h1>
@@ -104,12 +106,14 @@ function template(): string {
     <nav class="main-hub__modes" aria-label="Game modes">
       ${mode('practice', c.practice)}${mode('multiplayer', c.multiplayer)}${mode('challenge', c.challenge)}${mode('endless', c.endless)}
     </nav>
-    <button class="main-hub__daily" type="button" data-route="daily">
+    <button class="main-hub__daily" type="button" data-route="daily" style="background:${frame('card-daily')}">
       <svg aria-hidden="true"><use href="${icon('daily')}"></use></svg>
-      <span><strong>${c.dailyChallenge}</strong><small>${c.dailyExample}</small></span><b>0 / 3 · 500</b>
+      <span class="main-hub__daily-txt"><strong>${c.dailyChallenge}</strong><small>${c.dailyExample}</small>
+        <span class="main-hub__daily-prog"><i style="width:0%"></i></span></span>
+      <span class="main-hub__daily-reward"><svg width="16" height="16" aria-hidden="true"><use href="${icon('coin')}"></use></svg>500</span>
     </button>
   </div>
-  <nav class="main-hub__nav main-hub__ui" aria-label="Main navigation">
+  <nav class="main-hub__nav main-hub__ui" aria-label="Main navigation" style="background:${frame('frame-bottom-nav')}">
     ${nav('home', c.home, true)}${nav('customize', c.customize)}${nav('store', c.store)}${nav('profile', c.profile)}
   </nav>`;
 }

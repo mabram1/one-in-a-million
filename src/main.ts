@@ -57,7 +57,10 @@ if (new URLSearchParams(location.search).get('hub') !== 'classic') showHub();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     const swUrl = `${import.meta.env.BASE_URL}sw.js`;
-    navigator.serviceWorker.register(swUrl).catch(() => {
+    // updateViaCache:'none' → the browser always revalidates sw.js itself, so a new
+    // SW (which skipWaiting()s + claims + drops old caches) takes over on first load
+    // instead of after a manual reload.
+    navigator.serviceWorker.register(swUrl, { updateViaCache: 'none' }).catch(() => {
       /* offline SW unavailable — game still runs online */
     });
   });

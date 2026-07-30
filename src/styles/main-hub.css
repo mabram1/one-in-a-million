@@ -513,3 +513,19 @@
 /* CRITICAL FIX: overlay the hub on top of the game, not in normal flow after it
    (was pushed a full viewport below the fold -> only the fixed nav was visible). */
 .main-hub { position: fixed; inset: 0; z-index: 30; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+/* ===== premium SVG-frame chrome (replaces the plain CSS chrome) ===== */
+.main-hub__account { border: none !important; background-color: transparent; box-shadow: none !important; backdrop-filter: none; padding: 12px 18px; }
+.main-hub__avatar { position: relative; overflow: visible; }
+.main-hub__lvl-badge { position: absolute; right: -8px; bottom: -8px; width: 28px; height: 28px; display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #3a1207; background-size: 100% 100% !important; }
+.main-hub__currency { border: none !important; background-color: transparent; box-shadow: none; padding: 4px 16px 4px 12px; gap: 6px; }
+.main-hub__icon-button { border: none; background: transparent; }
+.main-hub__race-now { background-color: transparent !important; border: none !important; box-shadow: none !important; color: #06231f !important; }
+.main-hub__daily { border: none !important; background-color: transparent; box-shadow: none; padding: 12px 18px; gap: 12px; }
+.main-hub__daily-txt { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.main-hub__daily-txt strong { color: var(--oim-gold); font-size: 13px; letter-spacing: .04em; }
+.main-hub__daily-txt small { color: var(--oim-muted); font-size: 11px; }
+.main-hub__daily-prog { height: 6px; border-radius: 6px; background: rgba(255,255,255,.14); overflow: hidden; margin-top: 4px; }
+.main-hub__daily-prog i { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, #ffd76a, #f2b25f); }
+.main-hub__daily-reward { display: flex; align-items: center; gap: 5px; font-weight: 800; color: var(--oim-gold); font-size: 14px; }
+.main-hub__nav { border: none !important; background-color: transparent !important; box-shadow: none !important; }
