@@ -321,8 +321,8 @@ export const tuning: Readonly<Tuning> = Object.freeze({
     wallSecondaryFrequency: 0.53,
     wallSecondaryPhase: 1.3,
     wideUntilFraction: 0.6,   // full width for the first 60%, then taper to the egg
-    narrowAmount: 0.55,
-    narrowPower: 1.25,
+    narrowAmount: 0.58,       // same end depth as before the plateau (egg ~= 0.42 width)
+    narrowPower: 1.8,         // gentle just after 60%, steep near the egg (as it was)
     minHalfFraction: 0.28,
   },
   networkInterpolation: {
