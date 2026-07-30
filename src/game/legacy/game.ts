@@ -123,7 +123,14 @@ export function bootGame() {
     const t = worldY*trackGeneration.wallFrequency + G.canalSeed;   // per-run phase => tunnel shape differs every game
     let half = maxHalf*(trackGeneration.wallBase + trackGeneration.wallAmplitude*Math.sin(t));
     half *= trackGeneration.wallModBase + trackGeneration.wallModAmplitude*Math.sin(t*trackGeneration.wallSecondaryFrequency + trackGeneration.wallSecondaryPhase);
-    half *= 1 - trackGeneration.narrowAmount*Math.pow(Math.min(1, worldY/LEVEL_LENGTH), trackGeneration.narrowPower);   // stays wide early, narrows mostly toward the egg
+    // Width profile: FULL width for the first `wideUntilFraction` of the track (a
+    // wide, easier plateau), then taper toward the egg. The taper is measured only
+    // across the remaining fraction so raising the plateau keeps the pre-sprint run
+    // roomy instead of pinching early.
+    const prog = Math.min(1, worldY/LEVEL_LENGTH);
+    const wideUntil = trackGeneration.wideUntilFraction;
+    const taper = prog <= wideUntil ? 0 : (prog - wideUntil) / (1 - wideUntil);
+    half *= 1 - trackGeneration.narrowAmount*Math.pow(taper, trackGeneration.narrowPower);
     return Math.max(maxHalf*trackGeneration.minHalfFraction, half);
   }
   // VISUAL-ONLY organic edge: small layered "villi" ripples make the membrane look

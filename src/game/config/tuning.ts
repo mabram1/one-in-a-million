@@ -13,7 +13,7 @@
  * docs/audits/handbook-baseline-audit.md §4.1). Nothing was rounded or "cleaned".
  */
 
-export const tuningVersion = '1.5.0' as const;
+export const tuningVersion = '1.6.0' as const;
 
 /** Motion/stroke detection and cadence. */
 export interface ControlsTuning {
@@ -153,6 +153,10 @@ export interface TrackGenerationTuning {
   wallFrequency: number;
   wallSecondaryFrequency: number;
   wallSecondaryPhase: number;
+  /** Fraction of the track that stays FULL width before the canal starts to
+   *  narrow (a wide plateau, then a taper toward the egg). 0.6 = wide for the
+   *  first 60%, taper over the last 40%. Keeps the pre-sprint run easier. */
+  wideUntilFraction: number;
   narrowAmount: number;
   narrowPower: number;
   minHalfFraction: number;
@@ -316,8 +320,9 @@ export const tuning: Readonly<Tuning> = Object.freeze({
     wallFrequency: 0.0017,
     wallSecondaryFrequency: 0.53,
     wallSecondaryPhase: 1.3,
-    narrowAmount: 0.58,
-    narrowPower: 1.8,
+    wideUntilFraction: 0.6,   // full width for the first 60%, then taper to the egg
+    narrowAmount: 0.55,
+    narrowPower: 1.25,
     minHalfFraction: 0.28,
   },
   networkInterpolation: {
