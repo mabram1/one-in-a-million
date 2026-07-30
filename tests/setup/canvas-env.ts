@@ -32,8 +32,8 @@ class Ctx2DStub {
   createRadialGradient() { return this.gradient(); }
 
   save() {} restore() {} translate() {} scale() {} rotate() {} setTransform() {}
-  beginPath() {} closePath() {} moveTo() {} lineTo() {} arc() {} ellipse() {}
-  fill() {} stroke() {} fillRect() {} clearRect() {} fillText() {} setLineDash() {}
+  beginPath() {} closePath() {} moveTo() {} lineTo() {} arc() {} ellipse() {} rect() {}
+  clip() {} fill() {} stroke() {} fillRect() {} clearRect() {} fillText() {} setLineDash() {}
   measureText() { return { width: 0 } as TextMetrics; }
 }
 

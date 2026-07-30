@@ -32,6 +32,8 @@ export interface Harness {
   ingestPeerState: (id: string, d: any) => void;
   /** Current multiplayer placement from the validated finish set. */
   mpPlacement: () => { place: number; total: number };
+  /** Current frame of the finish "enter the ovum" animation (null when idle). */
+  finishFrame: () => any;
   /** Advance the fake clock and run the real loop in ~16 ms frames. */
   step: (ms: number) => void;
   /** Current fake clock value in ms. */
@@ -119,6 +121,7 @@ export function setupGame(startClockMs = 1_000_000): Harness {
     setChallenge: handle.setChallenge,
     ingestPeerState: handle.ingestPeerState,
     mpPlacement: handle.mpPlacement,
+    finishFrame: handle.finishFrame,
     step,
     nowMs: () => fake,
     key,

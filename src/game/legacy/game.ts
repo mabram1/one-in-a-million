@@ -83,7 +83,7 @@ export function bootGame() {
     // Finish flow (goal): presentation-only absorption animation. The authoritative
     // result is locked on the crossing frame (commitGoalFinish); the animation only
     // delays the results overlay and never touches elapsed/score/replay/placement.
-    _committed:false, _commitCount:0, _result:null, finishAnim:null, finishElapsed:0, finishScore:0,
+    _committed:false, _commitCount:0, _result:null, finishAnim:null, finishElapsed:0, finishScore:0, _eggFrames:0,
     banner:null, _lastStroke:0,
     motion:{ active:false, base:0, lp:0, grav:0, prevMag:null, permission:'—', events:0 },
     ptr:{ down:false },
@@ -666,7 +666,7 @@ export function bootGame() {
       timeLeft: END.startSeconds, checkpointsHit:0, cpIndex:0,
       nextCheckpoint: END.firstCheckpointUnits*PX_PER_UNIT,
       inputUsed:{ motion:false, keyboard:false, touch:false },
-      _committed:false, _commitCount:0, _result:null, finishAnim:null, finishElapsed:0, finishScore:0,
+      _committed:false, _commitCount:0, _result:null, finishAnim:null, finishElapsed:0, finishScore:0, _eggFrames:0,
       canalSeed: G.rng()*1000 });
     G.motion.prevMag=null; G.motion.base=G.motion.lp;
     G.rival = { world:0, speed:0, target:0.7*CRUISE_CAP, finished:false, finishT:0, retarget:0 };
@@ -695,10 +695,18 @@ export function bootGame() {
   $('btnBoost').onclick = () => { if (G.state==='playing' && !G.sprint && G.boostCharges>0 && G.boosting<=0){ G.boostCharges--; G.boosting=items.boostDurationSeconds; G.speed=OVER_CAP; G.flick=1; banner('BOOST! ⚡'); if(navigator.vibrate)navigator.vibrate(30); playLaunch(); } };
   $('btnShield').onclick = () => { if (G.state==='playing' && G.shieldCharges>0 && !G.shieldActive){ G.shieldCharges--; G.shieldActive=true; banner('SHIELD UP 🛡'); if(navigator.vibrate)navigator.vibrate(15); } };
 
-  // ---- Finish absorption animation (presentation only) --------------------------
-  const FINISH_MS_FULL = 1450;
-  const FINISH_MS_REDUCED = 550;
+  // ---- Finish "enter the ovum" animation (presentation only) --------------------
+  //
+  // The ovum stays FULLY VISIBLE the whole time. Champ breaks through the visible
+  // membrane and travels inside: his silhouette is drawn twice per frame, clipped
+  // OUTSIDE the ovum (full-bright, still emerging) and INSIDE it (dimmed, seen
+  // through the membrane), so a fixed ovum-ellipse clip + a descending rig reads
+  // as "passing through the surface". No sunburst rays / flash / confetti; the
+  // ovum is never hidden, shrunk or made fully transparent.
+  const FINISH_MS_FULL = 1500;
+  const FINISH_MS_REDUCED = 600;
   const FINISH_SKIP_MS = 450;   // taps before this are ignored (no accidental skip)
+  const OVUM_D = 150;           // on-screen ovum diameter (matches drawEgg eggD)
 
   function prefersReducedMotion(){
     try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
@@ -709,69 +717,68 @@ export function bootGame() {
   const _lerp = (a,b,t) => a + (b-a)*t;
   const _easeOutCubic = x => 1 - Math.pow(1-x, 3);
   const _easeInCubic  = x => x*x*x;
-  const _easeInBack   = x => { const c1=1.70158, c3=c1+1; return c3*x*x*x - c1*x*x; };
   const _easeOutBack  = x => { const c1=1.70158, c3=c1+1; return 1 + c3*Math.pow(x-1,3) + c1*Math.pow(x-1,2); };
 
-  // Compute the current frame of the absorption animation. Returns the ovum
-  // deformation, the Champ parent transform, camera bump and procedural ripples.
-  // Pure read of G.finishAnim + the clock — it never mutates game state.
+  // Compute the current frame of the entry animation. Pure read of G.finishAnim +
+  // the clock — it never mutates game state. Returns the ovum transform (stays
+  // ~1, only a satisfied pulse at the end), the Champ parent transform, how far
+  // Champ has entered, camera bump, the local membrane dent and procedural rings.
   function finishFrame(){
     const fa = G.finishAnim; if (!fa) return null;
     const e = _clamp(now() - fa.startMs, 0, fa.durationMs);
-    const eggY = worldToY(LEVEL_LENGTH);
-    const eggX = cx;
+    const eggY = worldToY(LEVEL_LENGTH), eggX = cx;
     const ff = {
-      eggX, eggY,
-      eggSX:1, eggSY:1,
-      champX:_lerp(fa.champX0, eggX, _easeOutCubic(_clamp(e/360,0,1))),
-      champY:eggY, champSX:1, champSY:1, champAlpha:1, wobble:0,
-      camX:0, camY:0, haloAlpha:0.9, haloScale:1,
+      eggX, eggY, eggSX:1, eggSY:1, ovumRx:OVUM_D/2, ovumRy:OVUM_D/2,
+      champX:eggX, champY:eggY, champSX:1, champSY:1, champAlpha:1, wobble:0,
+      camX:0, camY:0, haloAlpha:0.9, haloScale:1, dentDepth:0,
       ripples:[], rings:[],
     };
+    const topY = eggY - ff.ovumRy*0.9;     // the near (outer) membrane surface
+    const deepY = eggY + 28;               // 20-35 px deeper than centre
+    const setY = d => { ff.champY = _lerp(topY, deepY, d); };
+
     if (fa.reduced){
-      const dur = fa.durationMs;
-      const s = _easeInCubic(_clamp((e)/(dur*0.75),0,1));
-      ff.champSX = ff.champSY = _lerp(1, 0.08, s);
-      ff.champAlpha = e < dur*0.6 ? 1 : _lerp(1, 0, (e-dur*0.6)/(dur*0.4));
-      ff.champY = eggY + _lerp(0, 8, s);
-      ff.eggSX = ff.eggSY = 1 + 0.03*Math.sin(_clamp(e/(dur*0.75),0,1)*Math.PI);
-      return ff;
+      const dur = fa.durationMs, p = e/dur;
+      setY(_easeInCubic(_clamp(p/0.85,0,1)));
+      ff.champSX = ff.champSY = _lerp(1, 0.12, _easeInCubic(_clamp((e-dur*0.1)/(dur*0.75),0,1)));
+      ff.champAlpha = e < dur*0.62 ? 1 : _lerp(1, 0, (e-dur*0.62)/(dur*0.38));
+      ff.dentDepth = e < dur*0.55 ? _clamp(e/(dur*0.3),0,1) : _lerp(1,0,_clamp((e-dur*0.55)/(dur*0.45),0,1));
+      return ff;                           // no cam bump, no wobble, ovum steady
     }
-    if (e < 120){                                   // impact
-      const p = e/120;
-      ff.champSX = _lerp(1, 0.84, p); ff.champSY = _lerp(1, 1.16, p);
-      ff.eggSX = _lerp(1, 1.08, p);  ff.eggSY = _lerp(1, 0.91, p);
-      ff.camY = _lerp(0, 4, p);                     // <= 4 logical px
-      ff.ripples.push({ r:_lerp(20,60,p), a:0.18*(1-p) });
-    } else if (e < 360){                            // membrane rebound (elastic overshoot)
-      const p = (e-120)/240;
-      ff.champSX = _lerp(0.84, 1, _easeOutBack(p)); ff.champSY = _lerp(1.16, 1, _easeOutBack(p));
-      ff.eggSX = 1 + 0.08*Math.cos(p*Math.PI*1.2)*(1-p);
-      ff.eggSY = 1 - 0.09*Math.cos(p*Math.PI*1.2)*(1-p);
+
+    if (e < 160){                          // membrane impact
+      const p = e/160;
+      ff.champSX = _lerp(1, 0.82, p); ff.champSY = _lerp(1, 1.14, p);
+      setY(_lerp(0, 0.08, p));
+      ff.camY = _lerp(0, 4, p);            // <= 4 logical px
+      ff.dentDepth = _lerp(0, 0.5, p);
+    } else if (e < 380){                   // breakthrough — front passes inside first
+      const p = (e-160)/220;
+      ff.champSX = _lerp(0.82, 1, _easeOutBack(p)); ff.champSY = _lerp(1.14, 1, _easeOutBack(p));
+      setY(_lerp(0.08, 0.42, _easeOutCubic(p)));
       ff.camY = 4*(1-p);
-      ff.ripples.push({ r:_lerp(40,110,p), a:0.16*(1-p) });
-      if (p > 0.375){ const q=(p-0.375)/0.625; ff.ripples.push({ r:_lerp(20,70,q), a:0.12*(1-q) }); }
-    } else if (e < 980){                            // suction
-      const p = (e-360)/620;
-      const s = _clamp(_easeInBack(p), -0.15, 1);
-      ff.champSX = ff.champSY = _lerp(1, 0.08, s);
+      ff.dentDepth = _lerp(0.5, 1, p);
+      ff.ripples.push({ r:_lerp(30,80,p), a:0.16*(1-p) });
+    } else if (e < 950){                   // entering — deeper, shrink + fade
+      const p = (e-380)/570;
+      setY(_lerp(0.42, 1, _easeInCubic(p)));
+      ff.champSX = ff.champSY = _lerp(1, 0.12, _easeInCubic(p));
       ff.champAlpha = p < 0.65 ? 1 : _lerp(1, 0, (p-0.65)/0.35);   // most fade in the final 35%
-      ff.champX = eggX;
-      ff.champY = eggY + _lerp(0, 8, _easeInCubic(p));             // 6-10 px deeper
-      ff.wobble = 0.10*Math.sin(p*Math.PI*4)*(1-p);               // <= +/-0.10 rad, decaying
-      ff.eggSX = 1 + 0.02*Math.sin(p*Math.PI); ff.eggSY = 1 - 0.02*Math.sin(p*Math.PI);
-    } else if (e < 1240){                           // seal
-      const p = (e-980)/260;
+      ff.wobble = 0.10*Math.sin(p*Math.PI*4)*(1-p);               // <= +/-0.10 rad
+      ff.dentDepth = 1;
+    } else if (e < 1250){                  // membrane closes behind him
+      const p = (e-950)/300;
       ff.champAlpha = 0;
-      const pulse = 1 + 0.045*Math.sin(p*Math.PI);
+      ff.dentDepth = _lerp(1, 0, p);
+      const pulse = 1 + 0.045*Math.sin(p*Math.PI);                 // one satisfied pulse
       ff.eggSX = ff.eggSY = pulse;
-      ff.haloScale = _lerp(1.0, 0.92, p);            // halo contracts
-      ff.haloAlpha = _lerp(0.9, 1.0, Math.sin(p*Math.PI));   // gently brightens
-      ff.rings.push({ r:_lerp(60,120,p), a:0.22*(1-p) });
-      ff.rings.push({ r:_lerp(30,90,p),  a:0.16*(1-p) });
-    } else {                                        // handoff — clean ovum
+      ff.haloAlpha = _lerp(0.9, 1.0, Math.sin(p*Math.PI));         // halo brightens then returns
+      ff.rings.push({ r:_lerp(50,110,p), a:0.20*(1-p) });
+      ff.rings.push({ r:_lerp(26,80,p),  a:0.14*(1-p) });
+    } else {                               // handoff — intact, visible ovum
       ff.champAlpha = 0;
     }
+    ff.ovumRx = OVUM_D/2*ff.eggSX; ff.ovumRy = OVUM_D/2*ff.eggSY;   // never < base (only pulses up)
     return ff;
   }
 
@@ -782,17 +789,53 @@ export function bootGame() {
     ctx.restore();
   }
 
-  // Draw the layered Champ rig as ONE parent transform (body, face, cosmetics and
-  // tail stay aligned) so it scales + fades into the ovum as a single unit.
-  function drawFinishChamp(ff){
-    if (ff.champAlpha <= 0.01) return;
+  // The local inward membrane dent at the contact point (top of the ovum) — a soft
+  // darker pocket + coral rim that deepens as Champ pushes through, then closes.
+  function drawMembraneDent(ff){
+    if ((ff.dentDepth||0) <= 0.001) return;
+    const d = ff.dentDepth;
+    ctx.save();
+    ctx.translate(ff.eggX, ff.eggY - ff.ovumRy*0.72);
+    ctx.globalAlpha = 0.18*d; ctx.fillStyle = 'rgba(150,40,40,1)';
+    ctx.beginPath(); ctx.ellipse(0, 6*d, 20, 10+8*d, 0, 0, 6.283); ctx.fill();
+    ctx.globalAlpha = 0.30*d; ctx.strokeStyle = 'rgba(255,150,120,1)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(0, 4*d, 22, 12, 0, 0, 6.283); ctx.stroke();
+    ctx.restore();
+  }
+
+  // Draw the layered Champ rig ONCE as a single parent transform (tail, body,
+  // face, cosmetics all aligned). `bright` dims the copy that is seen through the
+  // membrane (inside the ovum) versus the still-emerging copy outside it.
+  function drawChampRigOnce(ff, bright){
     ctx.save();
     ctx.translate(ff.champX, ff.champY);
     ctx.rotate(ff.wobble || 0);
     ctx.scale(ff.champSX, ff.champSY);
-    ctx.globalAlpha = ff.champAlpha;
+    ctx.globalAlpha = ff.champAlpha * bright;
     if (art.ready && art.rig && art.img.body){ drawSpermSprite(0, 0); }
-    else { const glow='#43e0cf'; drawSpermShape(0, 0, 1, '#fbf0e0', glow, ff.champAlpha, G.tailPhase, true); }
+    else { drawSpermShape(0, 0, 1, '#fbf0e0', '#43e0cf', ff.champAlpha*bright, G.tailPhase, true); }
+    ctx.restore();
+  }
+
+  // Champ passing THROUGH the visible ovum membrane: the part still outside the
+  // ovum ellipse is full-bright, the part inside is dimmed (submerged look). The
+  // ovum itself has already been drawn (drawEgg) and stays on top-visible.
+  function drawFinishChamp(ff){
+    if (ff.champAlpha <= 0.01) return;
+    // outside the ovum (everything except the ellipse) — still emerging, bright
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(-60, -60, W+120, H+120);
+    ctx.ellipse(ff.eggX, ff.eggY, ff.ovumRx, ff.ovumRy, 0, 0, 6.283);
+    ctx.clip('evenodd');
+    drawChampRigOnce(ff, 1.0);
+    ctx.restore();
+    // inside the ovum — seen through the membrane, dimmed
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(ff.eggX, ff.eggY, ff.ovumRx, ff.ovumRy, 0, 0, 6.283);
+    ctx.clip();
+    drawChampRigOnce(ff, 0.5);
     ctx.restore();
   }
 
@@ -1207,7 +1250,7 @@ export function bootGame() {
     if (G.mode==='level'){ drawSprintLine(); drawEgg(ff); }
     else if (G.mode==='endless'){ drawCheckpoints(); }
     drawRivalGhost(); if (MP.active) drawPeers();
-    if (ff) drawFinishChamp(ff); else drawSperm();
+    if (ff){ drawFinishChamp(ff); drawMembraneDent(ff); } else drawSperm();
     ctx.restore();
 
     drawCompetitorMarkers();
@@ -1373,6 +1416,7 @@ export function bootGame() {
   function drawEgg(ff){
     const y = ff ? ff.eggY : worldToY(LEVEL_LENGTH);
     if (!ff && y>H+180) return; const R=72;
+    if (ff) G._eggFrames = (G._eggFrames|0) + 1;   // the ovum is drawn on every finish frame (never hidden)
     const sx = ff ? ff.eggSX : 1, sy = ff ? ff.eggSY : 1;
     if (art.ready && art.img.egg && art.img.egg.complete){
       ctx.save(); ctx.translate(cx,y);
@@ -1587,5 +1631,5 @@ export function bootGame() {
   requestAnimationFrame(loop);
 
   // Test/diagnostic handle. Not a global; production simply ignores it.
-  return { G, MP, tuning, loop, resize, competitors, setLevelLength, encodeGhost, decodeGhost, ghostWorldAt, setGhost, encodeChallenge, decodeChallenge, setChallenge, ingestPeerState, mpPlacement };
+  return { G, MP, tuning, loop, resize, competitors, setLevelLength, encodeGhost, decodeGhost, ghostWorldAt, setGhost, encodeChallenge, decodeChallenge, setChallenge, ingestPeerState, mpPlacement, finishFrame };
 }

@@ -16,6 +16,9 @@ let h: Harness;
 
 const PX = () => h.tuning.camera.pxPerUnit;
 const levelPx = (metres = 1000) => metres * PX();
+const OVUM_RADIUS = () => 75;   // OVUM_D (150) / 2 — the ovum's base on-screen radius
+
+const realMatchMedia = (window as any).matchMedia;
 
 /**
  * Pose the game one frame short of the egg, at sprint speed, so the very next
@@ -50,7 +53,7 @@ beforeEach(() => {
   h = setupGame();
   try { localStorage.clear(); } catch { /* jsdom */ }
 });
-afterEach(() => h.restore());
+afterEach(() => { h.restore(); (window as any).matchMedia = realMatchMedia; });
 
 describe('authoritative finish (locked on the crossing frame)', () => {
   it('enters the presentation-only "finishing" state and keeps results hidden', () => {
@@ -111,12 +114,12 @@ describe('multiplayer finish authority', () => {
 });
 
 describe('results are delayed only visually', () => {
-  it('keeps #end hidden until the 1450 ms sequence completes, then shows it', () => {
+  it('keeps #end hidden until the 1500 ms sequence completes, then shows it', () => {
     poseAtEggEdge();
     crossTheLine();
     const end = document.getElementById('end') as HTMLElement;
 
-    h.step(1000);                                      // < 1450 ms
+    h.step(1000);                                      // < 1500 ms
     expect(h.G.state).toBe('finishing');
     expect(end.classList.contains('hidden')).toBe(true);
 
@@ -130,20 +133,20 @@ describe('Reduced Motion', () => {
   const realMM = (window as any).matchMedia;
   afterEach(() => { (window as any).matchMedia = realMM; });
 
-  it('uses the shorter 550 ms duration', () => {
+  it('uses the shorter 600 ms sequence', () => {
     (window as any).matchMedia = () => ({ matches: true });
     poseAtEggEdge();
     crossTheLine();
     expect(h.G.finishAnim).not.toBeNull();
-    expect(h.G.finishAnim.durationMs).toBe(550);
+    expect(h.G.finishAnim.durationMs).toBe(600);
     expect(h.G.finishAnim.reduced).toBe(true);
   });
 
-  it('uses the full 1450 ms duration when reduced motion is off', () => {
+  it('uses the full 1500 ms sequence when reduced motion is off', () => {
     (window as any).matchMedia = () => ({ matches: false });
     poseAtEggEdge();
     crossTheLine();
-    expect(h.G.finishAnim.durationMs).toBe(1450);
+    expect(h.G.finishAnim.durationMs).toBe(1500);
   });
 });
 
@@ -176,10 +179,46 @@ describe('skip', () => {
   });
 });
 
-describe('no egg rays', () => {
+describe('the ovum stays visible', () => {
+  it('is drawn on every frame of the sequence and never shrinks below its base size', () => {
+    (window as any).matchMedia = () => ({ matches: false });
+    poseAtEggEdge();
+    crossTheLine();
+    const framesBefore = h.G._eggFrames;
+    // Sample the ovum size across impact, entering and close phases.
+    const base = OVUM_RADIUS();
+    for (const _ of [0, 1, 2, 3]) {
+      h.step(300);
+      const ff = h.finishFrame();
+      if (!ff) break;                                  // reached results after the last step
+      expect(ff.ovumRx).toBeGreaterThanOrEqual(base - 0.001);   // never shrunk/removed
+      expect(ff.ovumRy).toBeGreaterThanOrEqual(base - 0.001);
+    }
+    expect(h.G._eggFrames - framesBefore).toBeGreaterThan(5);    // the ovum kept rendering
+  });
+
   it('the shipped renderer never draws egg_rays', () => {
     const src = fs.readFileSync(
       path.resolve(__dirname, '../../src/game/legacy/game.ts'), 'utf8');
     expect(/art\.img\.egg_rays/.test(src)).toBe(false);
+  });
+});
+
+describe('Champ enters the ovum', () => {
+  it('is still visible while entering and only fully hidden after the entry completes', () => {
+    (window as any).matchMedia = () => ({ matches: false });
+    poseAtEggEdge();
+    crossTheLine();
+
+    // Mid-entry (~600 ms): Champ is still visible (passing through the membrane).
+    h.step(560);
+    const entering = h.finishFrame();
+    expect(entering.champAlpha).toBeGreaterThan(0);
+
+    // After the entry completes (~1050 ms, seal phase): Champ is fully hidden.
+    h.step(460);
+    const inside = h.finishFrame();
+    expect(inside.champAlpha).toBe(0);
+    expect(h.G.state).toBe('finishing');               // but the ovum sequence is still on screen
   });
 });
