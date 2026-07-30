@@ -967,9 +967,16 @@ export function bootGame() {
   function render(){
     ctx.save();
     if (G.shake>0){ ctx.translate((Math.random()*2-1)*G.shake*7, (Math.random()*2-1)*G.shake*7); }
-    const bg = ctx.createRadialGradient(cx,H*0.12,H*0.05, cx,H*0.42,H*0.95);
-    bg.addColorStop(0,'#5c1122'); bg.addColorStop(0.42,'#3a0d18'); bg.addColorStop(1,'#120407');
-    ctx.fillStyle=bg; ctx.fillRect(-12,-12,W+24,H+24);
+    // Deep-tunnel backdrop (receding maroon canal) for real depth; gradient fallback.
+    const tb = art.ready && art.img.tunnel_bg;
+    if (tb && tb.complete){
+      const iw=tb.naturalWidth||1080, ih=tb.naturalHeight||1920, s=Math.max((W+24)/iw,(H+24)/ih), dw=iw*s, dh=ih*s;
+      ctx.drawImage(tb, cx-dw/2, H/2-dh/2, dw, dh);   // cover-fit, centred
+    } else {
+      const bg = ctx.createRadialGradient(cx,H*0.12,H*0.05, cx,H*0.42,H*0.95);
+      bg.addColorStop(0,'#5c1122'); bg.addColorStop(0.42,'#3a0d18'); bg.addColorStop(1,'#120407');
+      ctx.fillStyle=bg; ctx.fillRect(-12,-12,W+24,H+24);
+    }
     // warm "light at the end" toward the egg, brightening as you get closer
     const glowI = (G.mode==='level' && (G.state==='playing'||G.state==='charging')) ? Math.min(0.5, 0.14 + G.distance/LEVEL_LENGTH*0.5) : 0.16;
     const gl = ctx.createRadialGradient(cx,H*0.09,0, cx,H*0.09,H*0.55);

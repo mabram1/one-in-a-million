@@ -32,9 +32,10 @@ const IMAGE_PATHS: Record<string, string> = {
   // HUD button art (applied via .src so paths resolve on dev/build/Pages alike)
   boost_normal: 'ui/buttons/boost_normal.png',
   shield_normal: 'ui/buttons/shield_normal.png',
-  // canal wall membrane textures
+  // canal wall membrane textures + deep-tunnel backdrop
   wall_left: 'walls/wall_left.png',
   wall_right: 'walls/wall_right.png',
+  tunnel_bg: 'game_world/tunnel_bg.png',
   // gameplay world (Phase 3)
   wbc_s: 'obstacles/wbc_s.png',
   wbc_m: 'obstacles/wbc_m.png',
