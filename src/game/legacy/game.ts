@@ -970,11 +970,11 @@ export function bootGame() {
     // Deep-tunnel backdrop (receding maroon canal) for real depth; gradient fallback.
     const tb = art.ready && art.img.tunnel_bg;
     if (tb && tb.complete){
-      // FIT TO WIDTH so the tunnel's own bubbly side walls stay visible (cover-fit was
-      // cropping them). Dark base fills any vertical letterbox — the tunnel is the canal.
+      // Canal v2: tunnel bg = ambient depth (cover-fit); the scrolling wall strips
+      // (drawWalls -> drawWallTexture) are the moving foreground that defines the lane.
       ctx.fillStyle='#0d0305'; ctx.fillRect(-12,-12,W+24,H+24);
-      const iw=tb.naturalWidth||1080, ih=tb.naturalHeight||1920, s=(W+24)/iw, dw=iw*s, dh=ih*s;
-      ctx.drawImage(tb, cx-dw/2, H*0.42-dh/2, dw, dh);   // anchor slightly high so the depth recedes upward
+      const iw=tb.naturalWidth||1080, ih=tb.naturalHeight||1920, s=Math.max((W+24)/iw,(H+24)/ih), dw=iw*s, dh=ih*s;
+      ctx.drawImage(tb, cx-dw/2, H/2-dh/2, dw, dh);
     } else {
       const bg = ctx.createRadialGradient(cx,H*0.12,H*0.05, cx,H*0.42,H*0.95);
       bg.addColorStop(0,'#5c1122'); bg.addColorStop(0.42,'#3a0d18'); bg.addColorStop(1,'#120407');
@@ -1011,10 +1011,11 @@ export function bootGame() {
     const side = (img, anchorX, isLeft) => {
       ctx.save();
       ctx.beginPath();
-      if (isLeft){ ctx.moveTo(-10,-10); for (let y=-10; y<=H+10; y+=10) ctx.lineTo(cx-wallHalfViz(yToWorld(y),0.0), y); ctx.lineTo(-10,H+10); }
-      else       { ctx.moveTo(W+10,-10); for (let y=-10; y<=H+10; y+=10) ctx.lineTo(cx+wallHalfViz(yToWorld(y),2.4), y); ctx.lineTo(W+10,H+10); }
+      // clip to the exact collision boundary (wallHalf) so the visible wall edge matches gameplay
+      if (isLeft){ ctx.moveTo(-10,-10); for (let y=-10; y<=H+10; y+=10) ctx.lineTo(cx-wallHalf(yToWorld(y)), y); ctx.lineTo(-10,H+10); }
+      else       { ctx.moveTo(W+10,-10); for (let y=-10; y<=H+10; y+=10) ctx.lineTo(cx+wallHalf(yToWorld(y)), y); ctx.lineTo(W+10,H+10); }
       ctx.closePath(); ctx.clip();
-      ctx.globalAlpha = 0.96;   // near-opaque so the walls read crisply and don't double with the tunnel bg
+      ctx.globalAlpha = 1;   // solid foreground membrane; the art's own alpha fades it toward the lane
       for (let ty=-tileH+scroll; ty < H+tileH; ty += tileH) ctx.drawImage(img, anchorX, ty, tileW, tileH);
       ctx.restore();
     };
@@ -1026,9 +1027,10 @@ export function bootGame() {
     // overlay (that produced a doubled-bubble look). Just a soft corner vignette so the
     // clean tunnel image reads with focus toward the centre.
     if (art.ready && art.img.tunnel_bg && art.img.tunnel_bg.complete){
-      // The tunnel image (drawn width-fit in render) already IS the canal with its own
-      // bubbly walls — no separate wall texture on top (that read as a different,
-      // over-bubbled style). Nothing to draw here.
+      // Canal v2: the wall strips are the moving foreground membrane, clipped to the
+      // lane (wallHalfViz) so the visible walls follow the narrowing. Same fine
+      // material as the tunnel bg — no grape-like forms.
+      if (art.img.wall_left) drawWallTexture();
       return;
     }
     // Fallback (art not loaded): keep the old procedural walls so the canal still reads.
