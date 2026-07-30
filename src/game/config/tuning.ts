@@ -154,8 +154,9 @@ export interface TrackGenerationTuning {
   wallSecondaryFrequency: number;
   wallSecondaryPhase: number;
   /** Fraction of the track that stays FULL width before the canal starts to
-   *  narrow (a wide plateau, then a taper toward the egg). 0.6 = wide for the
-   *  first 60%, taper over the last 40%. Keeps the pre-sprint run easier. */
+   *  narrow. After it, the canal tapers to its narrowest by the FINAL SPRINT
+   *  start and holds that width to the egg. 0.45 = wide for the first 45%, then
+   *  narrow into the sprint. Keeps the obstacle-bearing run roomy. */
   wideUntilFraction: number;
   narrowAmount: number;
   narrowPower: number;
@@ -320,9 +321,9 @@ export const tuning: Readonly<Tuning> = Object.freeze({
     wallFrequency: 0.0017,
     wallSecondaryFrequency: 0.53,
     wallSecondaryPhase: 1.3,
-    wideUntilFraction: 0.6,   // full width for the first 60%, then taper to the egg
-    narrowAmount: 0.58,       // same end depth as before the plateau (egg ~= 0.42 width)
-    narrowPower: 1.8,         // gentle just after 60%, steep near the egg (as it was)
+    wideUntilFraction: 0.45,  // full width for the first 45%, then taper into the sprint
+    narrowAmount: 0.58,       // narrowest ~= 0.42 width, reached by the sprint and held
+    narrowPower: 1.8,         // gentle just after the plateau, steep approaching the sprint
     minHalfFraction: 0.28,
   },
   networkInterpolation: {

@@ -124,12 +124,13 @@ export function bootGame() {
     let half = maxHalf*(trackGeneration.wallBase + trackGeneration.wallAmplitude*Math.sin(t));
     half *= trackGeneration.wallModBase + trackGeneration.wallModAmplitude*Math.sin(t*trackGeneration.wallSecondaryFrequency + trackGeneration.wallSecondaryPhase);
     // Width profile: FULL width for the first `wideUntilFraction` of the track (a
-    // wide, easier plateau), then taper toward the egg. The taper is measured only
-    // across the remaining fraction so raising the plateau keeps the pre-sprint run
-    // roomy instead of pinching early.
+    // wide, easier plateau), then taper down so the canal reaches its narrowest by
+    // the FINAL SPRINT start and holds that width to the egg. The obstacle-bearing
+    // run stays roomy; the pinch lands where the sprint (obstacle-free) begins.
     const prog = Math.min(1, worldY/LEVEL_LENGTH);
     const wideUntil = trackGeneration.wideUntilFraction;
-    const taper = prog <= wideUntil ? 0 : (prog - wideUntil) / (1 - wideUntil);
+    const narrowBy = Math.max(wideUntil + 0.05, SPRINT_START/LEVEL_LENGTH);   // taper completes at the sprint
+    const taper = Math.min(1, Math.max(0, (prog - wideUntil) / (narrowBy - wideUntil)));
     half *= 1 - trackGeneration.narrowAmount*Math.pow(taper, trackGeneration.narrowPower);
     return Math.max(maxHalf*trackGeneration.minHalfFraction, half);
   }
