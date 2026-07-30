@@ -166,7 +166,7 @@ export class LiveTrackRenderer {
       this.drawGoal(ctx, width, height, time);
       this.drawPreviewObjects(ctx, width, height, time);
       this.drawStartPlatform(ctx, width, height);
-      this.drawMascot(ctx, width * 0.5, height * 0.72, height * 0.33, time);
+      this.drawMascot(ctx, width * 0.5, height * 0.37, height * 0.2, time);
     }
     this.drawVignette(ctx, width, height);
   }
@@ -300,7 +300,7 @@ export class LiveTrackRenderer {
     };
     const size = width * depthByDistance[this.options.selectedDistance];
     const x = width / 2;
-    const y = height * 0.12;
+    const y = height * 0.28;
     const pulse = this.options.reducedMotion ? 1 : 1 + Math.sin(time * 2.2) * 0.06;
     ctx.save();
     ctx.globalCompositeOperation = "screen";
@@ -322,11 +322,11 @@ export class LiveTrackRenderer {
     if (!this.assets) return;
     const drift = this.options.reducedMotion ? 0 : Math.sin(time * 0.7) * width * 0.01;
     ctx.globalAlpha = 0.68;
-    this.drawCentered(ctx, this.assets.wbc, width * 0.25 + drift, height * 0.4, width * 0.09);
-    this.drawCentered(ctx, this.assets.virus, width * 0.76 - drift, height * 0.32, width * 0.075);
+    this.drawCentered(ctx, this.assets.wbc, width * 0.24 + drift, height * 0.5, width * 0.09);
+    this.drawCentered(ctx, this.assets.virus, width * 0.77 - drift, height * 0.44, width * 0.075);
     ctx.globalAlpha = 1;
-    this.drawRival(ctx, width * 0.31, height * 0.55, width * 0.035, COLORS.rival);
-    this.drawRival(ctx, width * 0.7, height * 0.49, width * 0.028, "#a871c7");
+    this.drawRival(ctx, width * 0.3, height * 0.6, width * 0.035, COLORS.rival);
+    this.drawRival(ctx, width * 0.72, height * 0.56, width * 0.028, "#a871c7");
   }
 
   private drawRival(
@@ -371,7 +371,7 @@ export class LiveTrackRenderer {
     ctx.beginPath();
     ctx.ellipse(
       width / 2,
-      height * 0.8,
+      height * 0.46,
       width * 0.34,
       height * 0.075,
       0,
