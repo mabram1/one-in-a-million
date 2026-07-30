@@ -2,8 +2,9 @@ import './styles/game.css';
 import './styles/main-hub.css';
 import { bootGame } from './game/legacy/game';
 import { loadArt } from './game/assets/store';
-import { maybeShowHowToPlay, openHowToPlay } from './app/screens/howToPlay';
-import { hubV2Enabled, setHubV2, show as showHub } from './app/screens/mainHub';
+import { maybeShowHowToPlay } from './app/screens/howToPlay';
+import { hubV2Enabled, show as showHub } from './app/screens/mainHub';
+import { openSettings } from './app/screens/settings';
 
 /**
  * Optional live-multiplayer transports, loaded from a CDN at runtime.
@@ -39,11 +40,13 @@ void loadArt();
 // How to Play: replay from the menu link, and show once on first run. Finishing on
 // the last card ("Let's swim!") starts a safe Practice run.
 const startPractice = () => { (document.getElementById('practicePlay') as HTMLElement | null)?.click(); };
-(document.getElementById('howtoLink') as HTMLElement | null)?.addEventListener('click', () => openHowToPlay(startPractice));
+// Settings (hosts Replay Tutorial, menu style, server settings) — replaces the
+// standalone How-to and beta buttons.
+(document.getElementById('settingsLink') as HTMLElement | null)?.addEventListener('click', () => openSettings(startPractice));
+// How to Play auto-shows exactly once on first run.
 maybeShowHowToPlay(startPractice);
 
-// Main Hub v2 (beta, flag-gated). Enable from the classic menu link or ?hub=v2.
-(document.getElementById('hubBetaLink') as HTMLElement | null)?.addEventListener('click', () => { setHubV2(true); showHub(); });
+// Main Hub v2 (flag-gated; toggle lives in Settings, or ?hub=v2).
 if (hubV2Enabled()) showHub();
 
 // PWA service worker (parity with the pre-migration build). Registered relative to

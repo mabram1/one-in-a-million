@@ -26,8 +26,13 @@ export function howToCompleted(): boolean {
   try { const s = JSON.parse(localStorage.getItem(HOWTO_KEY) || '{}'); return s.version === VERSION && (s.completed || s.skipped); }
   catch { return false; }
 }
+/** True once the tutorial has been shown at all — so it auto-opens exactly once, ever. */
+export function howToSeen(): boolean {
+  try { const s = JSON.parse(localStorage.getItem(HOWTO_KEY) || '{}'); return s.version === VERSION && (s.shown || s.completed || s.skipped); }
+  catch { return false; }
+}
 function persist(step: number, completed: boolean, skipped: boolean): void {
-  try { localStorage.setItem(HOWTO_KEY, JSON.stringify({ version: VERSION, currentStep: step, completed, skipped, completedAt: completed ? new Date().toISOString() : undefined })); }
+  try { localStorage.setItem(HOWTO_KEY, JSON.stringify({ version: VERSION, currentStep: step, shown: true, completed, skipped, completedAt: completed ? new Date().toISOString() : undefined })); }
   catch { /* non-fatal */ }
 }
 
@@ -111,7 +116,9 @@ export function openHowToPlay(onSwim?: () => void): void {
   render();
 }
 
-/** Show the tutorial once on first run (unless already completed/skipped). */
+/** Show the tutorial exactly once, ever (marked the moment it first appears). */
 export function maybeShowHowToPlay(onSwim?: () => void): void {
-  if (!howToCompleted()) openHowToPlay(onSwim);
+  if (howToSeen()) return;
+  try { localStorage.setItem(HOWTO_KEY, JSON.stringify({ version: VERSION, shown: true })); } catch { /* non-fatal */ }
+  openHowToPlay(onSwim);
 }
