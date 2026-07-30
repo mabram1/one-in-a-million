@@ -80,6 +80,10 @@ export function bootGame() {
     hitFlash:0, shake:0, tailPhase:0, flick:0,
     rival:{ world:0, speed:0, target:60, finished:false, finishT:0, retarget:0 },
     finished:false, win:false, muted:false,
+    // Finish flow (goal): presentation-only absorption animation. The authoritative
+    // result is locked on the crossing frame (commitGoalFinish); the animation only
+    // delays the results overlay and never touches elapsed/score/replay/placement.
+    _committed:false, _commitCount:0, _result:null, finishAnim:null, finishElapsed:0, finishScore:0,
     banner:null, _lastStroke:0,
     motion:{ active:false, base:0, lp:0, grav:0, prevMag:null, permission:'—', events:0 },
     ptr:{ down:false },
@@ -170,6 +174,15 @@ export function bootGame() {
     g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.22,t+0.05); g.gain.exponentialRampToValueAtTime(0.0001,t+0.5);
     o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.52);
   }
+  // Short cute airy "fwip/plop" for the finish absorption — a quick descending
+  // sine chirp, deliberately NOT a wet/anatomical sound.
+  function playFwip(){
+    if (!actx || G.muted) return;
+    const o=actx.createOscillator(), g=actx.createGain(), t=actx.currentTime;
+    o.type='sine'; o.frequency.setValueAtTime(880,t); o.frequency.exponentialRampToValueAtTime(210,t+0.16);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.14,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.2);
+    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.22);
+  }
 
   // ---------- Strokes ----------
   function registerStroke(intensity){
@@ -238,6 +251,11 @@ export function bootGame() {
   canvas.addEventListener('pointerdown', e => { if (G.motion.active) return; G.ptr.down=true; steerFromPointer(e); });
   canvas.addEventListener('pointermove', e => { if (G.ptr.down) steerFromPointer(e); });
   window.addEventListener('pointerup', () => { if (G.ptr.down){ G.ptr.down=false; G.steerTarget=0; } });
+  // Skip the finish animation with a tap (only after FINISH_SKIP_MS). This jumps
+  // straight to results; it can never change the already-locked finish data.
+  window.addEventListener('pointerdown', () => {
+    if (G.state==='finishing' && G.finishAnim && (now()-G.finishAnim.startMs) >= FINISH_SKIP_MS) showResults();
+  }, true);
   function steerFromPointer(e){ markInput('touch'); const r=canvas.getBoundingClientRect(); const xLogical=(e.clientX-r.left)/(G._viewScale||1); G.steerTarget=Math.max(-1,Math.min(1,(xLogical - W/2)/(W*0.34))); }
 
   // ---------- Banner ----------
@@ -648,6 +666,7 @@ export function bootGame() {
       timeLeft: END.startSeconds, checkpointsHit:0, cpIndex:0,
       nextCheckpoint: END.firstCheckpointUnits*PX_PER_UNIT,
       inputUsed:{ motion:false, keyboard:false, touch:false },
+      _committed:false, _commitCount:0, _result:null, finishAnim:null, finishElapsed:0, finishScore:0,
       canalSeed: G.rng()*1000 });
     G.motion.prevMag=null; G.motion.base=G.motion.lp;
     G.rival = { world:0, speed:0, target:0.7*CRUISE_CAP, finished:false, finishT:0, retarget:0 };
@@ -676,16 +695,145 @@ export function bootGame() {
   $('btnBoost').onclick = () => { if (G.state==='playing' && !G.sprint && G.boostCharges>0 && G.boosting<=0){ G.boostCharges--; G.boosting=items.boostDurationSeconds; G.speed=OVER_CAP; G.flick=1; banner('BOOST! ⚡'); if(navigator.vibrate)navigator.vibrate(30); playLaunch(); } };
   $('btnShield').onclick = () => { if (G.state==='playing' && G.shieldCharges>0 && !G.shieldActive){ G.shieldCharges--; G.shieldActive=true; banner('SHIELD UP 🛡'); if(navigator.vibrate)navigator.vibrate(15); } };
 
-  function endRun(finishedGoal){
-    G.state='end'; G.finished=true;
-    G.inputClass = activeInputClass();   // lock in how this run was actually controlled
-    const rivalDist = Math.min(G.rival.world, LEVEL_LENGTH);
+  // ---- Finish absorption animation (presentation only) --------------------------
+  const FINISH_MS_FULL = 1450;
+  const FINISH_MS_REDUCED = 550;
+  const FINISH_SKIP_MS = 450;   // taps before this are ignored (no accidental skip)
+
+  function prefersReducedMotion(){
+    try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+    catch { return false; }
+  }
+
+  const _clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+  const _lerp = (a,b,t) => a + (b-a)*t;
+  const _easeOutCubic = x => 1 - Math.pow(1-x, 3);
+  const _easeInCubic  = x => x*x*x;
+  const _easeInBack   = x => { const c1=1.70158, c3=c1+1; return c3*x*x*x - c1*x*x; };
+  const _easeOutBack  = x => { const c1=1.70158, c3=c1+1; return 1 + c3*Math.pow(x-1,3) + c1*Math.pow(x-1,2); };
+
+  // Compute the current frame of the absorption animation. Returns the ovum
+  // deformation, the Champ parent transform, camera bump and procedural ripples.
+  // Pure read of G.finishAnim + the clock — it never mutates game state.
+  function finishFrame(){
+    const fa = G.finishAnim; if (!fa) return null;
+    const e = _clamp(now() - fa.startMs, 0, fa.durationMs);
+    const eggY = worldToY(LEVEL_LENGTH);
+    const eggX = cx;
+    const ff = {
+      eggX, eggY,
+      eggSX:1, eggSY:1,
+      champX:_lerp(fa.champX0, eggX, _easeOutCubic(_clamp(e/360,0,1))),
+      champY:eggY, champSX:1, champSY:1, champAlpha:1, wobble:0,
+      camX:0, camY:0, haloAlpha:0.9, haloScale:1,
+      ripples:[], rings:[],
+    };
+    if (fa.reduced){
+      const dur = fa.durationMs;
+      const s = _easeInCubic(_clamp((e)/(dur*0.75),0,1));
+      ff.champSX = ff.champSY = _lerp(1, 0.08, s);
+      ff.champAlpha = e < dur*0.6 ? 1 : _lerp(1, 0, (e-dur*0.6)/(dur*0.4));
+      ff.champY = eggY + _lerp(0, 8, s);
+      ff.eggSX = ff.eggSY = 1 + 0.03*Math.sin(_clamp(e/(dur*0.75),0,1)*Math.PI);
+      return ff;
+    }
+    if (e < 120){                                   // impact
+      const p = e/120;
+      ff.champSX = _lerp(1, 0.84, p); ff.champSY = _lerp(1, 1.16, p);
+      ff.eggSX = _lerp(1, 1.08, p);  ff.eggSY = _lerp(1, 0.91, p);
+      ff.camY = _lerp(0, 4, p);                     // <= 4 logical px
+      ff.ripples.push({ r:_lerp(20,60,p), a:0.18*(1-p) });
+    } else if (e < 360){                            // membrane rebound (elastic overshoot)
+      const p = (e-120)/240;
+      ff.champSX = _lerp(0.84, 1, _easeOutBack(p)); ff.champSY = _lerp(1.16, 1, _easeOutBack(p));
+      ff.eggSX = 1 + 0.08*Math.cos(p*Math.PI*1.2)*(1-p);
+      ff.eggSY = 1 - 0.09*Math.cos(p*Math.PI*1.2)*(1-p);
+      ff.camY = 4*(1-p);
+      ff.ripples.push({ r:_lerp(40,110,p), a:0.16*(1-p) });
+      if (p > 0.375){ const q=(p-0.375)/0.625; ff.ripples.push({ r:_lerp(20,70,q), a:0.12*(1-q) }); }
+    } else if (e < 980){                            // suction
+      const p = (e-360)/620;
+      const s = _clamp(_easeInBack(p), -0.15, 1);
+      ff.champSX = ff.champSY = _lerp(1, 0.08, s);
+      ff.champAlpha = p < 0.65 ? 1 : _lerp(1, 0, (p-0.65)/0.35);   // most fade in the final 35%
+      ff.champX = eggX;
+      ff.champY = eggY + _lerp(0, 8, _easeInCubic(p));             // 6-10 px deeper
+      ff.wobble = 0.10*Math.sin(p*Math.PI*4)*(1-p);               // <= +/-0.10 rad, decaying
+      ff.eggSX = 1 + 0.02*Math.sin(p*Math.PI); ff.eggSY = 1 - 0.02*Math.sin(p*Math.PI);
+    } else if (e < 1240){                           // seal
+      const p = (e-980)/260;
+      ff.champAlpha = 0;
+      const pulse = 1 + 0.045*Math.sin(p*Math.PI);
+      ff.eggSX = ff.eggSY = pulse;
+      ff.haloScale = _lerp(1.0, 0.92, p);            // halo contracts
+      ff.haloAlpha = _lerp(0.9, 1.0, Math.sin(p*Math.PI));   // gently brightens
+      ff.rings.push({ r:_lerp(60,120,p), a:0.22*(1-p) });
+      ff.rings.push({ r:_lerp(30,90,p),  a:0.16*(1-p) });
+    } else {                                        // handoff — clean ovum
+      ff.champAlpha = 0;
+    }
+    return ff;
+  }
+
+  function drawFinishRipples(ff){
+    ctx.save();
+    for (const rp of ff.ripples){ ctx.globalAlpha=rp.a; ctx.strokeStyle='rgba(255,140,110,1)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,rp.r,0,6.283); ctx.stroke(); }
+    for (const rg of ff.rings){ ctx.globalAlpha=rg.a; ctx.strokeStyle='rgba(255,205,140,1)'; ctx.lineWidth=2.4; ctx.beginPath(); ctx.arc(0,0,rg.r,0,6.283); ctx.stroke(); }
+    ctx.restore();
+  }
+
+  // Draw the layered Champ rig as ONE parent transform (body, face, cosmetics and
+  // tail stay aligned) so it scales + fades into the ovum as a single unit.
+  function drawFinishChamp(ff){
+    if (ff.champAlpha <= 0.01) return;
+    ctx.save();
+    ctx.translate(ff.champX, ff.champY);
+    ctx.rotate(ff.wobble || 0);
+    ctx.scale(ff.champSX, ff.champSY);
+    ctx.globalAlpha = ff.champAlpha;
+    if (art.ready && art.rig && art.img.body){ drawSpermSprite(0, 0); }
+    else { const glow='#43e0cf'; drawSpermShape(0, 0, 1, '#fbf0e0', glow, ff.champAlpha, G.tailPhase, true); }
+    ctx.restore();
+  }
+
+  // ---- Finish authority + result presentation ----------------------------------
+  //
+  // The GOAL finish is split into three responsibilities (see
+  // docs/gameplay/FINISH_ABSORPTION_ANIMATION.md):
+  //   commitGoalFinish()    — idempotently lock the authoritative result on the
+  //                           crossing frame (time/score/place/input/MP broadcast).
+  //   beginFinishAnimation()— start the presentation-only "absorption" sequence.
+  //   showResults()         — reveal the results overlay after the sequence.
+  // Quit and the Endless timeout keep the immediate, non-goal flow via endRun().
+
+  // Multiplayer: announce our finish immediately, then keep re-announcing so late
+  // finishers can place us. Idempotent — the caller guards against a second commit.
+  function mpFinishBroadcast(){
+    if (!MP.active) return;
+    broadcastState();
+    try{ clearInterval(MP._finT); }catch(e){}
+    MP._finT = setInterval(() => { if (MP.active) broadcastState(); else clearInterval(MP._finT); }, networkInterpolation.finishRebroadcastMs);
+  }
+
+  // Lock the shareable "challenge" ghost + personal best from the finished run.
+  function saveGhostAndPB(finishedGoal){
+    if (!(G.mode==='level' && finishedGoal && G.ghostRec.length>5)) return;
+    G.lastGhostCode = encodeChallenge();
+    try { localStorage.setItem('oiam_run', G.lastGhostCode); } catch(e){}   // so the start-screen button works next time
+    // Save as your personal-best ghost for this distance + input class (plain Practice only).
+    if (!G.externalChallenge){
+      const distM = LEVEL_LENGTH/PX_PER_UNIT;
+      const pb = loadPB(distM, G.inputClass);
+      if (!pb || G.elapsed < pb.time){ savePB(distM, G.inputClass, G.lastGhostCode, +G.elapsed.toFixed(2)); }
+    }
+  }
+
+  // Compute the result strings + G.win from the (now locked) run values. Reads
+  // G.elapsed/score/placement, which are frozen once the run has ended, so calling
+  // this on the crossing frame captures the authoritative placement.
+  function buildResult(finishedGoal){
     let title, sub, cls='';
     if (MP.active){
-      broadcastState();
-      // keep announcing our finish time — others still racing must learn it to place correctly
-      try{ clearInterval(MP._finT); }catch(e){}
-      MP._finT = setInterval(() => { if (MP.active) broadcastState(); else clearInterval(MP._finT); }, networkInterpolation.finishRebroadcastMs);
       const { place, total } = mpPlacement();
       G.win = finishedGoal && place===1;
       if (!finishedGoal){ title='Left the race'; sub='You bailed before the egg.'; cls='lose'; }
@@ -710,7 +858,13 @@ export function bootGame() {
       title = isPB ? 'New personal best! 🏁' : "Time's up ⏱";
       sub = G.checkpointsHit+' checkpoints • '+dist+' m'+(isPB ? '' : ' • best '+best+' m');
     }
-    const rt=$('resultTitle'); rt.textContent=title; rt.className='result '+cls;
+    return { title, sub, cls };
+  }
+
+  // Paint the result overlay from a computed result. Purely presentational.
+  function renderResultDOM(finishedGoal, result){
+    const rt=$('resultTitle'); rt.textContent=result.title; rt.className='result '+result.cls;
+    let sub = result.sub;
     // Non-motion runs are unranked (handbook 1.2) — label it on the result.
     if (finishedGoal && !isRanked()) sub += (G.inputClass==='desktop_keyboard' ? ' · UNRANKED (keyboard)' : ' · UNRANKED');
     $('resultSub').textContent = sub;
@@ -729,21 +883,77 @@ export function bootGame() {
         `<div class="row"><span class="k">Time</span><span class="v">${G.elapsed.toFixed(1)} s</span></div>`+
         `<div class="row"><span class="k">Bumps</span><span class="v">${G.hits}</span></div>`;
     }
-    // build a shareable "challenge" code from this run so a friend can race your ghost
     const cbtn=$('challengeBtn');
     if (G.mode==='level' && finishedGoal && G.ghostRec.length>5){
-      G.lastGhostCode = encodeChallenge();
-      try { localStorage.setItem('oiam_run', G.lastGhostCode); } catch(e){}   // so the start-screen button works next time
-      // Save as your personal-best ghost for this distance + input class (plain Practice only).
-      if (!G.externalChallenge){
-        const distM = LEVEL_LENGTH/PX_PER_UNIT;
-        const pb = loadPB(distM, G.inputClass);
-        if (!pb || G.elapsed < pb.time){ savePB(distM, G.inputClass, G.lastGhostCode, +G.elapsed.toFixed(2)); }
-      }
       if (cbtn){ cbtn.classList.remove('hidden'); cbtn.textContent='⚔ Challenge a friend'; }
     } else if (cbtn){ cbtn.classList.add('hidden'); }
     $('hud').classList.add('hidden'); $('race').classList.add('hidden'); $('count').classList.add('hidden');
-    $('end').classList.remove('hidden');
+    const end=$('end'); end.classList.remove('hidden'); end.classList.remove('fadein'); void end.offsetWidth; end.classList.add('fadein');
+  }
+
+  // Immediate result flow — quit and the Endless timeout. NOT the goal absorption.
+  function endRun(finishedGoal){
+    if (G._committed) return;                       // idempotent
+    G._committed = true; G._commitCount++;
+    G.state='end'; G.finished=true;
+    G.inputClass = activeInputClass();              // lock how this run was controlled
+    G.finishElapsed = G.elapsed; G.finishScore = G.score;
+    mpFinishBroadcast();
+    saveGhostAndPB(finishedGoal);
+    const result = buildResult(finishedGoal);
+    G._result = result;
+    renderResultDOM(finishedGoal, result);
+  }
+
+  // Crossing frame: G.distance >= LEVEL_LENGTH. Locks the authoritative result and
+  // hands off to the cosmetic animation. Idempotent — repeated calls do nothing.
+  function commitGoalFinish(){
+    if (G._committed) return;
+    G._committed = true; G._commitCount++;
+    G.finished = true;
+    G.distance = LEVEL_LENGTH;
+    G.inputClass = activeInputClass();
+    G.finishElapsed = G.elapsed; G.finishScore = G.score;   // the locked, authoritative values
+    mpFinishBroadcast();                                     // broadcast immediately (once)
+    saveGhostAndPB(true);
+    G._result = buildResult(true);                           // placement/win locked at crossing
+  }
+
+  function beginFinishAnimation(){
+    const reduced = prefersReducedMotion();
+    G.finishAnim = {
+      startMs: now(),
+      durationMs: reduced ? FINISH_MS_REDUCED : FINISH_MS_FULL,
+      reduced,
+      champX0: spermScreenX(),
+      firedFwip: false,
+      firedFinalHaptic: false,
+    };
+    G.state = 'finishing';
+    $('hud').classList.add('hidden'); $('race').classList.add('hidden'); $('count').classList.add('hidden');
+    if (!reduced && navigator.vibrate && !G.muted) navigator.vibrate(18);   // short impact haptic
+  }
+
+  // Advance the presentation-only animation. Never touches simulation/replay data;
+  // when it completes (or is skipped) it reveals the already-locked results.
+  function updateFinishAnim(){
+    const fa = G.finishAnim; if (!fa){ showResults(); return; }
+    const e = now() - fa.startMs;
+    // Presentation-only flourish: the tail whips faster mid-suction (tailPhase is
+    // not part of the sim or replay).
+    G.tailPhase += 0.05 + ((!fa.reduced && e>360 && e<980) ? 0.22 : 0);
+    const fwipAt = fa.reduced ? 150 : 420;
+    if (!fa.firedFwip && e >= fwipAt){ fa.firedFwip = true; playFwip(); }
+    if (!fa.reduced && !fa.firedFinalHaptic && e >= 600){ fa.firedFinalHaptic = true; if (navigator.vibrate && !G.muted) navigator.vibrate([12,30,28]); }
+    if (e >= fa.durationMs) showResults();
+  }
+
+  // Reveal the results overlay. Idempotent (skip + animation-complete both call it).
+  function showResults(){
+    if (G.state==='end') return;
+    G.state='end';
+    G.finishAnim = null;
+    renderResultDOM(true, G._result || buildResult(true));
   }
 
   // ---------- Charge update ----------
@@ -817,7 +1027,12 @@ export function bootGame() {
 
     for (const p of G.particles){ if (p.w < G.distance-10) p.w += H/PX_PER_UNIT + 60 + G.rng()*40; p.sway += dt*2; }
 
-    if (G.mode==='level' && G.distance >= LEVEL_LENGTH && !G.finished){ G.distance=LEVEL_LENGTH; endRun(true); }
+    if (G.mode==='level' && G.distance >= LEVEL_LENGTH && !G.finished){
+      G.distance=LEVEL_LENGTH;
+      commitGoalFinish();        // lock the authoritative result on THIS frame
+      beginFinishAnimation();    // then play the cosmetic absorption
+      return;                    // stop this frame's remaining sim (no extra MP broadcast)
+    }
     if (G.mode==='endless' && !G.finished){
       if (G.distance > G.bestDist) G.bestDist = G.distance;
       // Checkpoint crossings are resolved BEFORE the clock is decremented, so a
@@ -965,8 +1180,10 @@ export function bootGame() {
 
   // ---------- Render ----------
   function render(){
+    const ff = (G.state==='finishing' && G.finishAnim) ? finishFrame() : null;
     ctx.save();
-    if (G.shake>0){ ctx.translate((Math.random()*2-1)*G.shake*7, (Math.random()*2-1)*G.shake*7); }
+    if (ff){ ctx.translate(ff.camX, ff.camY); }   // small finish camera bump (<= 4px)
+    else if (G.shake>0){ ctx.translate((Math.random()*2-1)*G.shake*7, (Math.random()*2-1)*G.shake*7); }
     // Deep-tunnel backdrop (receding maroon canal) for real depth; gradient fallback.
     const tb = art.ready && art.img.tunnel_bg;
     if (tb && tb.complete){
@@ -987,9 +1204,10 @@ export function bootGame() {
     ctx.fillStyle=gl; ctx.fillRect(0,0,W,H);
 
     drawWalls(); drawParticles(); drawObstacles(); drawPickups();
-    if (G.mode==='level'){ drawSprintLine(); drawEgg(); }
+    if (G.mode==='level'){ drawSprintLine(); drawEgg(ff); }
     else if (G.mode==='endless'){ drawCheckpoints(); }
-    drawRivalGhost(); if (MP.active) drawPeers(); drawSperm();
+    drawRivalGhost(); if (MP.active) drawPeers();
+    if (ff) drawFinishChamp(ff); else drawSperm();
     ctx.restore();
 
     drawCompetitorMarkers();
@@ -1149,26 +1367,36 @@ export function bootGame() {
     const w=Math.min(half*2.1, 360), h=w*(270/900);
     ctx.save(); ctx.globalAlpha=0.96; ctx.drawImage(art.img.checkpoint_ring, cx-w/2, y-h/2, w, h); ctx.restore();
   }
-  function drawEgg(){
-    const y=worldToY(LEVEL_LENGTH); if (y>H+180) return; const R=72;
+  // The ovum. egg_rays.png is intentionally NEVER drawn (see
+  // docs/gameplay/FINISH_ABSORPTION_ANIMATION.md) — only egg + a restrained halo
+  // pulse, plus finish-time deformation + procedural ripples when `ff` is present.
+  function drawEgg(ff){
+    const y = ff ? ff.eggY : worldToY(LEVEL_LENGTH);
+    if (!ff && y>H+180) return; const R=72;
+    const sx = ff ? ff.eggSX : 1, sy = ff ? ff.eggSY : 1;
     if (art.ready && art.img.egg && art.img.egg.complete){
       ctx.save(); ctx.translate(cx,y);
       const eggD=150, haloD=eggD*3;
-      if (art.img.egg_halo && art.img.egg_halo.complete){ const pz=(0.92+0.08*Math.sin(now()*0.003))*haloD; ctx.globalAlpha=0.9; ctx.drawImage(art.img.egg_halo,-pz/2,-pz/2,pz,pz); }
-      if (art.img.egg_rays && art.img.egg_rays.complete){ ctx.save(); ctx.rotate((now()*0.0004)%6.283); ctx.globalAlpha=0.5; ctx.drawImage(art.img.egg_rays,-haloD/2,-haloD/2,haloD,haloD); ctx.restore(); }
-      ctx.globalAlpha=1; ctx.drawImage(art.img.egg,-eggD/2,-eggD/2,eggD,eggD);
+      if (art.img.egg_halo && art.img.egg_halo.complete){
+        const hs = ff ? ff.haloScale : (0.92+0.08*Math.sin(now()*0.003));
+        const pz=hs*haloD; ctx.globalAlpha = ff ? ff.haloAlpha : 0.9; ctx.drawImage(art.img.egg_halo,-pz/2,-pz/2,pz,pz);
+      }
+      ctx.globalAlpha=1; ctx.save(); ctx.scale(sx,sy); ctx.drawImage(art.img.egg,-eggD/2,-eggD/2,eggD,eggD); ctx.restore();
+      if (ff) drawFinishRipples(ff);
       ctx.restore(); return;
     }
     ctx.save(); ctx.translate(cx,y);
-    // radiant halo + rotating sun rays
+    // radiant halo (no sun rays)
     const halo=ctx.createRadialGradient(0,0,R*0.5,0,0,R*2.8); halo.addColorStop(0,'rgba(255,205,120,.6)'); halo.addColorStop(1,'rgba(255,205,120,0)');
-    ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(0,0,R*2.8,0,6.28); ctx.fill();
-    const rot=(now()*0.0004)%6.283; ctx.globalAlpha=0.28; ctx.fillStyle='rgba(255,228,150,.9)';
-    for (let i=0;i<12;i++){ ctx.save(); ctx.rotate(rot+i*6.283/12); ctx.beginPath(); ctx.moveTo(-9,-R*1.15); ctx.lineTo(9,-R*1.15); ctx.lineTo(0,-R*2.7); ctx.closePath(); ctx.fill(); ctx.restore(); }
+    ctx.globalAlpha = ff ? ff.haloAlpha : 1;
+    ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(0,0,R*2.8*(ff?ff.haloScale:1),0,6.28); ctx.fill();
     ctx.globalAlpha=1;
+    ctx.save(); ctx.scale(sx,sy);
     const eg=ctx.createRadialGradient(-R*0.3,-R*0.38,R*0.2,0,0,R); eg.addColorStop(0,'#fff6e2'); eg.addColorStop(0.6,'#ffd98a'); eg.addColorStop(1,'#e79a3c');
     ctx.fillStyle=eg; ctx.beginPath(); ctx.ellipse(0,0,R*0.82,R,0,0,6.28); ctx.fill();
     ctx.fillStyle='rgba(255,255,255,.6)'; ctx.beginPath(); ctx.ellipse(-R*0.28,-R*0.36,R*0.15,R*0.24,-0.5,0,6.28); ctx.fill();
+    ctx.restore();
+    if (ff) drawFinishRipples(ff);
     ctx.restore();
   }
   function drawRivalGhost(){
@@ -1195,6 +1423,7 @@ export function bootGame() {
   // whip-thin at the tip) so it reads like a real sperm tail. Behind the body.
   function drawTailProc(x, y, glowCol, phase){
     ctx.save(); ctx.translate(x, y);
+    const baseA = ctx.globalAlpha;   // fade with the ambient/parent alpha (1 in normal play; <1 during the finish suction)
     let amp = 5 + (G.speed/CRUISE_CAP)*5 + G.flick*3;
     if (G.state==='charging') amp = 6 + G.charge*9;
     amp = Math.min(amp, 10);                 // cap so the wag stays tidy at high speed
@@ -1210,9 +1439,9 @@ export function bootGame() {
     }
     const ribbon = () => { ctx.beginPath(); ctx.moveTo(left[0][0],left[0][1]); for (const p of left) ctx.lineTo(p[0],p[1]); for (let i=right.length-1;i>=0;i--) ctx.lineTo(right[i][0],right[i][1]); ctx.closePath(); };
     ctx.shadowColor=glowCol; ctx.shadowBlur=12;
-    ctx.fillStyle=glowCol; ctx.globalAlpha=0.4; ribbon(); ctx.fill();     // soft glow
+    ctx.fillStyle=glowCol; ctx.globalAlpha=baseA*0.4; ribbon(); ctx.fill();     // soft glow
     ctx.shadowBlur=0;
-    ctx.globalAlpha=1; ctx.fillStyle=glowCol; ribbon(); ctx.fill();       // solid body
+    ctx.globalAlpha=baseA; ctx.fillStyle=glowCol; ribbon(); ctx.fill();       // solid body
     // glossy centre highlight for a bit of shine
     ctx.strokeStyle='rgba(230,255,252,.55)'; ctx.lineCap='round'; ctx.lineWidth=1.6;
     ctx.beginPath(); ctx.moveTo(c[0][0],c[0][1]); for (let i=1;i<N-2;i++) ctx.lineTo(c[i][0],c[i][1]); ctx.stroke();
@@ -1312,6 +1541,7 @@ export function bootGame() {
       if (el>2100){ $('count').classList.add('hidden'); G.state='charging'; G.charge=0; G.chargeInputT=t; banner('REV UP! 🔋'); }
     } else if (G.state==='charging'){ chargeUpdate(dt, t); }
     else if (G.state==='playing'){ update(dt, t); }
+    else if (G.state==='finishing'){ updateFinishAnim(); }   // cosmetic only — no sim, no input
     // Presentation phase: HUD (DOM) is written here, never from inside the sim tick.
     if (G.state==='charging' || G.state==='playing') syncHUD();
     render();
