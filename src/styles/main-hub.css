@@ -529,3 +529,9 @@
 .main-hub__daily-prog i { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, #ffd76a, #f2b25f); }
 .main-hub__daily-reward { display: flex; align-items: center; gap: 5px; font-weight: 800; color: var(--oim-gold); font-size: 14px; }
 .main-hub__nav { border: none !important; background-color: transparent !important; box-shadow: none !important; }
+
+/* CRITICAL: hide() adds .hidden, but the fixed-overlay rule above kept the hub
+   painted on top of the running game (game audible, hub never disappears). This
+   rule (higher specificity than `.main-hub`) actually removes it and lets taps
+   through to the game. */
+.main-hub.hidden { display: none !important; pointer-events: none; }
