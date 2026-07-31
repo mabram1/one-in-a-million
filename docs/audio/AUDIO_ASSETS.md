@@ -2,23 +2,25 @@
 
 _Last updated: 2026-07-31_
 
-## Decision: NO background music (SFX-only)
+## Music: one race track (owner-supplied), quiet background
 
-**The game ships with sound effects only. No background music is needed.**
-(Owner decision, 2026-07-31.)
+**Update 2026-07-31 (later same day):** the owner added a race track they like —
+`public/audio/music/race_base.mp3` ("Neon Turbo Dash", made with Suno) — used as
+the in-game bed at a low background level (default `musicVolume` = 0.35, tunable
+via the restored Music slider in Settings). It plays continuously through the
+whole race (charging → race → sprint), ducks during the finish sequence, and
+stops for the result. Menu currently has no music.
 
-Rationale: the SFX carry the feel; the game is a short-session, motion-controlled
-mobile game where music is often muted anyway, and the owner did not want a
-generic/AI-generated music bed.
+(Earlier the same day we had decided SFX-only; that is reversed for this one
+track. The system supported both states with no code churn.)
 
 ### What this means for asset producers (incl. Codex)
 
-- **Do NOT produce music.** No `menu_base`, `race_base`, `race_speed`,
-  `final_sprint`, `result_win`, `result_lose` music tracks are required.
-- **Do NOT produce SFX either** — they already exist (see below).
-- The audio system runs perfectly with no music files: the music bus stays wired
-  and dormant, so if we ever change our mind, dropping stems into
-  `public/audio/music/` is all that's needed. Nothing is blocked.
+- **Do NOT produce music.** The owner sources music themselves (Suno). Optional
+  extra stems (`menu_base`, `race_speed`, `final_sprint`, `result_win`,
+  `result_lose`) would enhance it but are NOT required — drop them into
+  `public/audio/music/` (mp3/wav) and they play automatically.
+- **Do NOT produce SFX** — they already exist (see below).
 
 ## Sound effects — DONE ✅
 

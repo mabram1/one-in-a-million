@@ -14,20 +14,23 @@ export type MusicState =
   | 'finishing' | 'result_win' | 'result_lose';
 
 /**
- * Target mix (0..1) for each race stem per state. Uses an EQUAL-POWER CROSSFADE
- * between the base and speed tracks (not additive) so independent full-length
- * tracks — e.g. Suno exports — blend cleanly instead of stacking into mud. If you
- * later get true layered stems, additive mixing here would also work.
+ * Target mix (0..1) for each race stem per state.
+ *
+ * The game currently ships ONE race track (race_base = "Neon Turbo Dash"), so the
+ * bed plays continuously through the whole race at a steady level; the optional
+ * race_speed / final_sprint LAYERS add on top only if those files ever exist
+ * (they don't today, so they contribute nothing). This keeps the single track
+ * audible the entire race instead of crossfading toward missing stems.
  */
 function raceMix(state: MusicState, speed01: number): Record<MusicTrack, number> {
   const z: Record<MusicTrack, number> = { menu_base: 0, race_base: 0, race_speed: 0, final_sprint: 0, result_win: 0, result_lose: 0 };
   const x = Math.max(0, Math.min(1, speed01));
   switch (state) {
-    case 'charging':     return { ...z, race_base: 0.5 };
+    case 'charging':     return { ...z, race_base: 0.6 };
     case 'race_normal':  return { ...z, race_base: 1 };
-    case 'race_fast':    return { ...z, race_base: Math.cos(x * Math.PI / 2), race_speed: Math.sin(x * Math.PI / 2) };
-    case 'final_sprint': return { ...z, final_sprint: 1 };
-    case 'finishing':    return { ...z, final_sprint: 0.12 };
+    case 'race_fast':    return { ...z, race_base: 1, race_speed: x * 0.6 };   // base always on; speed layer optional
+    case 'final_sprint': return { ...z, race_base: 1, race_speed: 0.6, final_sprint: 1 };
+    case 'finishing':    return { ...z, race_base: 0.18, final_sprint: 0.1 };  // duck for the finish sequence
     default:             return z;
   }
 }

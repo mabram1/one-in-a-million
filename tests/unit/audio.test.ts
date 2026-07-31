@@ -157,14 +157,16 @@ describe('MusicDirector via AudioManager — transitions & resume', () => {
     return new AudioManager({ storage: memStorage(), contextFactory: () => new FakeAudioContext() as any, fetchImpl: okFetch });
   }
 
-  it('brings the final-sprint layer in and ducks the base', () => {
+  it('brings the final-sprint layer in on the final_sprint_start event', () => {
     const am = mgr(); am.unlock();
     am.setMusicState('race_fast', { speed01: 1 });
     expect(am.music.state).toBe('race_fast');
     am.handle({ name: 'final_sprint_start' });            // event drives the music
     expect(am.music.state).toBe('final_sprint');
     expect(am.music.getTargetGain('final_sprint')).toBe(1);
-    expect(am.music.getTargetGain('race_base')).toBeLessThan(1);   // ducked
+    // Single-track model: the race bed keeps playing continuously through the
+    // sprint (it is not crossfaded out toward missing stems).
+    expect(am.music.getTargetGain('race_base')).toBe(1);
   });
 
   it('does not restart the race loop after a background resume', () => {

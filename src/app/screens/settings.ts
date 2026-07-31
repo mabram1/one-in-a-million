@@ -59,9 +59,7 @@ export function openSettings(onReplaySwim?: () => void): void {
 
       <div class="settings-group">${t.audio}</div>
       ${slider('masterVolume', t.master)}
-      ${/* Music slider intentionally omitted — the game ships SFX-only (owner
-          decision 2026-07-31, see docs/audio/AUDIO_ASSETS.md). The music bus stays
-          wired so dropping stems into public/audio/music/ later just works. */''}
+      ${slider('musicVolume', t.music)}
       ${slider('sfxVolume', t.sfx)}
       ${slider('uiVolume', t.ui)}
       ${toggle('muted', t.muteAll)}

@@ -26,7 +26,7 @@ export const AUDIO_SETTINGS_KEY = 'oiam_audio_v1';
 
 export const DEFAULT_AUDIO_SETTINGS: Readonly<AudioSettings> = Object.freeze({
   masterVolume: 0.9,
-  musicVolume: 0.6,
+  musicVolume: 0.35,   // background bed — sits under the SFX
   sfxVolume: 0.9,
   uiVolume: 0.8,
   muted: false,
