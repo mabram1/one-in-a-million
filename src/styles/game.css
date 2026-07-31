@@ -264,3 +264,31 @@
   .settings-switch .thumb{ position:absolute; left:3px; top:9px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform .15s; }
   .settings-switch input:checked ~ .track{ background:var(--energy); }
   .settings-switch input:checked ~ .thumb{ transform:translateX(20px); }
+  /* Store screen */
+  .store-sheet{ max-height:82vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .store-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .store-balance{ display:flex; gap:10px; font-weight:800; font-size:14px; color:var(--gold); }
+  .store-grid{ margin:8px 0 12px; }
+  .store-card{ justify-content:space-between; min-height:150px; }
+  .store-card .ci-name{ font-size:12px; text-align:center; }
+  .store-price{ font-size:12px; font-weight:800; color:var(--gold); }
+  .store-price.gems{ color:#c69bff; }
+  .store-owned{ font-size:11px; font-weight:800; letter-spacing:.08em; color:var(--energy); text-transform:uppercase; }
+  .store-btn{ width:100%; min-height:34px; border-radius:10px; border:none; font-weight:800; font-size:12px; cursor:pointer; color:#06231f; background:var(--energy); }
+  .store-btn.equip{ background:var(--gold); color:#3a1207; }
+  .store-btn.is-equipped{ background:rgba(67,224,207,.2); color:var(--energy); }
+  .store-btn.disabled{ background:rgba(255,255,255,.14); color:var(--muted); cursor:default; }
+  .store-card.shake{ animation:cardShake .38s ease; }
+  @keyframes cardShake{ 0%,100%{ transform:translateX(0);} 25%{ transform:translateX(-5px);} 75%{ transform:translateX(5px);} }
+  /* Profile screen */
+  .profile-id{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+  .profile-name{ font-size:18px; font-weight:800; color:var(--text); }
+  .profile-lvl{ font-size:13px; font-weight:800; color:var(--energy); }
+  .profile-xp{ position:relative; height:22px; border-radius:11px; background:rgba(255,255,255,.1); overflow:hidden; display:flex; align-items:center; justify-content:center; }
+  .profile-xp-fill{ position:absolute; left:0; top:0; bottom:0; background:linear-gradient(90deg,var(--energy-dim),var(--energy)); border-radius:11px; }
+  .profile-xp span{ position:relative; font-size:11px; font-weight:800; color:#eafffb; text-shadow:0 1px 2px rgba(0,0,0,.5); }
+  .profile-wallet{ display:flex; gap:8px; }
+  .profile-stat{ flex:1; display:flex; flex-direction:column; gap:2px; align-items:center; padding:10px 4px; border-radius:12px; background:rgba(20,6,11,.6); border:1px solid rgba(255,185,200,.12); }
+  .profile-stat .k{ font-size:10px; letter-spacing:.06em; color:var(--muted); }
+  .profile-stat .v{ font-size:15px; font-weight:800; color:var(--text); }
+  .profile-bests{ display:flex; flex-direction:column; gap:6px; }

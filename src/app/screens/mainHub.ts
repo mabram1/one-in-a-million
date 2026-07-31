@@ -13,6 +13,8 @@ import { levelInfo } from '../domain/progression';
 import { LiveTrackRenderer } from '../hub/LiveTrackRenderer';
 import type { PracticeDistance } from '../hub/types';
 import { openSettings } from './settings';
+import { openStore } from './store';
+import { openProfile } from './profile';
 
 const FLAG_KEY = 'oiam_hub_v2';
 const DIST_KEY = 'oiam_practice_dist';
@@ -150,8 +152,8 @@ function wire(): void {
     (b as HTMLElement).onclick = () => {
       const r = (b as HTMLElement).dataset.route;
       if (r === 'customize') { hide(); click('custPanel'); }
-      else if (r === 'store') toast(c.store + ' — coming soon');
-      else if (r === 'profile') toast(c.profile + ' — coming soon');
+      else if (r === 'store') openStore();
+      else if (r === 'profile') openProfile();
       else if (r === 'settings') { openSettings(() => raceNow(getDistance())); }
       else if (r === 'daily') toast(c.dailyChallenge + ' — coming soon');
       // 'home' is a no-op (already here)
