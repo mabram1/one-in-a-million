@@ -75,7 +75,33 @@ export const art = {
   rig: null as Rig | null,
   cosmetics: [] as Cosmetic[],
   equipped: loadEquipped(),
+  /** Player's "My Face" overlay (512×768, replaces the expression face). */
+  customFace: null as HTMLImageElement | null,
+  customFaceReady: false,
 };
+
+/** True when a custom face overlay should replace the expression faces. */
+export function hasCustomFace(): boolean { return art.customFaceReady && !!art.customFace; }
+
+/** Set (or clear with null) the custom face overlay image the renderer draws. */
+export function setCustomFaceImage(img: HTMLImageElement | null): void {
+  if (art.customFace && (art.customFace as any)._url) { try { URL.revokeObjectURL((art.customFace as any)._url); } catch { /* */ } }
+  art.customFace = img;
+  art.customFaceReady = !!img;
+}
+
+/** Load the stored custom-face overlay Blob into an <img> for the renderer. */
+export async function loadCustomFace(): Promise<void> {
+  try {
+    const { getFaceStore } = await import('../../app/face/faceStore');
+    const blob = await getFaceStore().load();
+    if (!blob) { setCustomFaceImage(null); return; }
+    const url = URL.createObjectURL(blob);
+    const img = await loadImage(url);
+    (img as any)._url = url;
+    setCustomFaceImage(img);
+  } catch { setCustomFaceImage(null); }
+}
 
 function loadEquipped(): Equipped {
   try {

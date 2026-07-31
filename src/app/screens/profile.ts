@@ -7,11 +7,14 @@
 import { getProfileStore, ProfileStore } from '../profileStore';
 import { levelInfo } from '../domain/progression';
 import { catalog } from '../config';
+import { openMyFace } from './myFace';
+
+const B = ((import.meta as any).env?.BASE_URL as string) || './';
 
 function locale(): 'sl' | 'en' { try { return (navigator.language || '').toLowerCase().startsWith('sl') ? 'sl' : 'en'; } catch { return 'en'; } }
 const T = {
-  en: { title: 'Profile', level: 'Level', coins: 'Coins', gems: 'Gems', cosmetics: 'Cosmetics', bests: 'Personal bests', endless: 'Endless best', none: 'No runs yet', close: 'Close', guest: 'Guest' },
-  sl: { title: 'Profil', level: 'Stopnja', coins: 'Kovanci', gems: 'Dragulji', cosmetics: 'Kozmetika', bests: 'Osebni rekordi', endless: 'Endless rekord', none: 'Še brez teka', close: 'Zapri', guest: 'Gost' },
+  en: { title: 'Profile', level: 'Level', coins: 'Coins', gems: 'Gems', cosmetics: 'Cosmetics', bests: 'Personal bests', endless: 'Endless best', none: 'No runs yet', close: 'Close', guest: 'Guest', myFace: 'My Face' },
+  sl: { title: 'Profil', level: 'Stopnja', coins: 'Kovanci', gems: 'Dragulji', cosmetics: 'Kozmetika', bests: 'Osebni rekordi', endless: 'Endless rekord', none: 'Še brez teka', close: 'Zapri', guest: 'Gost', myFace: 'Moj obraz' },
 };
 
 const fmt = (n: number) => n.toLocaleString('en-US');
@@ -59,6 +62,7 @@ export function openProfile(store: ProfileStore = getProfileStore()): void {
         <div class="profile-stat"><span class="k">💎 ${t.gems}</span><span class="v">${fmt(p.wallet.gems)}</span></div>
         <div class="profile-stat"><span class="k">🎨 ${t.cosmetics}</span><span class="v">${owned} / ${total}</span></div>
       </div>
+      <button class="settings-row myface-open" data-act="myface"><span style="display:flex;align-items:center;gap:10px"><img src="${B}art/profile/my_face_tile.png" alt="" style="width:26px;height:26px;border-radius:7px;object-fit:cover"> ${t.myFace}</span></button>
       <div class="settings-group">${t.bests}</div>
       <div class="stats profile-bests">
         ${bests.length ? bests.map((b) => `<div class="row"><span class="k">${b.dist} m</span><span class="v">${b.time.toFixed(1)} s</span></div>`).join('') : `<div class="row"><span class="k">${t.none}</span><span class="v"></span></div>`}
@@ -69,6 +73,7 @@ export function openProfile(store: ProfileStore = getProfileStore()): void {
 
   root.addEventListener('click', (e) => {
     const el = e.target as HTMLElement;
+    if (el.closest('[data-act="myface"]')) { openMyFace(); return; }
     if (el === root || el.closest('[data-act="close"]')) root.remove();
   });
   document.body.appendChild(root);

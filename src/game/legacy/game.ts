@@ -12,7 +12,7 @@
 import { tuning, tuningVersion } from '../config/tuning';
 import { mulberry32, randomSeed, type Rng } from '../content/prng';
 import { encodeDeltas, decodeDeltas, interpolateAt, encodeChallengeCode, decodeChallengeCode } from '../replay/codec';
-import { art, equip } from '../assets/store';
+import { art, equip, hasCustomFace, loadCustomFace } from '../assets/store';
 import { emitAudio, unlockAudio, setMusicState, setRaceSpeed, getAudioSettings, setAudioSettings } from '../../audio';
 import { getProfileStore } from '../../app/profileStore';
 
@@ -1520,7 +1520,9 @@ export function bootGame() {
     const layer = img => { if (img && img.complete) ctx.drawImage(img, dx, dy, dw, dh); };
     const eq = art.equipped;
     layer(art.img.body);
-    layer(faceFor());
+    // "My Face" overlay replaces the expression face when set; cosmetics stay on top.
+    if (hasCustomFace()) layer(art.customFace);
+    else layer(faceFor());
     if (eq.glasses && art.img[eq.glasses]) layer(art.img[eq.glasses]);   // z40
     if (eq.mouth   && art.img[eq.mouth])   layer(art.img[eq.mouth]);     // z50
     if (eq.hat     && art.img[eq.hat])     layer(art.img[eq.hat]);       // z60
@@ -1647,6 +1649,7 @@ export function bootGame() {
   // ---------- Boot ----------
   setLevelLength(5000); resize(); selectMode('level'); updateHint(); loadGhostFromHash();
   try { G.muted = getAudioSettings().muted; $('btnMute').textContent = G.muted ? '🔇' : '🔊'; } catch(e){}
+  void loadCustomFace();   // load the player's "My Face" overlay if they set one
   setMusicState('menu');   // logical menu state; becomes audible once the context is unlocked
   try { const _c = localStorage.getItem('oiam_run'); if (_c) G.lastGhostCode = _c; } catch(e){}
   $('finePrint').textContent = detectControls() ? 'On iPhone you may get a one-time "allow motion" prompt — tap Allow.' : 'No motion sensor detected — keyboard / touch controls will be used.';
