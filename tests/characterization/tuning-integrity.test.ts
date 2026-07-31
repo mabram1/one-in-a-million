@@ -13,9 +13,10 @@ describe('tuning version', () => {
     // 1.0.0 = verbatim baseline 0088469. 1.1.0 added camera.logicalWidth (P1-10).
     // 1.2.0 finalSprint.hammerAccelMultiplier. 1.3.0/1.4.0 raised obstacle density.
     // 1.5.0 width-driven distribution (wide=more+bigger, narrow=fewer+smaller).
-    // 1.6.0 canal width profile: full-width plateau (wideUntilFraction) then taper
-    // toward the egg, so the pre-sprint run stays roomier (owner-approved 2026-07-31).
-    expect(tuningVersion).toBe('1.6.0');
+    // 1.6.0 canal width profile: full-width plateau then taper.
+    // 1.7.0 steering is damped (not fully locked) while shaking — steering.shakeSteerFactor
+    // 0.35 — so you can nudge around obstacles while building speed (owner 2026-08-01).
+    expect(tuningVersion).toBe('1.7.0');
   });
 
   it('is frozen so nothing can mutate it at runtime', () => {

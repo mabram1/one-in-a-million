@@ -178,10 +178,13 @@ export function bootGame() {
     // neutral ("straight ahead") = your natural hold, averaged right up until launch
     if (G.state === 'ready' || G.state === 'charging') G.motion.base = G.motion.base*0.92 + G.motion.lp*0.08;
     if (G.state === 'playing'){
-      // while shaking, the shake blurs the tilt reading and it's hard to aim → hold straight;
-      // steer only when you hold the phone steady (not mid-stroke).
+      // The shake blurs the tilt reading, so steering is DAMPED while shaking
+      // (not fully locked) — you can still nudge around obstacles while building
+      // speed; you steer best when holding the phone steady between strokes. The
+      // final sprint stays fully auto-centered on the egg.
       const shaking = (now() - G._lastStroke) < STEER_LOCK_MS;
-      G.steerTarget = (shaking || G.sprint) ? 0 : Math.max(-1, Math.min(1, -(G.motion.lp - G.motion.base) * TILT_GAIN * MOTION_SIGN));
+      const tilt = Math.max(-1, Math.min(1, -(G.motion.lp - G.motion.base) * TILT_GAIN * MOTION_SIGN));
+      G.steerTarget = G.sprint ? 0 : (shaking ? tilt * steering.shakeSteerFactor : tilt);
     }
     let mag; const a = e.acceleration;
     if (a && a.x != null){ mag = Math.hypot(a.x,a.y,a.z); }

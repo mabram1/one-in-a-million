@@ -88,23 +88,25 @@ describe('momentum (protected)', () => {
   });
 });
 
-describe('steering lock while shaking (protected)', () => {
-  it('holds straight while shaking, and steers once shaking stops', () => {
+describe('steering damped while shaking (protected)', () => {
+  it('damps (not fully locks) steering while shaking, and full steering once it stops', () => {
     poseRacing(h.tuning.momentum.cruiseCap);
-    // A tilt is present the whole time; only the shaking should suppress it.
-    h.motion(-4, 0);
-    h.step(100);
-    h.G.steerTarget = 0;
+    // Settle a steady tilt with no strokes so the low-passed reading converges.
+    for (let i = 0; i < 16; i++) { h.motion(-2, 0); h.step(16); }
 
-    // Shaking → the motion adapter must force steerTarget to 0.
+    // Not shaking (last stroke long ago) → FULL steering from the tilt.
+    h.motion(-2, 0);
+    const fullSteer = Math.abs(h.G.steerTarget);
+    expect(fullSteer).toBeGreaterThan(0);
+
+    // Shaking (a fresh stroke) → steering present but damped, not fully locked
+    // (owner change 2026-08-01: was locked to 0; now ~shakeSteerFactor of full).
     h.stroke();
-    h.motion(-4, 0);
-    expect(h.G.steerTarget).toBe(0);
-
-    // After the lock window expires, the same tilt must produce steering.
-    h.step(h.tuning.steering.shakeLockMs + 120);
-    h.motion(-4, 0);
-    expect(Math.abs(h.G.steerTarget)).toBeGreaterThan(0);
+    h.motion(-2, 0);
+    const shakingSteer = Math.abs(h.G.steerTarget);
+    expect(shakingSteer).toBeGreaterThan(0);
+    expect(shakingSteer).toBeLessThan(fullSteer);
+    expect(shakingSteer / fullSteer).toBeCloseTo(h.tuning.steering.shakeSteerFactor, 1);
   });
 
   it('steering authority scales with speed (no speed, no turning)', () => {

@@ -13,7 +13,7 @@
  * docs/audits/handbook-baseline-audit.md §4.1). Nothing was rounded or "cleaned".
  */
 
-export const tuningVersion = '1.6.0' as const;
+export const tuningVersion = '1.7.0' as const;
 
 /** Motion/stroke detection and cadence. */
 export interface ControlsTuning {
@@ -64,6 +64,10 @@ export interface SteeringTuning {
   sensitivity: number;
   tiltGain: number;
   shakeLockMs: number;
+  /** Steering allowed WHILE shaking, as a fraction of normal (0 = fully locked
+   *  straight; ~0.35 = gentle steering so you can still nudge around obstacles
+   *  while building speed). The shake still blurs the tilt, so keep it modest. */
+  shakeSteerFactor: number;
   /** Fraction of cruiseCap at which steering authority is full. */
   authorityFloorFraction: number;
   /** Smoothing factor applied to steer input per second. */
@@ -256,6 +260,7 @@ export const tuning: Readonly<Tuning> = Object.freeze({
     sensitivity: 4.2,
     tiltGain: 0.42,
     shakeLockMs: 280,
+    shakeSteerFactor: 0.35,   // gentle steering while shaking (was fully locked at 0)
     authorityFloorFraction: 0.45,
     smoothing: 14,
     sprintCenteringRate: 1.6,
