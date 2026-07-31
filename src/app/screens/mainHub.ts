@@ -68,8 +68,18 @@ function bindProfile(): void {
   (root.querySelector('.main-hub__lvl-badge') as HTMLElement).textContent = String(info.displayLevel);
   const pct = info.xpForNext > 0 ? Math.min(100, (info.xpIntoLevel / info.xpForNext) * 100) : 0;
   (root.querySelector('.main-hub__xp-fill') as HTMLElement).style.setProperty('--xp-progress', pct + '%');
-  (root.querySelector('[data-kind="coin"] span') as HTMLElement).textContent = fmt(p.wallet.coins);
-  (root.querySelector('[data-kind="gem"] span') as HTMLElement).textContent = fmt(p.wallet.gems);
+  setCurrency('coin', p.wallet.coins);
+  setCurrency('gem', p.wallet.gems);
+}
+
+/** Update a currency pill, popping it when the value increases (e.g. after a race). */
+function setCurrency(kind: 'coin' | 'gem', value: number): void {
+  const pill = root!.querySelector(`[data-kind="${kind}"]`) as HTMLElement | null;
+  const span = pill?.querySelector('span') as HTMLElement | null;
+  if (!pill || !span) return;
+  const prev = Number(span.textContent?.replace(/[^0-9]/g, '')) || 0;
+  span.textContent = fmt(value);
+  if (value > prev) { pill.classList.remove('pop'); void pill.offsetWidth; pill.classList.add('pop'); }
 }
 
 function template(): string {
