@@ -13,15 +13,21 @@ export type MusicState =
   | 'race_normal' | 'race_fast' | 'final_sprint'
   | 'finishing' | 'result_win' | 'result_lose';
 
-/** Target mix (0..1) for each race stem per state. speed01 modulates race_fast. */
+/**
+ * Target mix (0..1) for each race stem per state. Uses an EQUAL-POWER CROSSFADE
+ * between the base and speed tracks (not additive) so independent full-length
+ * tracks — e.g. Suno exports — blend cleanly instead of stacking into mud. If you
+ * later get true layered stems, additive mixing here would also work.
+ */
 function raceMix(state: MusicState, speed01: number): Record<MusicTrack, number> {
   const z: Record<MusicTrack, number> = { menu_base: 0, race_base: 0, race_speed: 0, final_sprint: 0, result_win: 0, result_lose: 0 };
+  const x = Math.max(0, Math.min(1, speed01));
   switch (state) {
     case 'charging':     return { ...z, race_base: 0.5 };
     case 'race_normal':  return { ...z, race_base: 1 };
-    case 'race_fast':    return { ...z, race_base: 1, race_speed: Math.max(0, Math.min(1, speed01)) };
-    case 'final_sprint': return { ...z, race_base: 0.6, race_speed: 0.5, final_sprint: 1 };
-    case 'finishing':    return { ...z, race_base: 0.15, race_speed: 0.05, final_sprint: 0.1 };
+    case 'race_fast':    return { ...z, race_base: Math.cos(x * Math.PI / 2), race_speed: Math.sin(x * Math.PI / 2) };
+    case 'final_sprint': return { ...z, final_sprint: 1 };
+    case 'finishing':    return { ...z, final_sprint: 0.12 };
     default:             return z;
   }
 }

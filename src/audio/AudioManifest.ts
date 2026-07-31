@@ -57,9 +57,9 @@ export const HAPTICS: Partial<Record<AudioEventName, HapticShape>> = {
   result_win: 'success',
 };
 
-// Variant helper: primary .ogg with an .mp3 fallback source for browsers without
-// Ogg/Vorbis (e.g. some iOS Safari). Both are optional — loader skips what 404s.
-const clip = (name: string) => [sfx(`${name}.ogg`), sfx(`${name}.mp3`)];
+// SFX ship as generated .wav (universally decodable incl. iOS/Android WebView).
+// See scripts/gen-sfx.mjs — original, royalty-free, deterministic.
+const clip = (name: string) => [sfx(`${name}.wav`)];
 
 export const SFX_MANIFEST: Record<AudioEventName, SfxDef> = {
   ui_click:  { variants: [clip('ui_click')],  bus: 'ui', cooldownMs: 40, maxVoices: 3, pitchVar: 0.02, gain: 0.7 },
@@ -104,13 +104,16 @@ export type MusicTrack =
 
 export interface MusicDef { sources: string[]; loop: boolean; }
 
+// Music comes from Suno (owner) — mp3 or wav. The director tries each source in
+// order and uses the first that loads, so drop in whichever format you export.
+const track = (name: string) => [music(`${name}.mp3`), music(`${name}.wav`), music(`${name}.ogg`)];
 export const MUSIC_MANIFEST: Record<MusicTrack, MusicDef> = {
-  menu_base:    { sources: [music('menu_base.ogg'),    music('menu_base.mp3')],    loop: true },
-  race_base:    { sources: [music('race_base.ogg'),    music('race_base.mp3')],    loop: true },
-  race_speed:   { sources: [music('race_speed.ogg'),   music('race_speed.mp3')],   loop: true },
-  final_sprint: { sources: [music('final_sprint.ogg'), music('final_sprint.mp3')], loop: true },
-  result_win:   { sources: [music('result_win.ogg'),   music('result_win.mp3')],   loop: false },
-  result_lose:  { sources: [music('result_lose.ogg'),  music('result_lose.mp3')],  loop: false },
+  menu_base:    { sources: track('menu_base'),    loop: true },
+  race_base:    { sources: track('race_base'),    loop: true },
+  race_speed:   { sources: track('race_speed'),   loop: true },
+  final_sprint: { sources: track('final_sprint'), loop: true },
+  result_win:   { sources: track('result_win'),   loop: false },
+  result_lose:  { sources: track('result_lose'),  loop: false },
 };
 
 /** The synchronized, gain-mixed race layers (started together on one clock). */
