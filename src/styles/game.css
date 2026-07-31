@@ -89,6 +89,23 @@
   .strokepad{ pointer-events:auto; height:74px; border-radius:16px; border:1px dashed rgba(67,224,207,.5); background:radial-gradient(120% 140% at 50% 0%, rgba(67,224,207,.14), rgba(20,4,8,.4)); color:var(--energy); display:flex; align-items:center; justify-content:center; gap:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; font-size:12px; cursor:pointer; text-align:center; padding:0 12px; }
   .strokepad:active{ background:radial-gradient(120% 140% at 50% 0%, rgba(67,224,207,.3), rgba(20,4,8,.4)); }
   .strokepad.charging{ border-color:var(--go); color:var(--go); background:radial-gradient(120% 140% at 50% 0%, rgba(124,255,159,.16), rgba(20,4,8,.4)); }
+
+  /* ===== In-game HUD — premium polish (visual only; no layout/logic change) =====
+     Depth, gloss and softer shadows to match the Main Hub's premium chrome. */
+  .stat{ background:linear-gradient(180deg, rgba(28,10,16,.74), rgba(12,4,7,.74)); border-color:rgba(67,224,207,.32);
+    box-shadow:0 6px 18px -9px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.07); }
+  .stat .v{ text-shadow:0 1px 2px rgba(0,0,0,.5); }
+  .iconbtn{ background:linear-gradient(180deg, rgba(32,11,17,.62), rgba(14,4,8,.62));
+    box-shadow:0 4px 12px -7px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.05); }
+  .thrust-bar{ box-shadow:inset 0 2px 5px rgba(0,0,0,.45); }
+  .thrust-fill{ box-shadow:inset 0 1px 0 rgba(255,255,255,.28); }
+  .thrust-bar::after{ content:''; position:absolute; left:7px; right:7px; top:2px; height:4px; border-radius:6px;
+    background:linear-gradient(rgba(255,255,255,.24), rgba(255,255,255,0)); pointer-events:none; }
+  .itembtn{ background:radial-gradient(120% 120% at 50% 22%, rgba(42,15,23,.72), rgba(12,4,8,.72)); }
+  .itembtn.boost{ box-shadow:0 0 18px -6px var(--gold), inset 0 0 12px -7px var(--gold); }
+  .itembtn.shield{ box-shadow:0 0 18px -6px var(--energy), inset 0 0 12px -7px var(--energy); }
+  .strokepad{ box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 8px 22px -13px rgba(0,0,0,.7); }
+  .race{ box-shadow:inset 0 0 8px rgba(0,0,0,.4); }
   .strokepad.hidden{ display:none; }
   .strokepad .pulse{ font-size:16px; }
 
