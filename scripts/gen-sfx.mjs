@@ -86,15 +86,15 @@ const S = {
   ui_back:  () => normalize(render(0.07, (t, i, a, _b, p) => { a(glide(900, 520, t / 0.07)); return osc('sine', p()) * pluck(t, 0.07, 14); }), 0.7),
 
   charge_start: () => normalize(render(0.22, (t, i, a, _b, p) => { a(glide(200, 520, t / 0.22)); return osc('saw', p()) * env(t, 0.22, 0.02, 0.05, 0.7, 0.06) * 0.6; })),
-  charge_tick:  () => normalize(render(0.06, (t) => noise() * pluck(t, 0.06, 30) * 0.5), 0.5),
+  charge_tick:  () => strokeTup(0.10, 640, 1.5, 22, 0.6),   // short rev "tup" while shaking to charge
 
   launch_weak:      () => normalize(render(0.30, (t, i, a, _b, p) => { a(glide(120, 480, t / 0.30)); return osc('saw', p()) * env(t, 0.30, 0.01, 0.06, 0.5, 0.1); }), 0.75),
   launch_perfect:   () => normalize(render(0.46, (t, i, a, b, p, q) => { a(glide(140, 820, t / 0.46)); b(glide(560, 1640, t / 0.46)); return osc('saw', p()) * env(t, 0.46, 0.01, 0.06, 0.6, 0.12) + osc('sine', q()) * 0.25 * pluck(t, 0.46, 3); })),
   launch_overcooked:() => normalize(render(0.30, (t, i, a, _b, p) => { a(glide(300, 90, t / 0.30)); return (osc('square', p()) * 0.6 + noise() * 0.2) * env(t, 0.30, 0.005, 0.1, 0.4, 0.12); }), 0.7),
 
-  stroke_01: () => strokeSwish(0.16, 900),
-  stroke_02: () => strokeSwish(0.15, 1150),
-  stroke_03: () => strokeSwish(0.17, 720),
+  stroke_01: () => strokeTup(0.18, 720, 1.7, 15),   // the shake "tup" (rhythmic, punchy)
+  stroke_02: () => strokeTup(0.17, 980, 1.7, 16),
+  stroke_03: () => strokeTup(0.19, 1220, 1.6, 14),
 
   boost_activate:  () => normalize(render(0.28, (t, i, a, b, p, q) => { a(glide(200, 940, t / 0.28)); b(glide(300, 1400, t / 0.28)); return (osc('saw', p()) * 0.6 + osc('square', q()) * 0.3) * env(t, 0.28, 0.01, 0.06, 0.6, 0.1); })),
   shield_activate: () => normalize(render(0.30, (t, i, a, b, p, q) => { a(glide(420, 820, t / 0.30)); b(glide(640, 1240, t / 0.30)); return (osc('tri', p()) * 0.6 + osc('sine', q()) * 0.4) * env(t, 0.30, 0.02, 0.06, 0.7, 0.1); }), 0.8),
@@ -123,12 +123,23 @@ const S = {
   result_lose: () => chord(0.9, [440, 523.25, 349.23], false),     // soft descending-ish
 };
 
-function strokeSwish(dur, center) {
-  return normalize(render(dur, (t) => {
-    const e = Math.sin((t / dur) * Math.PI);                 // swell
-    const bp = noise() * 0.6 + Math.sin((t / dur) * center * TAU * 0.001) * 0.1;
-    return bp * e * 0.7;
-  }), 0.6);
+// Percussive band-passed noise "tup" — the original shake/stroke character (a
+// resonant state-variable bandpass over white noise, fast attack, exp decay).
+function strokeTup(dur, fc, q = 1.6, decay = 14, peak = 0.7) {
+  const n = Math.round(dur * SR);
+  const out = new Float32Array(n);
+  let low = 0, band = 0;
+  const f = 2 * Math.sin(Math.PI * Math.min(fc, SR / 2 - 100) / SR), damp = 1 / q;
+  for (let i = 0; i < n; i++) {
+    const x = noise();
+    low += f * band;
+    const high = x - low - damp * band;
+    band += f * high;
+    const t = i / SR;
+    const e = t < 0.002 ? t / 0.002 : Math.exp(-decay * (t - 0.002));
+    out[i] = band * e;
+  }
+  return normalize(out, peak);
 }
 function thud(dur, f0, f1, type, peak = 0.85) {
   return normalize(render(dur, (t, i, a, _b, p) => { a(glide(f0, f1, t / dur)); return osc(type, p()) * env(t, dur, 0.004, 0.07, 0.4, 0.1); }), peak);
