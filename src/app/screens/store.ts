@@ -7,7 +7,8 @@
  */
 import { catalog, type CatalogItem } from '../config';
 import { getProfileStore, ProfileStore } from '../profileStore';
-import { art } from '../../game/assets/store';
+
+const B = ((import.meta as any).env?.BASE_URL as string) || './';
 
 function locale(): 'sl' | 'en' { try { return (navigator.language || '').toLowerCase().startsWith('sl') ? 'sl' : 'en'; } catch { return 'en'; } }
 const T = {
@@ -29,10 +30,11 @@ export function openStore(store: ProfileStore = getProfileStore()): void {
   const priceHtml = (it: CatalogItem) =>
     `<span class="store-price ${it.price.currency}">${it.price.currency === 'gems' ? '💎' : '🪙'} ${fmt(it.price.amount)}</span>`;
 
-  const thumb = (it: CatalogItem) => {
-    const im = (art as any)?.img?.[it.id];
-    return im && im.src ? `<img src="${im.src}" alt="">` : `<span class="ci-none">${it.slot === 'trail' ? '✦' : it.slot === 'aura' ? '☀' : '🎩'}</span>`;
-  };
+  // Dedicated store thumbnail art (public/art/store/<id>_thumb.png); if one is ever
+  // missing the emoji placeholder shows instead.
+  const thumb = (it: CatalogItem) =>
+    `<img src="${B}art/store/${it.id}_thumb.png" alt="" loading="lazy"
+       onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'ci-none',textContent:'${it.slot === 'trail' ? '✦' : it.slot === 'aura' ? '☀' : '🎩'}'}))">`;
 
   const card = (it: CatalogItem) => {
     const owned = store.isOwned(it.id);

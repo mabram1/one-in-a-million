@@ -27,8 +27,7 @@ export function showSplash(opts: { durationMs?: number; onDone?: () => void } = 
   root.setAttribute('aria-label', 'One in a Million');
   root.innerHTML = `
     <div class="splash-stage">
-      <div class="splash-egg"></div>
-      <div class="splash-champ"><span class="sc-body"></span><span class="sc-tail"></span></div>
+      <img class="splash-hero" src="${B}art/splash/champ_hero.png" alt="">
       <img class="splash-word" src="${B}art/menu/menu-wordmark.svg" alt="">
       <div class="splash-tag">${TAGLINE[locale()]}</div>
     </div>`;
