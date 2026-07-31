@@ -5,7 +5,11 @@ import { loadArt } from './game/assets/store';
 import { maybeShowHowToPlay } from './app/screens/howToPlay';
 import { hubV2Enabled, show as showHub } from './app/screens/mainHub';
 import { openSettings } from './app/screens/settings';
+import { showSplash } from './app/screens/splash';
 import { wireAudioLifecycle } from './audio';
+
+// Branded intro on load — masks the first-frame boot and leads into the menu.
+showSplash();
 
 /**
  * Optional live-multiplayer transports, loaded from a CDN at runtime.

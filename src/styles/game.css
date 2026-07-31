@@ -90,6 +90,34 @@
   .strokepad:active{ background:radial-gradient(120% 140% at 50% 0%, rgba(67,224,207,.3), rgba(20,4,8,.4)); }
   .strokepad.charging{ border-color:var(--go); color:var(--go); background:radial-gradient(120% 140% at 50% 0%, rgba(124,255,159,.16), rgba(20,4,8,.4)); }
 
+  /* ===== Splash / intro ===== */
+  .splash-overlay{ position:fixed; inset:0; z-index:999; display:grid; place-items:center; cursor:pointer;
+    background:radial-gradient(120% 90% at 50% 12%, #5c1122, #2a0912 46%, #0d0305);
+    animation:splashIn .3s ease both; -webkit-tap-highlight-color:transparent; }
+  .splash-overlay.out{ animation:splashOut .34s ease both; }
+  @keyframes splashIn{ from{ opacity:0; } to{ opacity:1; } }
+  @keyframes splashOut{ from{ opacity:1; } to{ opacity:0; } }
+  .splash-stage{ position:relative; width:84%; max-width:320px; display:flex; flex-direction:column; align-items:center; gap:16px; }
+  .splash-egg{ width:62px; height:74px; border-radius:50%;
+    background:radial-gradient(circle at 38% 34%, #fff6e2, #ffd98a 58%, #e79a3c);
+    box-shadow:0 0 34px 8px rgba(255,205,120,.55); animation:splashEgg 1.6s ease-in-out infinite; }
+  @keyframes splashEgg{ 0%,100%{ transform:scale(1); box-shadow:0 0 34px 8px rgba(255,205,120,.5); } 50%{ transform:scale(1.06); box-shadow:0 0 44px 12px rgba(255,205,120,.72); } }
+  .splash-champ{ position:absolute; top:14px; left:0; width:26px; height:14px;
+    animation:splashDash 1.5s cubic-bezier(.5,0,.3,1) .15s both; }
+  .sc-body{ position:absolute; right:0; top:0; width:16px; height:14px; border-radius:50%;
+    background:radial-gradient(circle at 34% 34%, #eafffb, #43e0cf 70%); box-shadow:0 0 12px rgba(67,224,207,.8); }
+  .sc-tail{ position:absolute; right:14px; top:6px; width:16px; height:3px; border-radius:3px;
+    background:linear-gradient(90deg, transparent, rgba(67,224,207,.9)); transform-origin:right center; animation:splashWag .18s linear infinite; }
+  @keyframes splashDash{ 0%{ left:-14%; opacity:0; } 12%{ opacity:1; } 88%{ opacity:1; } 100%{ left:52%; top:-2px; opacity:0; transform:scale(.5); } }
+  @keyframes splashWag{ 0%,100%{ transform:rotate(11deg); } 50%{ transform:rotate(-11deg); } }
+  .splash-word{ width:100%; max-width:280px; filter:drop-shadow(0 6px 20px rgba(0,0,0,.5)); animation:splashWord .6s cubic-bezier(.2,.9,.3,1.3) .2s both; }
+  @keyframes splashWord{ 0%{ transform:scale(.7); opacity:0; } 100%{ transform:scale(1); opacity:1; } }
+  .splash-tag{ font-size:12.5px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; color:var(--energy);
+    text-shadow:0 0 12px rgba(67,224,207,.5); opacity:0; animation:splashTag .5s ease .55s both; }
+  @keyframes splashTag{ from{ opacity:0; transform:translateY(6px); } to{ opacity:.9; transform:none; } }
+  .splash-overlay.reduced .splash-champ, .splash-overlay.reduced .splash-egg{ animation:none; }
+  .splash-overlay.reduced .splash-word, .splash-overlay.reduced .splash-tag{ animation-duration:.01s; }
+
   /* ===== In-game HUD — premium polish (visual only; no layout/logic change) =====
      Depth, gloss and softer shadows to match the Main Hub's premium chrome. */
   .stat{ background:linear-gradient(180deg, rgba(28,10,16,.74), rgba(12,4,7,.74)); border-color:rgba(67,224,207,.32);
