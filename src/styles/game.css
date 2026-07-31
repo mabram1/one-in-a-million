@@ -162,6 +162,11 @@
   .stats .row{ display:flex; justify-content:space-between; gap:14px; }
   .stats .row .k{ font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
   .stats .row .v{ font-weight:800; font-variant-numeric:tabular-nums; color:var(--text); }
+  /* Earned reward row on the results screen */
+  .stats .row.reward{ margin-top:6px; padding-top:8px; border-top:1px solid rgba(255,210,77,.22); }
+  .stats .row.reward .k{ color:var(--gold); }
+  .stats .row.reward .v{ color:var(--gold); }
+  .stats .row.levelup .k, .stats .row.levelup .v{ color:var(--energy); }
 
   @media (prefers-reduced-motion: reduce){ .count .big{ animation:none; } }
 

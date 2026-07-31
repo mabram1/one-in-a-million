@@ -14,6 +14,7 @@ import { mulberry32, randomSeed, type Rng } from '../content/prng';
 import { encodeDeltas, decodeDeltas, interpolateAt, encodeChallengeCode, decodeChallengeCode } from '../replay/codec';
 import { art, equip } from '../assets/store';
 import { emitAudio, unlockAudio, setMusicState, setRaceSpeed, getAudioSettings, setAudioSettings } from '../../audio';
+import { getProfileStore } from '../../app/profileStore';
 
 export function bootGame() {
   "use strict";
@@ -85,6 +86,7 @@ export function bootGame() {
     // result is locked on the crossing frame (commitGoalFinish); the animation only
     // delays the results overlay and never touches elapsed/score/replay/placement.
     _committed:false, _commitCount:0, _result:null, finishAnim:null, finishElapsed:0, finishScore:0, _eggFrames:0,
+    raceEventId:'', perfectLaunch:false, _reward:null,
     banner:null, _lastStroke:0,
     motion:{ active:false, base:0, lp:0, grav:0, prevMag:null, permission:'—', events:0 },
     ptr:{ down:false },
@@ -634,7 +636,10 @@ export function bootGame() {
       nextCheckpoint: END.firstCheckpointUnits*PX_PER_UNIT,
       inputUsed:{ motion:false, keyboard:false, touch:false },
       _committed:false, _commitCount:0, _result:null, finishAnim:null, finishElapsed:0, finishScore:0, _eggFrames:0,
+    raceEventId:'', perfectLaunch:false, _reward:null,
       canalSeed: G.rng()*1000 });
+    // Unique reward id per run — idempotent across sessions (receipts persist).
+    G.raceEventId = 'r_' + randomSeed().toString(36) + '_' + (G.raceSeed>>>0).toString(36);
     G.motion.prevMag=null; G.motion.base=G.motion.lp;
     G.rival = { world:0, speed:0, target:0.7*CRUISE_CAP, finished:false, finishT:0, retarget:0 };
     seedParticles();
@@ -651,6 +656,7 @@ export function bootGame() {
     else if (c > CHG_ZONE_HI){ G.speed = CRUISE_CAP*launchCfg.fizzleFraction; banner('OVERCOOKED 💥'); launchEvent='launch_overcooked'; }
     else { G.speed = CRUISE_CAP*(launchCfg.weakBase + launchCfg.weakScale*c); banner('LAUNCH!'); launchEvent='launch_weak'; }
     G.shake = 1; G.flick = 1; G.charge = 0; G.strokes = [];
+    G.perfectLaunch = inZone;     // lock for the end-of-race reward
     emitAudio(launchEvent);       // sound + launch haptic (perfect = two crisp pulses)
     G.state = 'playing';
     setMusicState('race_fast', { speed01: Math.min(1, G.speed/OVER_CAP) });   // race music starts here
@@ -894,12 +900,47 @@ export function bootGame() {
         `<div class="row"><span class="k">Time</span><span class="v">${G.elapsed.toFixed(1)} s</span></div>`+
         `<div class="row"><span class="k">Bumps</span><span class="v">${G.hits}</span></div>`;
     }
+    // Earned reward (coins/gems/XP). Motion runs earn; keyboard earns nothing.
+    const rw = G._reward;
+    if (rw && (rw.coins || rw.gems || rw.xp)){
+      let earned = `+${rw.coins} 🪙` + (rw.gems ? ` · +${rw.gems} 💎` : '') + ` · +${rw.xp} XP`;
+      $('endStats').innerHTML += `<div class="row reward"><span class="k">Earned</span><span class="v">${earned}</span></div>`;
+      if (rw.leveledTo) $('endStats').innerHTML += `<div class="row reward levelup"><span class="k">Level up!</span><span class="v">Lv ${rw.leveledTo}</span></div>`;
+    }
     const cbtn=$('challengeBtn');
     if (G.mode==='level' && finishedGoal && G.ghostRec.length>5){
       if (cbtn){ cbtn.classList.remove('hidden'); cbtn.textContent='⚔ Challenge a friend'; }
     } else if (cbtn){ cbtn.classList.add('hidden'); }
     $('hud').classList.add('hidden'); $('race').classList.add('hidden'); $('count').classList.add('hidden');
     const end=$('end'); end.classList.remove('hidden'); end.classList.remove('fadein'); void end.offsetWidth; end.classList.add('fadein');
+  }
+
+  // Is this the player's first race today? (Bonus coins/XP.) Persisted by day.
+  function isFirstRaceOfDay(){
+    try { const d = new Date().toISOString().slice(0,10); const last = localStorage.getItem('oiam_last_race_day');
+      if (last !== d){ localStorage.setItem('oiam_last_race_day', d); return true; } return false; } catch(e){ return false; }
+  }
+
+  // Grant the authoritative economy reward for a completed run (idempotent by
+  // eventId — desktop/keyboard earns nothing). Stores the delta on G._reward for
+  // the result screen. Called once per finished run (goal finish or Endless end).
+  function grantRunReward(){
+    try {
+      const mode = G.mode==='endless' ? 'endless'
+        : MP.active ? 'multiplayer'
+        : (G.ghost && G.externalChallenge) ? 'challenge' : 'practice';
+      const distanceM = (G.mode==='endless' ? G.distance : LEVEL_LENGTH) / PX_PER_UNIT;
+      const result = {
+        eventId: G.raceEventId || ('r_'+(G.raceSeed>>>0).toString(36)),
+        mode, inputClass: G.inputClass, distanceM,
+        perfectLaunch: !!G.perfectLaunch,
+        placement: MP.active ? mpPlacement().place : undefined,
+        checkpoints: G.checkpointsHit || 0,
+        firstRaceOfDay: isFirstRaceOfDay(),
+        challengeWin: mode==='challenge' ? !!G.win : undefined,
+      };
+      G._reward = getProfileStore().grantRaceReward(result);
+    } catch(e){ G._reward = null; }
   }
 
   // Immediate result flow — quit and the Endless timeout. NOT the goal absorption.
@@ -913,6 +954,7 @@ export function bootGame() {
     saveGhostAndPB(finishedGoal);
     const result = buildResult(finishedGoal);
     G._result = result;
+    if (G.mode==='endless') grantRunReward();       // Endless run completed -> reward
     renderResultDOM(finishedGoal, result);
   }
 
@@ -928,6 +970,7 @@ export function bootGame() {
     mpFinishBroadcast();                                     // broadcast immediately (once)
     saveGhostAndPB(true);
     G._result = buildResult(true);                           // placement/win locked at crossing
+    grantRunReward();                                        // credit coins/XP/gems (idempotent)
   }
 
   function beginFinishAnimation(){
