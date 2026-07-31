@@ -45,20 +45,19 @@ wireAudioLifecycle();
 // fallback until this resolves, then swaps to sprites — no boot blocking.
 void loadArt();
 
+// Landing FIRST: the Main Hub is the default product UI. Doing this before the
+// optional how-to/settings wiring guarantees the hub renders (and the classic
+// menu is hidden) even if a later step misbehaves. Classic menu via ?hub=classic.
+void hubV2Enabled;
+try { if (new URLSearchParams(location.search).get('hub') !== 'classic') showHub(); } catch { /* hub optional */ }
+
 // How to Play: replay from the menu link, and show once on first run. Finishing on
 // the last card ("Let's swim!") starts a safe Practice run.
 const startPractice = () => { (document.getElementById('practicePlay') as HTMLElement | null)?.click(); };
-// Settings (hosts Replay Tutorial, menu style, server settings) — replaces the
-// standalone How-to and beta buttons.
+// Settings (hosts Replay Tutorial, menu style, server settings).
 (document.getElementById('settingsLink') as HTMLElement | null)?.addEventListener('click', () => openSettings(startPractice));
-// How to Play auto-shows exactly once on first run.
-maybeShowHowToPlay(startPractice);
-
-// Landing: the Main Hub is the default product UI (production Phase A). The classic
-// menu stays as a debug fallback via ?hub=classic. (The hub is a fixed overlay now,
-// so it renders correctly instead of falling below the fold.)
-void hubV2Enabled;
-if (new URLSearchParams(location.search).get('hub') !== 'classic') showHub();
+// How to Play auto-shows exactly once on first run (over the hub; dismissable).
+try { maybeShowHowToPlay(startPractice); } catch { /* non-fatal */ }
 
 // PWA service worker (parity with the pre-migration build). Registered relative to
 // the deploy base so it works on GitHub Pages subpaths, Vercel root, and Capacitor.

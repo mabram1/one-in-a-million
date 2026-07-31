@@ -165,7 +165,6 @@ export class LiveTrackRenderer {
     if (this.assets) {
       this.drawGoal(ctx, width, height, time);
       this.drawPreviewObjects(ctx, width, height, time);
-      this.drawStartPlatform(ctx, width, height);
       this.drawMascot(ctx, width * 0.5, height * 0.37, height * 0.2, time);
     }
     this.drawVignette(ctx, width, height);
@@ -351,30 +350,6 @@ export class LiveTrackRenderer {
       y + radius * 3,
       x,
       y + radius * 4
-    );
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  private drawStartPlatform(
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number
-  ): void {
-    ctx.save();
-    ctx.strokeStyle = COLORS.player;
-    ctx.shadowColor = COLORS.player;
-    ctx.shadowBlur = width * 0.04;
-    ctx.lineWidth = Math.max(3, width * 0.009);
-    ctx.beginPath();
-    ctx.ellipse(
-      width / 2,
-      height * 0.46,
-      width * 0.34,
-      height * 0.075,
-      0,
-      0,
-      Math.PI * 2
     );
     ctx.stroke();
     ctx.restore();
