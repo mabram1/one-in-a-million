@@ -13,6 +13,7 @@ import { tuning, tuningVersion } from '../config/tuning';
 import { mulberry32, randomSeed, type Rng } from '../content/prng';
 import { encodeDeltas, decodeDeltas, interpolateAt, encodeChallengeCode, decodeChallengeCode } from '../replay/codec';
 import { art, equip } from '../assets/store';
+import { emitAudio, unlockAudio, setMusicState, setRaceSpeed, getAudioSettings, setAudioSettings } from '../../audio';
 
 export function bootGame() {
   "use strict";
@@ -143,54 +144,12 @@ export function bootGame() {
   const worldToY = w => spermY - (w - G.distance)*PX_PER_UNIT;
 
   // ---------- Audio ----------
-  let actx=null, noiseBuf=null;
-  function initAudio(){
-    if (actx) return;
-    try{
-      actx = new (window.AudioContext||window.webkitAudioContext)();
-      const n = actx.sampleRate*0.4; noiseBuf = actx.createBuffer(1,n,actx.sampleRate);
-      const d = noiseBuf.getChannelData(0);
-      for (let i=0;i<n;i++) d[i]=(Math.random()*2-1)*(1-i/n);
-    }catch(e){ actx=null; }
-  }
-  function playStroke(intensity){
-    if (!actx || G.muted) return;
-    const src=actx.createBufferSource(); src.buffer=noiseBuf;
-    const bp=actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=480+intensity*900; bp.Q.value=0.8;
-    const g=actx.createGain(); const v=0.05+intensity*0.12, t=actx.currentTime;
-    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.22);
-    src.connect(bp); bp.connect(g); g.connect(actx.destination); src.start(t); src.stop(t+0.24);
-  }
-  function playHit(){
-    if (!actx || G.muted) return;
-    const o=actx.createOscillator(), g=actx.createGain(), t=actx.currentTime;
-    o.type='sine'; o.frequency.setValueAtTime(190,t); o.frequency.exponentialRampToValueAtTime(46,t+0.3);
-    g.gain.setValueAtTime(0.28,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.34);
-    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.36);
-  }
-  function playPickup(p){
-    if (!actx || G.muted) return;
-    const o=actx.createOscillator(), g=actx.createGain(), t=actx.currentTime;
-    o.type='triangle'; o.frequency.setValueAtTime(560*p,t); o.frequency.exponentialRampToValueAtTime(1120*p,t+0.11);
-    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.16,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.2);
-    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.22);
-  }
-  function playLaunch(){
-    if (!actx || G.muted) return;
-    const o=actx.createOscillator(), g=actx.createGain(), t=actx.currentTime;
-    o.type='sawtooth'; o.frequency.setValueAtTime(120,t); o.frequency.exponentialRampToValueAtTime(720,t+0.35);
-    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.22,t+0.05); g.gain.exponentialRampToValueAtTime(0.0001,t+0.5);
-    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.52);
-  }
-  // Short cute airy "fwip/plop" for the finish absorption — a quick descending
-  // sine chirp, deliberately NOT a wet/anatomical sound.
-  function playFwip(){
-    if (!actx || G.muted) return;
-    const o=actx.createOscillator(), g=actx.createGain(), t=actx.currentTime;
-    o.type='sine'; o.frequency.setValueAtTime(880,t); o.frequency.exponentialRampToValueAtTime(210,t+0.16);
-    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.14,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.2);
-    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.22);
-  }
+  // All sound + haptics go through the centralized system in src/audio (the sim
+  // only emits typed events; the AudioManager owns Web Audio / vibration). The old
+  // procedural tones live on as SfxPlayer fallbacks. `initAudio()` here is just the
+  // gesture-driven unlock hook. `G.muted` mirrors the persisted audio setting so
+  // the in-HUD mute button keeps working.
+  function initAudio(){ unlockAudio(); }
 
   // ---------- Strokes ----------
   function registerStroke(intensity){
@@ -198,8 +157,8 @@ export function bootGame() {
     if (t - G._lastStroke < REFRACTORY) return;
     G._lastStroke = t;
     G.flick = Math.min(1, G.flick+0.6);
-    if (navigator.vibrate) navigator.vibrate(12);
-    playStroke(Math.min(1, intensity||0.6));
+    // A stroke while charging is a "rev tick"; while playing it's a swim stroke.
+    emitAudio(G.state==='charging' ? 'charge_tick' : 'stroke', { intensity: Math.min(1, intensity||0.6) });
     // strokes no longer punch speed directly — they mark "I'm shaking now";
     // update() turns sustained shaking into a smooth, gradual push.
     if (G.state === 'charging'){ G.chargeInputT = t; }
@@ -580,7 +539,7 @@ export function bootGame() {
   }
 
   async function beginPlay(){
-    initAudio(); if (actx && actx.state==='suspended') actx.resume();
+    unlockAudio();   // real user gesture (Play/Race) — create/resume the AudioContext
     try{
       if (typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function'){
         const res = await DeviceMotionEvent.requestPermission();
@@ -687,21 +646,22 @@ export function bootGame() {
   function launch(){
     const c = G.charge;
     const inZone = c>=CHG_ZONE_LO && c<=CHG_ZONE_HI;
-    if (inZone){ G.speed = OVER_CAP; banner('PERFECT LAUNCH! 🚀'); }
-    else if (c > CHG_ZONE_HI){ G.speed = CRUISE_CAP*launchCfg.fizzleFraction; banner('OVERCOOKED 💥'); }
-    else { G.speed = CRUISE_CAP*(launchCfg.weakBase + launchCfg.weakScale*c); banner('LAUNCH!'); }
+    let launchEvent;
+    if (inZone){ G.speed = OVER_CAP; banner('PERFECT LAUNCH! 🚀'); launchEvent='launch_perfect'; }
+    else if (c > CHG_ZONE_HI){ G.speed = CRUISE_CAP*launchCfg.fizzleFraction; banner('OVERCOOKED 💥'); launchEvent='launch_overcooked'; }
+    else { G.speed = CRUISE_CAP*(launchCfg.weakBase + launchCfg.weakScale*c); banner('LAUNCH!'); launchEvent='launch_weak'; }
     G.shake = 1; G.flick = 1; G.charge = 0; G.strokes = [];
-    if (navigator.vibrate) navigator.vibrate(inZone ? [40,25,60] : 30);
-    playLaunch();
+    emitAudio(launchEvent);       // sound + launch haptic (perfect = two crisp pulses)
     G.state = 'playing';
+    setMusicState('race_fast', { speed01: Math.min(1, G.speed/OVER_CAP) });   // race music starts here
   }
 
   function quitRun(){ if (G.state==='playing'||G.state==='charging') endRun(G.mode==='endless'); }
   $('btnQuit').onclick = quitRun;
-  $('btnMute').onclick = () => { G.muted=!G.muted; $('btnMute').textContent = G.muted?'🔇':'🔊'; };
+  $('btnMute').onclick = () => { unlockAudio(); G.muted=!G.muted; setAudioSettings({ muted: G.muted }); $('btnMute').textContent = G.muted?'🔇':'🔊'; };
   $('btnCenter').onclick = () => { G.motion.base = G.motion.lp; banner('Centered ⟲'); };
-  $('btnBoost').onclick = () => { if (G.state==='playing' && !G.sprint && G.boostCharges>0 && G.boosting<=0){ G.boostCharges--; G.boosting=items.boostDurationSeconds; G.speed=OVER_CAP; G.flick=1; banner('BOOST! ⚡'); if(navigator.vibrate)navigator.vibrate(30); playLaunch(); } };
-  $('btnShield').onclick = () => { if (G.state==='playing' && G.shieldCharges>0 && !G.shieldActive){ G.shieldCharges--; G.shieldActive=true; banner('SHIELD UP 🛡'); if(navigator.vibrate)navigator.vibrate(15); } };
+  $('btnBoost').onclick = () => { if (G.state==='playing' && !G.sprint && G.boostCharges>0 && G.boosting<=0){ G.boostCharges--; G.boosting=items.boostDurationSeconds; G.speed=OVER_CAP; G.flick=1; banner('BOOST! ⚡'); emitAudio('boost_activate'); } };
+  $('btnShield').onclick = () => { if (G.state==='playing' && G.shieldCharges>0 && !G.shieldActive){ G.shieldCharges--; G.shieldActive=true; banner('SHIELD UP 🛡'); emitAudio('shield_activate'); } };
 
   // ---- Finish "enter the ovum" animation (presentation only) --------------------
   //
@@ -977,26 +937,30 @@ export function bootGame() {
       durationMs: reduced ? FINISH_MS_REDUCED : FINISH_MS_FULL,
       reduced,
       champX0: spermScreenX(),
-      firedFwip: false,
-      firedFinalHaptic: false,
+      firedPop: false,
+      firedSuction: false,
+      firedSeal: false,
     };
     G.state = 'finishing';
     $('hud').classList.add('hidden'); $('race').classList.add('hidden'); $('count').classList.add('hidden');
-    if (!reduced && navigator.vibrate && !G.muted) navigator.vibrate(18);   // short impact haptic
+    emitAudio('finish_impact');   // soft rubbery "boomp" + impact haptic + duck music
   }
 
   // Advance the presentation-only animation. Never touches simulation/replay data;
-  // when it completes (or is skipped) it reveals the already-locked results.
+  // when it completes (or is skipped) it reveals the already-locked results. The
+  // four finish sounds fire IN ORDER at their phase boundaries (scaled for reduced
+  // motion): impact (at start) -> membrane_pop -> suction -> seal.
   function updateFinishAnim(){
     const fa = G.finishAnim; if (!fa){ showResults(); return; }
     const e = now() - fa.startMs;
+    const dur = fa.durationMs, k = dur / FINISH_MS_FULL;   // scale phase times for reduced motion
     // Presentation-only flourish: the tail whips faster mid-suction (tailPhase is
     // not part of the sim or replay).
     G.tailPhase += 0.05 + ((!fa.reduced && e>360 && e<980) ? 0.22 : 0);
-    const fwipAt = fa.reduced ? 150 : 420;
-    if (!fa.firedFwip && e >= fwipAt){ fa.firedFwip = true; playFwip(); }
-    if (!fa.reduced && !fa.firedFinalHaptic && e >= 600){ fa.firedFinalHaptic = true; if (navigator.vibrate && !G.muted) navigator.vibrate([12,30,28]); }
-    if (e >= fa.durationMs) showResults();
+    if (!fa.firedPop     && e >= 200*k){ fa.firedPop = true; emitAudio('finish_membrane_pop'); }
+    if (!fa.firedSuction && e >= 420*k){ fa.firedSuction = true; emitAudio('finish_suction'); }
+    if (!fa.firedSeal    && e >= 980*k){ fa.firedSeal = true; emitAudio('finish_seal'); }
+    if (e >= dur) showResults();
   }
 
   // Reveal the results overlay. Idempotent (skip + animation-complete both call it).
@@ -1005,6 +969,7 @@ export function bootGame() {
     G.state='end';
     G.finishAnim = null;
     renderResultDOM(true, G._result || buildResult(true));
+    emitAudio(G.win ? 'result_win' : 'result_lose');   // short arcade sting + music handoff
   }
 
   // ---------- Charge update ----------
@@ -1033,7 +998,7 @@ export function bootGame() {
 
     // sprint zone
     if (G.mode==='level' && !G.sprint && G.distance >= SPRINT_START){
-      G.sprint = true; banner('⚡ FINAL SPRINT! ⚡'); G.boosting = 0;   // no carried-over boost into the sprint
+      G.sprint = true; banner('⚡ FINAL SPRINT! ⚡'); G.boosting = 0; emitAudio('final_sprint_start');   // no carried-over boost into the sprint
       G.obstacles = G.obstacles.filter(o => o.world < SPRINT_START);
       G.pickups = G.pickups.filter(p => p.world < SPRINT_START);        // no boosters in the sprint arena
     }
@@ -1096,7 +1061,7 @@ export function bootGame() {
         G.cpIndex++;
         G.nextCheckpoint += gapUnits*PX_PER_UNIT;
         banner('CHECKPOINT +'+END.timePerCheckpointSeconds+'s ⏱');
-        if (navigator.vibrate) navigator.vibrate(20);
+        emitAudio('checkpoint');
       }
       G.timeLeft -= dt;
       if (G.timeLeft <= 0){ G.timeLeft=0; endRun(false); }   // run ends on the clock, never on collision
@@ -1106,7 +1071,7 @@ export function bootGame() {
     // HUD refresh happens in the loop's presentation phase (see loop()).
   }
 
-  function softWallBump(){ if (G.speed > CRUISE_CAP*collision.wallBumpMinSpeedFraction){ G.speed *= collision.wallBumpMultiplier; G.shake=Math.min(1,G.shake+0.25); if (navigator.vibrate) navigator.vibrate(18); } }
+  function softWallBump(){ if (G.speed > CRUISE_CAP*collision.wallBumpMinSpeedFraction){ G.speed *= collision.wallBumpMultiplier; G.shake=Math.min(1,G.shake+0.25); emitAudio('collision_wall'); } }
   function spermScreenX(){ return cx + G.xNorm*(wallHalf(G.distance)-22); }
 
   function collisions(){
@@ -1125,8 +1090,9 @@ export function bootGame() {
   }
   function doHit(o){
     o.hit=true;
-    if (G.shieldActive){ G.shieldActive=false; G.shake=Math.min(1,G.shake+0.3); banner('BLOCKED 🛡'); if (navigator.vibrate) navigator.vibrate(12); return; }
-    G.hits++; G.speed *= HIT_PENALTY; G.hitFlash=1; G.shake=1; if (navigator.vibrate) navigator.vibrate([30,20,30]); playHit();
+    if (G.shieldActive){ G.shieldActive=false; G.shake=Math.min(1,G.shake+0.3); banner('BLOCKED 🛡'); emitAudio('collision_membrane', { intensity: 0.5 }); return; }
+    G.hits++; G.speed *= HIT_PENALTY; G.hitFlash=1; G.shake=1;
+    emitAudio(o && o._cv==='virus' ? 'collision_virus' : 'collision_wbc');
   }
 
   function collectPickups(){
@@ -1141,11 +1107,11 @@ export function bootGame() {
     G.pickups = G.pickups.filter(p => !p.taken && p.world > G.distance-30);
   }
   function takePickup(p){
-    p.taken=true; G.flick=Math.min(1,G.flick+0.4); if (navigator.vibrate) navigator.vibrate(10);
-    if (p.kind==='star'){ G.score+=items.starScore; playPickup(1.0); }
-    else if (p.kind==='boost'){ G.boostCharges=Math.min(items.maxCharges,G.boostCharges+1); banner('⚡ +1'); playPickup(1.3); }
-    else if (p.kind==='shield'){ G.shieldCharges=Math.min(items.maxCharges,G.shieldCharges+1); banner('🛡 +1'); playPickup(0.8); }
-    else { G.boosting=Math.max(G.boosting,items.speedOrbDurationSeconds); G.speed=Math.max(G.speed,OVER_CAP); G.score+=items.speedOrbScore; banner('SPEED! ✦'); playPickup(1.6); }
+    p.taken=true; G.flick=Math.min(1,G.flick+0.4);
+    if (p.kind==='star'){ G.score+=items.starScore; emitAudio('pickup_star'); }
+    else if (p.kind==='boost'){ G.boostCharges=Math.min(items.maxCharges,G.boostCharges+1); banner('⚡ +1'); emitAudio('pickup_star'); }
+    else if (p.kind==='shield'){ G.shieldCharges=Math.min(items.maxCharges,G.shieldCharges+1); banner('🛡 +1'); emitAudio('pickup_shield'); }
+    else { G.boosting=Math.max(G.boosting,items.speedOrbDurationSeconds); G.speed=Math.max(G.speed,OVER_CAP); G.score+=items.speedOrbScore; banner('SPEED! ✦'); emitAudio('pickup_speed'); }
   }
 
   function updateRival(dt, t){
@@ -1590,12 +1556,15 @@ export function bootGame() {
       if (shown!==countN){ countN=shown;
         if (countN>0){ $('countBig').textContent=String(countN); $('countBig').style.animation='none'; void $('countBig').offsetWidth; $('countBig').style.animation=''; }
         else if (countN===0){ $('countBig').textContent='GO'; } }
-      if (el>2100){ $('count').classList.add('hidden'); G.state='charging'; G.charge=0; G.chargeInputT=t; banner('REV UP! 🔋'); }
+      if (el>2100){ $('count').classList.add('hidden'); G.state='charging'; G.charge=0; G.chargeInputT=t; banner('REV UP! 🔋'); emitAudio('charge_start'); setMusicState('charging'); }
     } else if (G.state==='charging'){ chargeUpdate(dt, t); }
     else if (G.state==='playing'){ update(dt, t); }
     else if (G.state==='finishing'){ updateFinishAnim(); }   // cosmetic only — no sim, no input
     // Presentation phase: HUD (DOM) is written here, never from inside the sim tick.
     if (G.state==='charging' || G.state==='playing') syncHUD();
+    // Adaptive music: fade the speed layer with normalized speed (ignored unless
+    // the race bed is in the 'race_fast' state; the sprint layer is event-driven).
+    if (G.state==='playing' && !G.sprint) setRaceSpeed(Math.min(1, G.speed/OVER_CAP));
     render();
     requestAnimationFrame(loop);
   }
@@ -1634,6 +1603,8 @@ export function bootGame() {
 
   // ---------- Boot ----------
   setLevelLength(5000); resize(); selectMode('level'); updateHint(); loadGhostFromHash();
+  try { G.muted = getAudioSettings().muted; $('btnMute').textContent = G.muted ? '🔇' : '🔊'; } catch(e){}
+  setMusicState('menu');   // logical menu state; becomes audible once the context is unlocked
   try { const _c = localStorage.getItem('oiam_run'); if (_c) G.lastGhostCode = _c; } catch(e){}
   $('finePrint').textContent = detectControls() ? 'On iPhone you may get a one-time "allow motion" prompt — tap Allow.' : 'No motion sensor detected — keyboard / touch controls will be used.';
   requestAnimationFrame(loop);

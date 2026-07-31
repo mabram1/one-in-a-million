@@ -245,3 +245,17 @@
     background:rgba(15,5,9,.6); color:var(--text); font-size:15px; font-weight:700; cursor:pointer; }
   .settings-row:active{ transform:scale(.99); }
   .settings-close{ min-height:46px; margin-top:4px; border:none; border-radius:13px; background:var(--energy); color:#06201d; font-weight:800; font-size:15px; cursor:pointer; }
+  /* Audio & haptics controls */
+  .settings-group{ margin:6px 2px 2px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--energy); font-weight:800; }
+  .settings-ctl{ display:flex; align-items:center; gap:12px; min-height:48px; padding:4px 12px; border-radius:13px;
+    border:1px solid rgba(255,185,200,.14); background:rgba(15,5,9,.5); }
+  .settings-ctl label{ flex:0 0 42%; color:var(--text); font-size:14px; font-weight:700; }
+  .settings-ctl input[type=range]{ flex:1; height:44px; accent-color:var(--energy); background:transparent; cursor:pointer; }
+  .settings-ctl .val{ flex:0 0 40px; text-align:right; color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; }
+  /* Toggle switch (>=44px hit target) */
+  .settings-switch{ position:relative; flex:0 0 auto; width:52px; height:44px; display:inline-flex; align-items:center; cursor:pointer; }
+  .settings-switch input{ position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
+  .settings-switch .track{ width:46px; height:26px; border-radius:14px; background:rgba(255,255,255,.16); transition:background .15s; }
+  .settings-switch .thumb{ position:absolute; left:3px; top:9px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform .15s; }
+  .settings-switch input:checked ~ .track{ background:var(--energy); }
+  .settings-switch input:checked ~ .thumb{ transform:translateX(20px); }

@@ -5,6 +5,7 @@ import { loadArt } from './game/assets/store';
 import { maybeShowHowToPlay } from './app/screens/howToPlay';
 import { hubV2Enabled, show as showHub } from './app/screens/mainHub';
 import { openSettings } from './app/screens/settings';
+import { wireAudioLifecycle } from './audio';
 
 /**
  * Optional live-multiplayer transports, loaded from a CDN at runtime.
@@ -32,6 +33,9 @@ void (async () => {
 })();
 
 bootGame();
+
+// Audio/haptics: suspend music in the background, resume on return (web + native).
+wireAudioLifecycle();
 
 // Load the Spermy art rig in the background. The game renders its procedural
 // fallback until this resolves, then swaps to sprites — no boot blocking.
