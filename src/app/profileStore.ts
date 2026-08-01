@@ -48,6 +48,18 @@ export class ProfileStore {
     this.commit();
   }
 
+  /** Upgrade the current local Guest to a linked account without losing wallet,
+   * cosmetics, XP, records, or the locally processed My Face overlay. */
+  linkAccount(id: string, displayName: string): void {
+    this.state = { ...this.state, profile: {
+      ...this.state.profile,
+      id,
+      accountType: 'linked',
+      displayName: displayName.trim() || this.state.profile.displayName || 'Champ',
+    } };
+    this.commit();
+  }
+
   isOwned(itemId: string): boolean { return this.state.profile.ownedCosmeticIds.includes(itemId); }
 }
 

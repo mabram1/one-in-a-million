@@ -6,6 +6,7 @@ import { maybeShowHowToPlay } from './app/screens/howToPlay';
 import { hubV2Enabled, show as showHub } from './app/screens/mainHub';
 import { openSettings } from './app/screens/settings';
 import { showSplash } from './app/screens/splash';
+import { showAuthGate } from './app/screens/authGate';
 import { wireAudioLifecycle } from './audio';
 
 // Branded intro on load — masks the first-frame boot and leads into the menu.
@@ -57,7 +58,14 @@ const startPractice = () => { (document.getElementById('practicePlay') as HTMLEl
 // Settings (hosts Replay Tutorial, menu style, server settings).
 (document.getElementById('settingsLink') as HTMLElement | null)?.addEventListener('click', () => openSettings(startPractice));
 // How to Play auto-shows exactly once on first run (over the hub; dismissable).
-try { maybeShowHowToPlay(startPractice); } catch { /* non-fatal */ }
+const showFirstTutorial = () => { try { maybeShowHowToPlay(startPractice); } catch { /* non-fatal */ } };
+void showAuthGate().then(() => {
+  // First-run order is intentional: splash → account/Guest choice → tutorial → hub.
+  // Never stack the authentication card and tutorial on top of each other.
+  let chosen = false; try { chosen = !!localStorage.getItem('oiam_entry_choice'); } catch { /* */ }
+  if (chosen) showFirstTutorial();
+  else window.addEventListener('oiam:entry-complete', showFirstTutorial, { once:true });
+});
 
 // PWA service worker (parity with the pre-migration build). Registered relative to
 // the deploy base so it works on GitHub Pages subpaths, Vercel root, and Capacitor.
@@ -72,4 +80,3 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
-

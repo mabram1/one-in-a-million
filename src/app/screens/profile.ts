@@ -8,6 +8,7 @@ import { getProfileStore, ProfileStore } from '../profileStore';
 import { levelInfo } from '../domain/progression';
 import { catalog } from '../config';
 import { openMyFace } from './myFace';
+import { art, hasCustomFace } from '../../game/assets/store';
 
 const B = ((import.meta as any).env?.BASE_URL as string) || './';
 
@@ -18,6 +19,24 @@ const T = {
 };
 
 const fmt = (n: number) => n.toLocaleString('en-US');
+
+function champPreview(): string {
+  const layers: string[] = [];
+  const add = (key: string | null | undefined, cls: string) => {
+    if (!key) return;
+    const src = art.img[key]?.src;
+    if (src) layers.push(`<img class="${cls}" src="${src}" alt="">`);
+  };
+  add(art.equipped.trail || 'tail_default', 'profile-champ-tail');
+  add('body', 'profile-champ-body');
+  if (hasCustomFace() && art.customFace) layers.push(`<img class="profile-champ-face" src="${art.customFace.src}" alt="">`);
+  else add('face_idle', 'profile-champ-face');
+  add(art.equipped.glasses, 'profile-champ-glasses');
+  add(art.equipped.mouth, 'profile-champ-mouth');
+  add(art.equipped.hat, 'profile-champ-hat');
+  add(art.equipped.aura, 'profile-champ-aura');
+  return layers.join('');
+}
 
 /** Best times per practice distance, read from the game's local PB storage. */
 function personalBests(): { dist: number; time: number }[] {
@@ -52,6 +71,10 @@ export function openProfile(store: ProfileStore = getProfileStore()): void {
   root.innerHTML = `
     <div class="settings-sheet profile-sheet" role="dialog" aria-label="${t.title}">
       <h2>${t.title}</h2>
+      <div class="profile-champ-card">
+        <div class="profile-champ-preview" aria-label="Your customized Champ">${champPreview()}</div>
+        <button class="profile-face-edit" data-act="myface"><img src="${B}art/profile/my_face_tile.png" alt="">${t.myFace}</button>
+      </div>
       <div class="profile-id">
         <div class="profile-name">${p.displayName || t.guest}</div>
         <div class="profile-lvl">${t.level} ${info.displayLevel}</div>
@@ -62,7 +85,6 @@ export function openProfile(store: ProfileStore = getProfileStore()): void {
         <div class="profile-stat"><span class="k">💎 ${t.gems}</span><span class="v">${fmt(p.wallet.gems)}</span></div>
         <div class="profile-stat"><span class="k">🎨 ${t.cosmetics}</span><span class="v">${owned} / ${total}</span></div>
       </div>
-      <button class="settings-row myface-open" data-act="myface"><span style="display:flex;align-items:center;gap:10px"><img src="${B}art/profile/my_face_tile.png" alt="" style="width:26px;height:26px;border-radius:7px;object-fit:cover"> ${t.myFace}</span></button>
       <div class="settings-group">${t.bests}</div>
       <div class="stats profile-bests">
         ${bests.length ? bests.map((b) => `<div class="row"><span class="k">${b.dist} m</span><span class="v">${b.time.toFixed(1)} s</span></div>`).join('') : `<div class="row"><span class="k">${t.none}</span><span class="v"></span></div>`}

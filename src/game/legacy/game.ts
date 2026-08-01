@@ -15,6 +15,7 @@ import { encodeDeltas, decodeDeltas, interpolateAt, encodeChallengeCode, decodeC
 import { art, equip, hasCustomFace, loadCustomFace } from '../assets/store';
 import { emitAudio, unlockAudio, setMusicState, setRaceSpeed, getAudioSettings, setAudioSettings } from '../../audio';
 import { getProfileStore } from '../../app/profileStore';
+import { show as showHub } from '../../app/screens/mainHub';
 
 export function bootGame() {
   "use strict";
@@ -491,15 +492,30 @@ export function bootGame() {
       const gap = Math.max(60, Math.min(trackGeneration.gapMax,
         trackGeneration.gapBase * (1 + trackGeneration.widthDensityBias*(0.5 - wf)) + G.nextSpawn*trackGeneration.gapPerWorldUnit));
       if (G.nextSpawn > trackGeneration.graceUntilUnits && G.nextSpawn < spawnLimit){
+        // Once the canal starts tapering, centre blockers become unfair because a
+        // shaking player has less steering authority. Pin hazards to alternating
+        // wall sides and preserve a clearly readable route on the other side.
+        const narrowing = prog > trackGeneration.wideUntilFraction && wf < 0.78;
+        const edgeSide = G.rng() < 0.5 ? -1 : 1;
         if (G.rng() < trackGeneration.cellProbability){
-          const n = 1 + (G.rng() < trackGeneration.clusterProbability*(1-prog) ? 1 : 0);        // clusters early, singles late
+          const n = narrowing ? 1 : 1 + (G.rng() < trackGeneration.clusterProbability*(1-prog) ? 1 : 0);        // never cluster in the pinch
           // wider canal => bigger cells; capped to a fraction of the lane so it stays passable
           const size = Math.min(
             (trackGeneration.cellSizeBase + G.rng()*trackGeneration.cellSizeRandom) * (1 + trackGeneration.widthSizeBias*(wf - 0.5)),
             wallHalf(G.nextSpawn) * trackGeneration.maxCellLaneFraction);
-          for (let i=0;i<n;i++) G.obstacles.push({ type:'cell', world:G.nextSpawn + i*trackGeneration.clusterSpacingUnits, lane:(G.rng()*trackGeneration.cellLaneSpread-trackGeneration.cellLaneSpread/2), r:size, hit:false, ph:G.rng()*6.28 });
+          for (let i=0;i<n;i++) {
+            const lane = narrowing
+              ? edgeSide * (0.80 + G.rng()*0.10)
+              : (G.rng()*trackGeneration.cellLaneSpread-trackGeneration.cellLaneSpread/2);
+            G.obstacles.push({ type:'cell', world:G.nextSpawn + i*trackGeneration.clusterSpacingUnits, lane, r:size, hit:false, ph:G.rng()*6.28 });
+          }
         } else {
-          G.obstacles.push({ type:'band', world:G.nextSpawn, gapLane:(G.rng()*trackGeneration.bandLaneSpread-trackGeneration.bandLaneSpread/2), gapHalf:Math.min(trackGeneration.bandGapMax, trackGeneration.bandGapBase + prog*trackGeneration.bandGapByProgress), hit:false });
+          const gapHalf = Math.min(trackGeneration.bandGapMax, trackGeneration.bandGapBase + prog*trackGeneration.bandGapByProgress);
+          const maxGapCenter = Math.max(0, 1-gapHalf-0.08);
+          const gapLane = narrowing
+            ? edgeSide*maxGapCenter
+            : Math.max(-maxGapCenter, Math.min(maxGapCenter, G.rng()*trackGeneration.bandLaneSpread-trackGeneration.bandLaneSpread/2));
+          G.obstacles.push({ type:'band', world:G.nextSpawn, gapLane, gapHalf, hit:false });
         }
         if (G.rng() < trackGeneration.pickupProbability){   // a collectible sitting in the open lane
           const roll=G.rng(); const kind = roll<0.5?'star':roll<0.7?'boost':roll<0.9?'shield':'speed';
@@ -556,10 +572,12 @@ export function bootGame() {
     resetRun();
     $('start').classList.add('hidden'); $('end').classList.add('hidden');
     $('hud').classList.remove('hidden');
+    $('hud').dataset.hand = localStorage.getItem('oiam_dominant_hand') === 'left' ? 'left' : 'right';
     $('race').classList.toggle('hidden', G.mode!=='level');
+    $('launchPod')?.classList.remove('hidden');
     $('strokepad').classList.toggle('hidden', G.motion.active);
     $('kTime').textContent = G.mode==='endless' ? 'Time ⏱' : 'Time';
-    $('btnQuit').textContent = G.mode==='endless' ? '⏹' : '✕';
+    $('btnQuit').innerHTML = '&#10074;&#10074;';
     if (G.mode==='level'){ $('sprintMark').style.top = (100 - SPRINT_START/LEVEL_LENGTH*100) + '%'; }
     startCountdown();
   }
@@ -662,11 +680,35 @@ export function bootGame() {
     G.perfectLaunch = inZone;     // lock for the end-of-race reward
     emitAudio(launchEvent);       // sound + launch haptic (perfect = two crisp pulses)
     G.state = 'playing';
+    $('launchPod')?.classList.add('hidden');
     setMusicState('race_fast', { speed01: Math.min(1, G.speed/OVER_CAP) });   // race music starts here
   }
 
-  function quitRun(){ if (G.state==='playing'||G.state==='charging') endRun(G.mode==='endless'); }
-  $('btnQuit').onclick = quitRun;
+  function pauseRun(){
+    if (G.state!=='playing' && G.state!=='charging' && G.state!=='ready') return;
+    G.pauseFrom=G.state; G._pausedAt=now(); G.state='paused'; $('pause').classList.remove('hidden'); setMusicState('idle');
+  }
+  function resumeRun(){
+    if (G.state!=='paused') return;
+    // Freeze the countdown/charge: shift every time anchor forward by the paused
+    // duration so `now()-anchor` resumes exactly where it stopped (no skipped
+    // countdown, no accidental auto-launch from a stale charge timer).
+    const d = now() - (G._pausedAt || now());
+    countT += d; G.chargeInputT += d; G._lastStroke += d;
+    G.state=G.pauseFrom||'playing'; $('pause').classList.add('hidden');
+    setMusicState(G.state==='charging' ? 'charging' : 'race_fast', { speed01:Math.min(1,G.speed/OVER_CAP) });
+  }
+  function exitToHub(){
+    G.state='start'; G.finished=true;
+    $('pause').classList.add('hidden'); $('hud').classList.add('hidden'); $('race').classList.add('hidden');
+    $('count').classList.add('hidden'); $('end').classList.add('hidden'); $('launchPod')?.classList.add('hidden');
+    if (MP.active) leaveLobby();
+    setMusicState('menu'); showHub();
+  }
+  $('btnQuit').onclick = pauseRun;
+  $('pauseResume').onclick = resumeRun;
+  $('pauseExit').onclick = exitToHub;
+  $('backHubBtn').onclick = exitToHub;
   $('btnMute').onclick = () => { unlockAudio(); G.muted=!G.muted; setAudioSettings({ muted: G.muted }); $('btnMute').textContent = G.muted?'🔇':'🔊'; };
   $('btnCenter').onclick = () => { G.motion.base = G.motion.lp; banner('Centered ⟲'); };
   $('btnBoost').onclick = () => { if (G.state==='playing' && !G.sprint && G.boostCharges>0 && G.boosting<=0){ G.boostCharges--; G.boosting=items.boostDurationSeconds; G.speed=OVER_CAP; G.flick=1; banner('BOOST! ⚡'); emitAudio('boost_activate'); } };
@@ -857,7 +899,7 @@ export function bootGame() {
       const { place, total } = mpPlacement();
       G.win = finishedGoal && place===1;
       if (!finishedGoal){ title='Left the race'; sub='You bailed before the egg.'; cls='lose'; }
-      else { title = place===1 ? 'You win! 🥚🏆' : 'Finished #'+place; sub='Place '+place+' of '+total+' • '+G.elapsed.toFixed(1)+'s'; cls = place===1?'win':''; }
+      else { title = place===1 ? 'Champ takes first! 🏆' : 'Finished #'+place; sub='Place '+place+' of '+total+' • '+G.elapsed.toFixed(1)+'s'; cls = place===1?'win':''; }
     } else if (G.mode==='level' && G.ghost){
       G.win = finishedGoal && G.elapsed <= G.ghostTime;
       if (!finishedGoal){ title='Gave up'; sub='You bailed before the egg.'; cls='lose'; }
@@ -866,8 +908,8 @@ export function bootGame() {
     } else if (G.mode==='level'){
       G.win = (G.rival.finishT===0) || (G.elapsed <= G.rival.finishT);
       if (!finishedGoal){ title='Gave up'; sub='You bailed before the egg.'; cls='lose'; }
-      else if (G.win){ title='One in a million! 🥚'; sub='Beat your rival to the egg.'; cls='win'; }
-      else { title='Rival wins'; sub='Pipped at the egg — go again.'; cls='lose'; }
+      else if (G.win){ title='Champ did it!'; sub='First to the glowing ovum.'; cls='win'; }
+      else { title='So close, Champ!'; sub='Your rival reached the ovum first.'; cls='lose'; }
     } else {   // endless checkpoint mode
       const dist = Math.round(G.distance/PX_PER_UNIT);
       let best = 0; try{ best = +(localStorage.getItem('oiam_endless_best')||0) || 0; }catch(e){}
@@ -888,6 +930,15 @@ export function bootGame() {
     // Non-motion runs are unranked (handbook 1.2) — label it on the result.
     if (finishedGoal && !isRanked()) sub += (G.inputClass==='desktop_keyboard' ? ' · UNRANKED (keyboard)' : ' · UNRANKED');
     $('resultSub').textContent = sub;
+    const resultChamp=$('resultChamp');
+    if (resultChamp){
+      const layers=[];
+      const add=(key, cls='')=>{ const im=key&&art.img[key]; if(im) layers.push(`<img class="${cls}" src="${im.src}" alt="">`); };
+      add(art.equipped.trail || 'tail_default','champ-tail'); add('body','champ-body');
+      if (hasCustomFace() && art.customFace) layers.push(`<img class="champ-face" src="${art.customFace.src}" alt="">`); else add(G.win?'face_win':'face_hit','champ-face');
+      add(art.equipped.glasses,'champ-glasses'); add(art.equipped.mouth,'champ-mouth'); add(art.equipped.hat,'champ-hat'); add(art.equipped.aura,'champ-aura');
+      resultChamp.innerHTML=layers.join(''); resultChamp.classList.toggle('lose',!G.win);
+    }
     const m = v => Math.round(v/PX_PER_UNIT);
     if (G.mode==='endless'){
       let best = 0; try{ best = +(localStorage.getItem('oiam_endless_best')||0) || 0; }catch(e){}

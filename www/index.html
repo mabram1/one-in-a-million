@@ -13,8 +13,8 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
 <style>html,body{margin:0;background:#0d0305;}</style>
-  <script type="module" crossorigin src="./assets/index-DdNX3F8s.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-Dusd3ZGP.css">
+  <script type="module" crossorigin src="./assets/index-JypWoZ5t.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-rzfqCYli.css">
 </head>
 <body>
 <div class="wrap">
@@ -29,19 +29,21 @@
         <div class="stat"><div class="col"><span class="k" id="kTime">Time</span><span class="v" id="hTime">0.0<small>s</small></span></div></div>
         <div class="iconbtn" id="btnCenter" title="Re-center steering">⟲</div>
         <div class="iconbtn" id="btnMute" title="Sound">🔊</div>
-        <div class="iconbtn" id="btnQuit" title="End run">✕</div>
+        <button class="iconbtn pausebtn" id="btnQuit" title="Pause or leave race" aria-label="Pause or leave race">&#10074;&#10074;</button>
       </div>
 
       <div class="hud-bottom">
         <div class="boost-tag" id="boostTag">◆ Perfect rhythm — boost ◆</div>
-        <div class="thrust-wrap">
+        <div class="hud-actions" aria-label="Power-ups">
           <button class="itembtn boost" id="btnBoost" title="Boost">⚡<span class="cnt" id="boostCnt">3</span></button>
+          <button class="itembtn shield" id="btnShield" title="Shield">🛡<span class="cnt" id="shieldCnt">2</span></button>
+        </div>
+        <div class="thrust-wrap">
           <div class="thrust-bar" id="thrustBar">
             <div class="thrust-fill" id="thrustFill"></div>
             <div class="segments"></div>
             <div class="gozone"></div>
           </div>
-          <button class="itembtn shield" id="btnShield" title="Shield">🛡<span class="cnt" id="shieldCnt">2</span></button>
         </div>
         <div class="strokepad" id="strokepad"><span class="pulse">〰</span> <span id="padText">Tap / Space to swim</span> <span class="pulse">〰</span></div>
       </div>
@@ -49,7 +51,7 @@
 
     <div class="race hidden" id="race">
       <div class="flag">🏁</div>
-      <div class="egg-cap">🥚</div>
+      <div class="egg-cap"><img src="art/goal/egg.png" alt="Ovum"></div>
       <div class="youfill" id="youFill"></div>
       <div class="sprint-mark" id="sprintMark"></div>
       <div class="marker you" id="mYou">●</div>
@@ -58,6 +60,15 @@
     </div>
 
     <div class="count hidden" id="count"><div class="big" id="countBig">3</div><div class="lbl" id="countLbl">Hold your phone comfortably…</div></div>
+    <div class="launch-pod hidden" id="launchPod" aria-hidden="true"><span></span></div>
+
+    <div class="overlay pause-overlay hidden" id="pause" role="dialog" aria-label="Race paused">
+      <div class="eyebrow">CHAMP IS HOLDING POSITION</div>
+      <h2 class="result">Race paused</h2>
+      <p class="subresult">Catch your breath. The canal can wait.</p>
+      <button class="play" id="pauseResume">RESUME</button>
+      <button class="challenge-btn" id="pauseExit">&#8592; EXIT TO HUB</button>
+    </div>
 
     <div class="overlay menu" id="start">
       <div class="menu-hero">
@@ -105,11 +116,13 @@
     </div>
 
     <div class="overlay hidden" id="end">
+      <div class="result-champ" id="resultChamp" aria-label="Your customized Champ"></div>
       <h2 class="result" id="resultTitle">Nice swim</h2>
       <p class="subresult" id="resultSub"></p>
       <div class="stats" id="endStats"></div>
       <button class="play" id="againBtn">RACE AGAIN</button>
       <button class="challenge-btn hidden" id="challengeBtn">⚔ Challenge a friend</button>
+      <button class="result-home" id="backHubBtn">&#8592; BACK TO HUB</button>
     </div>
 
     <div class="overlay hidden" id="lobby">

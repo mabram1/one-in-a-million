@@ -16,12 +16,14 @@ const T = {
     server: 'Server settings', close: 'Close',
     audio: 'Audio & Haptics', master: 'Master', music: 'Music', sfx: 'Sound effects', ui: 'UI sounds',
     muteAll: 'Mute all', haptics: 'Haptics', reduced: 'Reduced audio intensity',
+    controls: 'Controls', handRight: 'Power-ups: right hand', handLeft: 'Power-ups: left hand',
   },
   sl: {
     title: 'Nastavitve', replay: 'Ponovi navodila', menuNew: 'Meni: Nov', menuClassic: 'Meni: Klasičen',
     server: 'Nastavitve strežnika', close: 'Zapri',
     audio: 'Zvok in vibracije', master: 'Glavna', music: 'Glasba', sfx: 'Zvočni učinki', ui: 'Zvoki vmesnika',
     muteAll: 'Izklopi vse', haptics: 'Vibracije', reduced: 'Zmanjšana jakost zvoka',
+    controls: 'Upravljanje', handRight: 'Dodatki: desna roka', handLeft: 'Dodatki: leva roka',
   },
 };
 
@@ -33,6 +35,7 @@ export function openSettings(onReplaySwim?: () => void): void {
   const root = document.createElement('div');
   root.className = 'settings-overlay';
   const hubOn = new URLSearchParams(location.search).get('hub') !== 'classic';
+  let hand = localStorage.getItem('oiam_dominant_hand') === 'left' ? 'left' : 'right';
 
   const slider = (key: keyof AudioSettings, label: string) => `
     <div class="settings-ctl">
@@ -56,6 +59,9 @@ export function openSettings(onReplaySwim?: () => void): void {
       <button class="settings-row" data-act="replay">❓ ${t.replay}</button>
       <button class="settings-row" data-act="menu">✨ ${hubOn ? t.menuClassic : t.menuNew}</button>
       <button class="settings-row" data-act="server">⚙ ${t.server}</button>
+
+      <div class="settings-group">${t.controls}</div>
+      <button class="settings-row" data-act="hand">&#9757; <span data-hand-label>${hand === 'left' ? t.handLeft : t.handRight}</span></button>
 
       <div class="settings-group">${t.audio}</div>
       ${slider('masterVolume', t.master)}
@@ -108,6 +114,13 @@ export function openSettings(onReplaySwim?: () => void): void {
     if (act === 'replay') { close(); openHowToPlay(onReplaySwim); }
     else if (act === 'menu') { setHubV2(!hubOn); location.href = hubOn ? location.pathname + '?hub=classic' : location.pathname; }
     else if (act === 'server') { close(); (document.getElementById('serverCfg') as HTMLElement | null)?.click(); }
+    else if (act === 'hand') {
+      hand = hand === 'right' ? 'left' : 'right';
+      try { localStorage.setItem('oiam_dominant_hand', hand); } catch { /* ignore */ }
+      const hud = document.getElementById('hud'); if (hud) hud.dataset.hand = hand;
+      const label = root.querySelector('[data-hand-label]'); if (label) label.textContent = hand === 'left' ? t.handLeft : t.handRight;
+      emitAudio('ui_click');
+    }
     else if (act === 'close') close();
   });
 
