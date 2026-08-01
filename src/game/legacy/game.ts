@@ -1762,6 +1762,15 @@ export function bootGame() {
     let dt=(t-last)/1000; last=t; if (dt>0.05) dt=0.05; if (dt<0) dt=0;
     if (!W || !H) resize();
     if ((loop._n=(loop._n||0)+1) % 10 === 0) updateDiag();
+    // The race canvas only belongs to an active run. In the menu/hub/customize
+    // (state 'start') the hub draws its own backdrop, so hide #c and skip the
+    // world render — otherwise the game world + HUD bleed through the translucent
+    // menu overlays. (visibility, not display, so resize() keeps real dimensions.)
+    if (G.state==='start'){
+      if (canvas.style.visibility!=='hidden') canvas.style.visibility='hidden';
+      requestAnimationFrame(loop); return;
+    }
+    if (canvas.style.visibility==='hidden') canvas.style.visibility='';
     if (G.state==='ready'){
       const el=t-countT;
       if (el>=countLeadMs){
