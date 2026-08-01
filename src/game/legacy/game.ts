@@ -15,6 +15,7 @@ import { encodeDeltas, decodeDeltas, interpolateAt, encodeChallengeCode, decodeC
 import { art, equip, hasCustomFace, loadCustomFace } from '../assets/store';
 import { emitAudio, unlockAudio, setMusicState, setRaceSpeed, getAudioSettings, setAudioSettings } from '../../audio';
 import { getProfileStore } from '../../app/profileStore';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../app/supabaseConfig';
 import { show as showHub } from '../../app/screens/mainHub';
 
 export function bootGame() {
@@ -291,10 +292,7 @@ export function bootGame() {
 
   // --- server config (Supabase: works with self-hosted Docker or cloud — only URL + anon key change) ---
   // Live server everyone uses by default. The anon key is public by design (safe in client code).
-  const SUPA_DEFAULT = {
-    url: 'https://tsddumsxoclcjguczezr.supabase.co',
-    key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzZGR1bXN4b2NsY2pndWN6ZXpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4Nzg0OTAsImV4cCI6MjEwMDQ1NDQ5MH0.1yTBnlNOAzxgSQdS27bo52fPSx_JEH5T2DM3cQb8rq4'
-  };
+  const SUPA_DEFAULT = { url: SUPABASE_URL, key: SUPABASE_ANON_KEY };
   const normUrl = u => String(u||'').trim().replace(/\/+$/,'').replace(/\/rest\/v1$/,'');
   function supaCfg(){
     try { const s = JSON.parse(localStorage.getItem('oiam_supa')||'null'); if (s && s.url && s.key) return s; } catch(e){}

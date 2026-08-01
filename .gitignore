@@ -5,3 +5,8 @@ dist/
 tools/.cdn-transports.js
 .DS_Store
 *.log
+
+# Local env (Supabase anon key etc.) — never commit real values
+.env
+.env.local
+.env.*.local

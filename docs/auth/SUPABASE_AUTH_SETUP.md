@@ -5,8 +5,27 @@ Supabase project. The **code cannot enable providers or set redirect URLs** — 
 is dashboard configuration. This document lists everything an admin must do.
 
 - Project: `tsddumsxoclcjguczezr` (`https://tsddumsxoclcjguczezr.supabase.co`)
-- Client uses the **anon (public) key only** — safe to ship in the app. **Never put
-  the `service_role` key in client code or this repo.**
+- Client uses the **anon (public) key only** — safe to ship in the app (it is
+  RLS-protected, NOT the `service_role` key). **Never put the `service_role` key in
+  client code or this repo.**
+
+## 0. Where the anon key lives (env var, not committed)
+
+The anon key is public but is **not committed** — it's read from a build-time env
+var (`src/app/supabaseConfig.ts`). If unset, cloud features are inactive and fall
+back gracefully (P2P multiplayer, guest play); the in-app "Server settings"
+(`localStorage oiam_supa`) can still supply url+key at runtime.
+
+- **Local dev:** copy `.env.example` → `.env.local` and paste
+  `VITE_SUPABASE_ANON_KEY` (and `VITE_SUPABASE_URL`). `.env*` is gitignored.
+- **CI / deploy (GitHub Actions):** add repo **Variables** (Settings → Secrets and
+  variables → Actions → *Variables*, NOT Secrets — it's public):
+  - `VITE_SUPABASE_URL` = `https://tsddumsxoclcjguczezr.supabase.co`
+  - `VITE_SUPABASE_ANON_KEY` = the anon key
+  The `pages.yml` (Pages) and `android.yml` (APK) build steps already read these.
+  **Until these variables are set, the deployed site has no anon key → live
+  Supabase multiplayer falls back to P2P and Google/email sign-in are inactive
+  (guest play + everything else still works).**
 - Client options already set: `persistSession`, `autoRefreshToken`,
   `detectSessionInUrl` (the redirected session is processed on launch).
 

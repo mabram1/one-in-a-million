@@ -2,7 +2,14 @@
 
 _Last updated: 2026-07-31_
 
-## Music: one race track (owner-supplied), quiet background
+## Music: REMOVED again (SFX-only) — 2026-08-01
+
+Owner removed the background music ("doesn't fit"). `public/audio/music/` is empty,
+the Music slider is hidden, and the game runs SFX-only. The music system stays
+wired and dormant — dropping a file back into `public/audio/music/` would play it
+again — but there is intentionally no music. (History below kept for context.)
+
+## (history) Music: one race track (owner-supplied), quiet background
 
 **Update 2026-07-31 (later same day):** the owner added a race track they like —
 `public/audio/music/race_base.mp3` ("Neon Turbo Dash", made with Suno) — used as

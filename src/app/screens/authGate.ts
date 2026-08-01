@@ -1,10 +1,8 @@
 import { getProfileStore } from '../profileStore';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../supabaseConfig';
 
 const ENTRY_KEY = 'oiam_entry_choice';
-const DEFAULT_SERVER = {
-  url: 'https://tsddumsxoclcjguczezr.supabase.co',
-  key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYXNlIiwicmVmIjoidHNkZHVtc3hvY2xjamd1Y3plenIiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc4NDg3ODQ5MCwiZXhwIjoyMTAwNDU1NDkwfQ.1yTBnlNOAzxgSQdS27bo52fPSx_JEH5T2DM3cQb8rq4',
-};
+const DEFAULT_SERVER = { url: SUPABASE_URL, key: SUPABASE_ANON_KEY };
 
 type SupabaseClient = any;
 let client: SupabaseClient | null = null;

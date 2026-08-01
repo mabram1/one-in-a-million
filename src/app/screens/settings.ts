@@ -65,7 +65,7 @@ export function openSettings(onReplaySwim?: () => void): void {
 
       <div class="settings-group">${t.audio}</div>
       ${slider('masterVolume', t.master)}
-      ${slider('musicVolume', t.music)}
+      ${/* Music removed from the game (SFX-only) — slider omitted. */ ''}
       ${slider('sfxVolume', t.sfx)}
       ${slider('uiVolume', t.ui)}
       ${toggle('muted', t.muteAll)}
