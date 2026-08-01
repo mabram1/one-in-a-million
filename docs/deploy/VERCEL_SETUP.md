@@ -12,9 +12,12 @@ further change.
 
 Vercel → **Add New → Project → Import** `mabram1/one-in-a-million`.
 
-- **Root Directory: `android-app`**  ← critical: the Vite app lives in `android-app/`,
-  not the repo root. Set this in the import screen (Edit → Root Directory).
-- Framework preset: **Other** (vercel.json already sets build + output).
+- **Root Directory: leave the default `one-in-a-million (root)`.** The Vite app is
+  at the repo root (the local `android-app/` folder IS the git repo root, so on
+  GitHub `src/`, `public/`, `docs/`, `vercel.json` all sit at the top). Vercel
+  auto-detects Vite there — do NOT pick a subfolder.
+- Framework preset: Vercel auto-detects **Vite** (fine); `vercel.json` sets the
+  actual build + output.
 - Build command: `npm run build` (from vercel.json)
 - Output directory: `www` (from vercel.json)
 
