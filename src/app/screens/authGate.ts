@@ -23,10 +23,13 @@ function serverConfig(): { url:string; key:string } {
 
 async function supabase(timeoutMs=5000): Promise<SupabaseClient | null> {
   if (client) return client;
+  const cfg=serverConfig();
+  if (!cfg.url || !cfg.key) return null;   // no anon key configured -> cloud auth off (createClient throws on an empty key)
   const started=Date.now();
   while (!(window as any).__supa?.createClient && Date.now()-started < timeoutMs) await new Promise((r)=>setTimeout(r,100));
   const factory=(window as any).__supa?.createClient; if (!factory) return null;
-  const cfg=serverConfig(); client=factory(cfg.url,cfg.key,{ auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } });
+  try { client=factory(cfg.url,cfg.key,{ auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } }); }
+  catch { return null; }
   return client;
 }
 

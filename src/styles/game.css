@@ -218,6 +218,26 @@
   .challenge-btn{ pointer-events:auto; cursor:pointer; border:2px solid var(--gold); background:rgba(255,210,77,.12); color:var(--gold); font-weight:800; font-size:14px; padding:12px 22px; border-radius:14px; box-shadow:0 0 20px -6px var(--gold); }
   .challenge-btn:active{ transform:translateY(1px); }
   .challenge-btn.hidden{ display:none; }
+
+  /* Professional private/public multiplayer lobby. */
+  .room-choice,.lobby-screen{ padding-top:max(28px,env(safe-area-inset-top)); padding-bottom:max(28px,env(safe-area-inset-bottom)); overflow:auto; }
+  .room-code-entry{ width:min(100%,330px); display:grid; grid-template-columns:1fr 92px; gap:8px; }
+  .room-code-entry input{ min-width:0; height:54px; padding:0 15px; border-radius:15px; border:1px solid rgba(67,224,207,.35); background:rgba(13,3,5,.72); color:var(--text); text-align:center; font-size:19px; font-weight:900; letter-spacing:.16em; text-transform:uppercase; user-select:text; }
+  .room-code-entry button{ border:0; border-radius:15px; background:linear-gradient(#71eee1,#43e0cf); color:#062b28; font-weight:900; }
+  .lobby-screen{ justify-content:flex-start; gap:13px; }
+  .lobby-screen .result{ margin-top:3px; font-size:clamp(28px,8vw,40px); }
+  #lobbyInfo span{ display:block; margin-top:7px; font:700 14px var(--font-ui); color:var(--muted); }
+  .lobby-share{ pointer-events:auto; width:min(100%,330px); min-height:48px; border-radius:14px; border:1px solid rgba(255,210,77,.55); color:var(--gold); background:rgba(255,210,77,.08); font-weight:900; letter-spacing:.04em; }
+  .lobby-roster{ width:min(100%,330px); max-height:260px; overflow:auto; display:grid; gap:7px; padding:10px; border-radius:17px; background:rgba(13,3,5,.48); border:1px solid rgba(255,185,200,.14); }
+  .lobby-player{ min-height:42px; display:grid; grid-template-columns:26px 1fr auto; align-items:center; gap:9px; padding:7px 10px; border-radius:12px; background:linear-gradient(180deg,rgba(66,16,31,.5),rgba(24,6,12,.5)); }
+  .lobby-player i{ width:20px; height:20px; border-radius:50%; background:hsl(var(--peer),78%,62%); border:2px solid #ffe6dc; box-shadow:0 0 9px hsl(var(--peer),78%,62%); }
+  .lobby-player span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; font-weight:800; }
+  .lobby-player b{ color:var(--energy); font-size:10px; letter-spacing:.08em; }
+  .lobby-auto{ width:min(100%,330px); display:grid; place-items:center; gap:3px; padding:12px; border-radius:16px; border:1px solid rgba(67,224,207,.32); background:radial-gradient(circle at 50% 0,rgba(67,224,207,.14),rgba(13,3,5,.55)); }
+  .lobby-auto.hidden{ display:none; }
+  .lobby-auto span{ color:var(--energy); font-size:10px; font-weight:900; letter-spacing:.16em; }
+  .lobby-auto strong{ color:var(--text); font-size:34px; font-variant-numeric:tabular-nums; text-shadow:0 0 16px rgba(67,224,207,.35); }
+  .lobby-auto small{ color:var(--muted); font-size:11px; }
   .live-btn{ pointer-events:auto; cursor:pointer; border:2px solid var(--go); background:rgba(124,255,159,.12); color:var(--go); font-weight:800; font-size:15px; padding:13px 26px; border-radius:14px; box-shadow:0 0 22px -6px var(--go); }
   .live-btn:active{ transform:translateY(1px); }
   .overlay.menu{ justify-content:flex-start; overflow-y:auto; gap:14px; padding:24px 20px 34px; }

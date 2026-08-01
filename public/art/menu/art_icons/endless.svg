@@ -1,23 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" style="color:#f8ecdb"><defs>
-    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
-      <stop stop-color="#fff1a6"/><stop offset=".5" stop-color="#ffd24d"/><stop offset="1" stop-color="#f2b25f"/>
-    </linearGradient>
-    <linearGradient id="teal" x1="0" y1="0" x2="0" y2="1">
-      <stop stop-color="#9afff4"/><stop offset=".52" stop-color="#43e0cf"/><stop offset="1" stop-color="#23bbaa"/>
-    </linearGradient>
-    <linearGradient id="coral" x1="0" y1="0" x2="0" y2="1">
-      <stop stop-color="#ffb9c8"/><stop offset=".5" stop-color="#ff6a5c"/><stop offset="1" stop-color="#b8304f"/>
-    </linearGradient>
-    <linearGradient id="violet" x1="0" y1="0" x2="0" y2="1">
-      <stop stop-color="#e7c1ff"/><stop offset=".55" stop-color="#a871c7"/><stop offset="1" stop-color="#6c3d91"/>
-    </linearGradient>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0d0305" flood-opacity=".55"/>
-    </filter>
-    <filter id="teal-glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="0" stdDeviation="7" flood-color="#43e0cf" flood-opacity=".48"/>
-    </filter>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <defs>
+    <linearGradient id="teal" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#bafff8"/><stop offset=".5" stop-color="#43e0cf"/><stop offset="1" stop-color="#168f84"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff1a6"/><stop offset=".5" stop-color="#ffd24d"/><stop offset="1" stop-color="#f2b25f"/></linearGradient>
+    <filter id="shadow" x="-40%" y="-40%" width="180%" height="190%"><feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#0d0305" flood-opacity=".6"/></filter>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#43e0cf" flood-opacity=".45"/></filter>
   </defs>
-    <path d="M18 82c19-42 44-43 62 0s43 42 62 0c-19-43-44-43-62 0s-43 42-62 0Z" fill="none" stroke="url(#teal)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" filter="url(#teal-glow)"/>
-    <path d="M28 74c14-22 29-23 44 4" fill="none" stroke="#fff" stroke-opacity=".38" stroke-width="5" stroke-linecap="round"/>
-  </svg>
+  <g filter="url(#shadow)">
+    <path d="M18 83c18-42 44-43 62 0s44 42 62 0c-18-43-44-43-62 0s-44 42-62 0Z" fill="none" stroke="#ffe6dc" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M18 83c18-42 44-43 62 0s44 42 62 0c-18-43-44-43-62 0s-44 42-62 0Z" fill="none" stroke="url(#teal)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+    <circle cx="39" cy="61" r="10" fill="url(#gold)" stroke="#ffe6dc" stroke-width="4"/>
+    <path d="M25 69c10-13 20-19 32-14" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="5" stroke-linecap="round"/>
+    <path d="m119 110 10 18 20 3-15 14 4 20-19-10-18 10 4-20-15-14 20-3z" transform="scale(.58) translate(85 80)" fill="url(#gold)" stroke="#ffe6dc" stroke-width="5"/>
+  </g>
+</svg>

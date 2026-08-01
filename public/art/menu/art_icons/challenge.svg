@@ -1,26 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" style="color:#f8ecdb"><defs>
-    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
-      <stop stop-color="#fff1a6"/><stop offset=".5" stop-color="#ffd24d"/><stop offset="1" stop-color="#f2b25f"/>
-    </linearGradient>
-    <linearGradient id="teal" x1="0" y1="0" x2="0" y2="1">
-      <stop stop-color="#9afff4"/><stop offset=".52" stop-color="#43e0cf"/><stop offset="1" stop-color="#23bbaa"/>
-    </linearGradient>
-    <linearGradient id="coral" x1="0" y1="0" x2="0" y2="1">
-      <stop stop-color="#ffb9c8"/><stop offset=".5" stop-color="#ff6a5c"/><stop offset="1" stop-color="#b8304f"/>
-    </linearGradient>
-    <linearGradient id="violet" x1="0" y1="0" x2="0" y2="1">
-      <stop stop-color="#e7c1ff"/><stop offset=".55" stop-color="#a871c7"/><stop offset="1" stop-color="#6c3d91"/>
-    </linearGradient>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0d0305" flood-opacity=".55"/>
-    </filter>
-    <filter id="teal-glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="0" stdDeviation="7" flood-color="#43e0cf" flood-opacity=".48"/>
-    </filter>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff1a6"/><stop offset=".5" stop-color="#ffd24d"/><stop offset="1" stop-color="#f2b25f"/></linearGradient>
+    <linearGradient id="coral" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ffb9c8"/><stop offset=".5" stop-color="#ff6a5c"/><stop offset="1" stop-color="#b8304f"/></linearGradient>
+    <linearGradient id="teal" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#9afff4"/><stop offset=".52" stop-color="#43e0cf"/><stop offset="1" stop-color="#23bbaa"/></linearGradient>
+    <filter id="shadow" x="-40%" y="-40%" width="180%" height="190%"><feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#0d0305" flood-opacity=".58"/></filter>
   </defs>
-    <path d="m33 24 93 112M127 24 34 136" stroke="#f8ecdb" stroke-width="14" stroke-linecap="round" filter="url(#glow)"/>
-    <path d="M24 16h52L59 43l17 23H24z" fill="url(#coral)" stroke="#ffd24d" stroke-width="4"/>
-    <path d="M136 16H84l17 27-17 23h52z" fill="url(#violet)" stroke="#ffd24d" stroke-width="4"/>
-    <circle cx="80" cy="82" r="20" fill="url(#gold)" stroke="#f8ecdb" stroke-width="4"/>
-    <path d="m80 67 5 10 11 2-8 8 2 11-10-5-10 5 2-11-8-8 11-2z" fill="#b8304f"/>
-  </svg>
+  <g filter="url(#shadow)">
+    <path d="m35 27 89 107M126 27 36 134" stroke="#ffe6dc" stroke-width="13" stroke-linecap="round"/>
+    <path d="M23 17h54L60 43l17 25H23z" fill="url(#coral)" stroke="#ffd24d" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M137 17H83l17 26-17 25h54z" fill="url(#teal)" stroke="#ffd24d" stroke-width="4" stroke-linejoin="round"/>
+    <circle cx="80" cy="84" r="23" fill="url(#gold)" stroke="#ffe6dc" stroke-width="5"/>
+    <path d="m80 68 5 10 12 2-9 8 3 12-11-6-11 6 3-12-9-8 12-2z" fill="#7c1836"/>
+    <path d="M30 23h34" stroke="#fff" stroke-opacity=".35" stroke-width="5" stroke-linecap="round"/>
+  </g>
+</svg>

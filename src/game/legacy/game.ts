@@ -16,7 +16,7 @@ import { art, equip, hasCustomFace, loadCustomFace } from '../assets/store';
 import { emitAudio, unlockAudio, setMusicState, setRaceSpeed, getAudioSettings, setAudioSettings } from '../../audio';
 import { getProfileStore } from '../../app/profileStore';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../app/supabaseConfig';
-import { show as showHub } from '../../app/screens/mainHub';
+import { show as showHub, hide as hideHub } from '../../app/screens/mainHub';
 
 export function bootGame() {
   "use strict";
@@ -283,10 +283,21 @@ export function bootGame() {
     const m = (location.hash||'').match(/g=([A-Za-z0-9\-_~.]+)/);
     if (m){ try { if (setChallenge(decodeChallenge(decodeURIComponent(m[1])))) G.externalChallenge = true; } catch(e){} }
   }
+  function loadRoomFromHash(){
+    const m=(location.hash||'').match(/room=([A-Za-z0-9]+)/i);
+    if(!m) return false;
+    const code=cleanRoomCode(m[1]); if(!code) return false;
+    setTimeout(()=>startLive('private',code),0); return true;
+  }
 
-  // ---------- Live multiplayer (serverless P2P rooms via Trystero) ----------
-  const MP = { active:false, transport:'', room:null, client:null, ch:null, id:'', code:'', name:'', peers:{}, finishes:{}, send:null, sendGo:null, started:false, _sendT:0 };
+  // ---------- Live multiplayer (private invites + scheduled public rooms) ----------
+  const MAX_ROOM_PLAYERS = 10;
+  const MP = { active:false, transport:'', room:null, client:null, ch:null, id:'', code:'', name:'', peers:{}, finishes:{}, send:null, sendGo:null, started:false, _sendT:0,
+    kind:'private', isHost:false, autoStartAt:0, _lobbyT:0, roster:[], moving:false };
   const randomCode = () => { let c='', A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; for(let i=0;i<4;i++) c+=A[Math.floor(Math.random()*A.length)]; return c; };
+  const cleanRoomCode = value => String(value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8);
+  const publicRoomCode = target => 'P'+Math.floor(target/60000).toString(36).slice(-6).toUpperCase();
+  const roomSeed = code => { let h=2166136261>>>0; for(const ch of code){ h^=ch.charCodeAt(0); h=Math.imul(h,16777619); } return h>>>0; };
   function peerHue(id){ let h=0; for(const ch of id) h=(h*31 + ch.charCodeAt(0))%360; return h; }
   function peerCount(){ return Object.keys(MP.peers).length; }
 
@@ -308,16 +319,18 @@ export function bootGame() {
     toast('Custom server saved ✓');
   }
 
-  function startLive(){
+  function startLive(kind='private', suppliedCode='', suppliedStartAt=0){
     const cfg = supaCfg();
     const haveSupa = !!(cfg && cfg.url && cfg.key && window.__supa);
     if (!haveSupa && !window.__trystero){ toast('Live race needs the web/app link (not the in-chat preview)'); return; }
-    let code=''; try{ code = prompt('Enter a room code to join a friend, or leave blank to create one:')||''; }catch(e){ return; }
-    code = code.trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
-    MP.isHost = !code;                    // created the room => host; typed a code => joined
-    if (!code) code = randomCode();
-    MP.code=code; MP.active=true; MP.started=false; MP.peers={};
-    MP.name = 'Swimmer '+Math.floor(Math.random()*90+10);
+    let code=cleanRoomCode(suppliedCode);
+    MP.kind=kind; MP.isHost=kind==='private' && !code;
+    if (kind==='public'){
+      MP.autoStartAt = suppliedStartAt || Math.ceil((Date.now()+3000)/60000)*60000;
+      code = publicRoomCode(MP.autoStartAt); MP.isHost=false; mpM=600;
+    } else { MP.autoStartAt=0; if (!code) code=randomCode(); }
+    MP.code=code; MP.active=true; MP.started=false; MP.peers={}; MP.roster=[]; MP.moving=false;
+    MP.name = getProfileStore().profile.displayName || ('Swimmer '+Math.floor(Math.random()*90+10));
     MP.id = Math.random().toString(36).slice(2,9);
     if (haveSupa) startLiveSupabase(code, cfg); else startLiveP2P(code);
   }
@@ -331,12 +344,12 @@ export function bootGame() {
         if (!payload || !payload.id) return;
         ingestPeerState(payload.id, payload);
       });
-      ch.on('broadcast', { event:'go' }, ({ payload }) => { if (!MP.started) beginLiveRace(payload && payload.m, payload && payload.seed); });
+      ch.on('broadcast', { event:'go' }, ({ payload }) => { if (!MP.started) beginLiveRace(payload && payload.m, payload && payload.seed, payload && payload.startAt); });
       ch.on('presence', { event:'sync' }, updateLobby);
       ch.on('presence', { event:'join' }, updateLobby);
       ch.on('presence', { event:'leave' }, updateLobby);
       ch.subscribe(async (status) => {
-        if (status==='SUBSCRIBED'){ try{ await ch.track({ name: MP.name }); }catch(e){} updateLobby(); }
+        if (status==='SUBSCRIBED'){ try{ await ch.track({ name:MP.name, joinedAt:Date.now(), kind:MP.kind }); }catch(e){} updateLobby(); }
         else if (status==='CHANNEL_ERROR' || status==='TIMED_OUT'){ toast('Cannot reach Supabase — check Server settings'); }
       });
       MP.send   = (payload) => { try{ ch.send({ type:'broadcast', event:'st', payload:{ ...payload, id:MP.id } }); }catch(e){} };
@@ -353,35 +366,65 @@ export function bootGame() {
       const [sendGo, getGo] = room.makeAction('go');
       MP.send = sendState; MP.sendGo = sendGo;
       getState((d, id) => ingestPeerState(id, d));
-      getGo((d) => { if (!MP.started) beginLiveRace(d && d.m, d && d.seed); });
-      room.onPeerJoin(()=>updateLobby());
+      getGo((d) => { if (!MP.started) beginLiveRace(d && d.m, d && d.seed, d && d.startAt); });
+      room.onPeerJoin(()=>{ try{ MP.send({ n:MP.name, waiting:1 }); }catch(e){} updateLobby(); });
       room.onPeerLeave(id=>{ delete MP.peers[id]; updateLobby(); });
-      showLobby();
+      showLobby(); setTimeout(()=>{ try{ MP.send({ n:MP.name, waiting:1 }); }catch(e){} },50);
     } catch(e){ MP.active=false; toast('Could not open the room — try the web/app link'); }
   }
 
-  function showLobby(){ $('start').classList.add('hidden'); $('end').classList.add('hidden'); $('lobby').classList.remove('hidden'); updateLobby(); }
+  function showLobby(){
+    $('start').classList.add('hidden'); $('end').classList.add('hidden'); $('roomChoice').classList.add('hidden'); $('lobby').classList.remove('hidden');
+    updateLobby(); clearInterval(MP._lobbyT); MP._lobbyT=setInterval(updateLobby,250);
+  }
+  function lobbyRoster(){
+    const rows=[{ id:MP.id, name:MP.name, me:true }];
+    if (MP.transport==='supabase' && MP.ch && MP.ch.presenceState){
+      try {
+        const state=MP.ch.presenceState(); rows.length=0;
+        for(const id of Object.keys(state).sort()){
+          const meta=(state[id]&&state[id][0])||{}; rows.push({ id, name:meta.name||'Swimmer', me:id===MP.id });
+        }
+        if (!rows.some(x=>x.id===MP.id)) rows.push({ id:MP.id, name:MP.name, me:true });
+      } catch(e){}
+    } else {
+      for(const id of Object.keys(MP.peers).sort()) rows.push({ id, name:MP.peers[id].n||'Swimmer', me:false });
+    }
+    return rows;
+  }
   function updateLobby(){
     const el=$('lobbyInfo'); if(!el) return;
-    let n = peerCount()+1;
-    if (MP.transport==='supabase' && MP.ch && MP.ch.presenceState){ try{ n = Math.max(1, Object.keys(MP.ch.presenceState()).length); }catch(e){} }
-    const via = MP.transport==='supabase' ? 'Supabase' : 'P2P';
-    el.innerHTML = 'Room <b>'+MP.code+'</b><br><span style="font-size:15px;color:var(--muted)">'+n+' swimmer'+(n===1?'':'s')+' connected · via '+via+'</span>';
-    // only the host starts the race (and picks the distance)
-    const sb=$('lobbyStart'), wt=$('lobbyWait'), ch=$('mpChips');
-    if (sb) sb.style.display = MP.isHost ? '' : 'none';
-    if (ch) ch.style.display = MP.isHost ? '' : 'none';
-    if (wt) wt.style.display = MP.isHost ? 'none' : '';
+    const rows=lobbyRoster(); MP.roster=rows; const n=Math.min(rows.length,MAX_ROOM_PLAYERS);
+    const isPublic=MP.kind==='public';
+    $('lobbyEyebrow').textContent=isPublic?'PUBLIC MATCHMAKING':'PRIVATE CHALLENGE';
+    $('lobbyCopy').textContent=isPublic?'Players arriving now join this scheduled race.':'Send the invite link. The host starts when everyone is ready.';
+    el.innerHTML=(isPublic?'Public room ':'Room ')+'<b>'+MP.code+'</b><br><span>'+n+' / '+MAX_ROOM_PLAYERS+' swimmers ready</span>';
+    const roster=$('lobbyRoster'); if(roster) roster.innerHTML=rows.slice(0,MAX_ROOM_PLAYERS).map((p,i)=>'<div class="lobby-player"><i style="--peer:'+peerHue(p.id)+'"></i><span>'+String(p.name).replace(/[<>&]/g,'')+(p.me?' (You)':'')+'</span><b>'+(MP.isHost&&p.me?'HOST':String(i+1))+'</b></div>').join('');
+    const sb=$('lobbyStart'), wt=$('lobbyWait'), chips=$('mpChips'), share=$('lobbyShare'), auto=$('lobbyAuto');
+    if (sb) sb.style.display = !isPublic && MP.isHost ? '' : 'none';
+    if (chips) chips.style.display = !isPublic && MP.isHost ? '' : 'none';
+    if (share) share.style.display = isPublic ? 'none' : '';
+    if (auto) auto.classList.toggle('hidden',!isPublic);
+    if (wt) { wt.style.display = !isPublic && !MP.isHost ? '' : 'none'; wt.textContent='Waiting for the host to start…'; }
+    if (isPublic){
+      const left=Math.max(0,MP.autoStartAt-Date.now()); const sec=Math.ceil(left/1000);
+      $('lobbyCountdown').textContent='00:'+String(sec).padStart(2,'0');
+      if (left<=0 && !MP.started) beginLiveRace(mpM,roomSeed(MP.code),MP.autoStartAt);
+    }
+    // Realtime Presence is advisory. First ten are displayed/admitted client-side;
+    // an authoritative hard cap belongs in the documented server room allocator.
+    if (rows.length>MAX_ROOM_PLAYERS && !MP.moving){ toast('This room is full — the next public race will open automatically'); }
   }
-  function leaveLobby(){
+  function leaveLobby(showMenu=true){
     try{ clearInterval(MP._finT); }catch(e){}
+    try{ clearInterval(MP._lobbyT); }catch(e){}
     try{ MP.room && MP.room.leave && MP.room.leave(); }catch(e){}
     try{ MP.ch && MP.ch.unsubscribe && MP.ch.unsubscribe(); }catch(e){}
-    MP.active=false; MP.transport=''; MP.room=null; MP.ch=null; MP.client=null; MP.peers={}; MP.finishes={}; MP.started=false;
-    $('lobby').classList.add('hidden'); $('start').classList.remove('hidden');
+    MP.active=false; MP.transport=''; MP.room=null; MP.ch=null; MP.client=null; MP.peers={}; MP.finishes={}; MP.started=false; MP.roster=[];
+    $('lobby').classList.add('hidden'); if(showMenu) showHub();
   }
   let mpM = 600;   // multiplayer track length (metres), chosen in the lobby
-  function beginLiveRace(m, seed){ MP.started=true; MP.finishes={}; G.ghost=null; G._seedOverride = (seed!=null) ? (seed>>>0) : randomSeed(); setLevelLength((m||mpM||600)*PX_PER_UNIT); $('lobby').classList.add('hidden'); selectMode('level'); beginPlay(); }
+  function beginLiveRace(m, seed, startAt){ MP.started=true; clearInterval(MP._lobbyT); MP.finishes={}; G.ghost=null; G._seedOverride = (seed!=null) ? (seed>>>0) : randomSeed(); setLevelLength((m||mpM||600)*PX_PER_UNIT); $('lobby').classList.add('hidden'); selectMode('level'); beginPlay(startAt); }
   function broadcastState(){ if (!MP.active || !MP.send) return; MP.send({ d:Math.round(G.distance), x:+G.xNorm.toFixed(2), n:MP.name, fin:G.finished?1:0, ft:+G.elapsed.toFixed(1) }); }
 
   // ---- Multiplayer finish authority (P1-11) ----
@@ -557,7 +600,7 @@ export function bootGame() {
     else h.innerHTML = '<b>Charge:</b> tap the pad / <span class="k">Space</span>, then stop to launch.<br><b>Steer:</b> drag left / right.';
   }
 
-  async function beginPlay(){
+  async function beginPlay(synchronizedStartAt=0){
     unlockAudio();   // real user gesture (Play/Race) — create/resume the AudioContext
     try{
       if (typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function'){
@@ -577,7 +620,7 @@ export function bootGame() {
     $('kTime').textContent = G.mode==='endless' ? 'Time ⏱' : 'Time';
     $('btnQuit').innerHTML = '&#10074;&#10074;';
     if (G.mode==='level'){ $('sprintMark').style.top = (100 - SPRINT_START/LEVEL_LENGTH*100) + '%'; }
-    startCountdown();
+    startCountdown(synchronizedStartAt);
   }
   $('againBtn').onclick = beginPlay;
   document.querySelectorAll('#distChips .chip').forEach(ch => { ch.onclick = () => { practiceM = +ch.dataset.m; document.querySelectorAll('#distChips .chip').forEach(c=>c.classList.toggle('sel', c===ch)); }; });
@@ -612,8 +655,8 @@ export function bootGame() {
     selectMode('level'); beginPlay();
   };
   $('endlessPanel').onclick = () => { selectMode('endless'); beginPlay(); };
-  $('mpPanel').onclick = () => startLive();
-  $('chPanel').onclick = () => shareChallenge();
+  $('mpPanel').onclick = () => startLive('public');
+  $('chPanel').onclick = () => { hideHub(); $('start').classList.add('hidden'); $('roomChoice').classList.remove('hidden'); };
   let toastTimer=0;
   function toast(msg){ const t=$('toast'); if(!t) return; t.textContent=msg; t.classList.remove('hidden'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.add('hidden'), 2400); }
   function shareChallenge(){
@@ -634,8 +677,27 @@ export function bootGame() {
   $('challengeBtn').onclick = shareChallenge;
   $('challengePaste').onclick = enterChallenge;
   $('serverCfg').onclick = setSupaCfg;
+  $('privateCreate').onclick = () => startLive('private');
+  $('privateJoin').onclick = () => {
+    const code=cleanRoomCode($('privateCode').value);
+    if (!code){ toast('Enter the room code your friend sent you'); return; }
+    startLive('private',code);
+  };
+  $('roomChoiceBack').onclick = () => { $('roomChoice').classList.add('hidden'); showHub(); };
+  $('lobbyShare').onclick = () => {
+    const link=location.origin+location.pathname+'#room='+encodeURIComponent(MP.code);
+    const fallback=()=>{ try{ prompt('Copy this invite link and send it to your friend:',link); }catch(e){} };
+    if(navigator.share) navigator.share({ title:'One in a Million — private race', text:'Join my room '+MP.code, url:link }).catch(()=>{});
+    else if(navigator.clipboard?.writeText) navigator.clipboard.writeText(link).then(()=>toast('Invite copied — send it to your friend')).catch(fallback);
+    else fallback();
+  };
   document.querySelectorAll('#mpChips .chip').forEach(ch => { ch.onclick = () => { mpM = +ch.dataset.m; document.querySelectorAll('#mpChips .chip').forEach(c=>c.classList.toggle('sel', c===ch)); }; });
-  $('lobbyStart').onclick = () => { if (!MP.isHost) return; const seed = randomSeed(); if (MP.sendGo){ try{ MP.sendGo({ m: mpM, seed }); }catch(e){} } beginLiveRace(mpM, seed); };
+  $('lobbyStart').onclick = () => {
+    if (!MP.isHost || MP.started) return;
+    const seed=randomSeed(), startAt=Date.now()+650;
+    if (MP.sendGo){ try{ MP.sendGo({ m:mpM, seed, startAt }); }catch(e){} }
+    beginLiveRace(mpM,seed,startAt);
+  };
   $('lobbyLeave').onclick = leaveLobby;
 
   function resetRun(){
@@ -665,7 +727,13 @@ export function bootGame() {
   }
 
   let countT=0, countN=3;
-  function startCountdown(){ G.state='ready'; countN=3; countT=now(); $('count').classList.remove('hidden'); $('countBig').textContent='3'; }
+  function startCountdown(synchronizedStartAt=0){
+    G.state='ready'; countN=3;
+    // Convert the shared wall-clock start into this device's performance clock.
+    // All clients then render the same 3-2-1 despite normal network latency.
+    countT = synchronizedStartAt ? now()+Math.max(0,synchronizedStartAt-Date.now()) : now();
+    $('count').classList.remove('hidden'); $('countBig').textContent='3';
+  }
 
   function launch(){
     const c = G.charge;
@@ -1699,7 +1767,7 @@ export function bootGame() {
   document.querySelectorAll('#custTabs button').forEach(b => b.onclick = () => { custSlot=b.dataset.slot; buildCustGrid(); });
 
   // ---------- Boot ----------
-  setLevelLength(5000); resize(); selectMode('level'); updateHint(); loadGhostFromHash();
+  setLevelLength(5000); resize(); selectMode('level'); updateHint(); if(!loadRoomFromHash()) loadGhostFromHash();
   try { G.muted = getAudioSettings().muted; $('btnMute').textContent = G.muted ? '🔇' : '🔊'; } catch(e){}
   void loadCustomFace();   // load the player's "My Face" overlay if they set one
   setMusicState('menu');   // logical menu state; becomes audible once the context is unlocked

@@ -13,8 +13,8 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
 <style>html,body{margin:0;background:#0d0305;}</style>
-  <script type="module" crossorigin src="./assets/index-DaRGxIGa.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-rzfqCYli.css">
+  <script type="module" crossorigin src="./assets/index-DnKdvovo.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BXalZ_Z6.css">
 </head>
 <body>
 <div class="wrap">
@@ -125,18 +125,35 @@
       <button class="result-home" id="backHubBtn">&#8592; BACK TO HUB</button>
     </div>
 
-    <div class="overlay hidden" id="lobby">
-      <div class="eyebrow">🟢 Live race — beta</div>
+    <div class="overlay room-choice hidden" id="roomChoice">
+      <div class="eyebrow">PRIVATE RACE</div>
+      <h2 class="result">Challenge a friend</h2>
+      <p class="tag">Create a room and send the link, or enter the code your friend sent you.</p>
+      <button class="play" id="privateCreate">CREATE A ROOM</button>
+      <div class="room-code-entry">
+        <input id="privateCode" maxlength="6" inputmode="text" autocomplete="off" placeholder="ROOM CODE" aria-label="Room code">
+        <button id="privateJoin">JOIN</button>
+      </div>
+      <button class="result-home" id="roomChoiceBack">&#8592; BACK TO HUB</button>
+    </div>
+
+    <div class="overlay lobby-screen hidden" id="lobby">
+      <div class="eyebrow" id="lobbyEyebrow">PRIVATE RACE</div>
       <h2 class="result" id="lobbyInfo">Room …</h2>
-      <p class="tag">Share the room code with friends. When everyone is in, tap START — you all race together.</p>
+      <p class="tag" id="lobbyCopy">Send the link to your friend. When everyone is here, the host starts the race.</p>
+      <button class="lobby-share" id="lobbyShare">COPY INVITE LINK</button>
+      <div class="lobby-roster" id="lobbyRoster" aria-live="polite"></div>
+      <div class="lobby-auto hidden" id="lobbyAuto">
+        <span>NEXT PUBLIC RACE</span><strong id="lobbyCountdown">00:00</strong><small>Starts automatically on the next full minute</small>
+      </div>
       <div class="dist-chips" id="mpChips" style="max-width:320px;width:100%">
         <button class="chip" data-m="400">400<small>m</small></button>
         <button class="chip sel" data-m="600">600<small>m</small></button>
         <button class="chip" data-m="800">800<small>m</small></button>
       </div>
       <button class="play" id="lobbyStart">START RACE</button>
-      <div class="tag" id="lobbyWait" style="display:none">⏳ Waiting for the host to start the race…</div>
-      <button class="challenge-btn" id="lobbyLeave">← Leave room</button>
+      <div class="tag" id="lobbyWait" style="display:none">Waiting for the host to start…</div>
+      <button class="challenge-btn" id="lobbyLeave">&#8592; LEAVE ROOM</button>
     </div>
 
     <div class="diag" id="diag"></div>
