@@ -41,12 +41,16 @@ async function adoptSession(c: SupabaseClient): Promise<boolean> {
   } catch { return false; }
 }
 
-export async function showAuthGate(): Promise<void> {
+/** Re-open the account gate later (from Profile) so a Guest can link an account
+ *  without losing progress. `force` bypasses the "already chose entry" short-circuit. */
+export function openSignIn(): Promise<void> { return showAuthGate({ force: true }); }
+
+export async function showAuthGate(opts: { force?: boolean } = {}): Promise<void> {
   if (document.querySelector('.auth-gate')) return;
   const prior=localStorage.getItem(ENTRY_KEY);
   const c=await supabase(1200);
-  if (c && await adoptSession(c)) return;
-  if (prior==='guest' || prior==='linked') return;
+  if (!opts.force && c && await adoptSession(c)) return;
+  if (!opts.force && (prior==='guest' || prior==='linked')) return;
 
   const t=COPY[locale()]; const root=document.createElement('section');
   root.className='auth-gate'; root.setAttribute('role','dialog'); root.setAttribute('aria-modal','true');

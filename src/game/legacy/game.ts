@@ -296,6 +296,13 @@ export function bootGame() {
     kind:'private', isHost:false, autoStartAt:0, _lobbyT:0, roster:[], moving:false };
   const randomCode = () => { let c='', A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; for(let i=0;i<4;i++) c+=A[Math.floor(Math.random()*A.length)]; return c; };
   const cleanRoomCode = value => String(value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8);
+  const isLinkedPlayer = () => getProfileStore().profile.accountType === 'linked';
+  const publicAppBase = () => {
+    const configured=String(import.meta.env.VITE_PUBLIC_APP_URL||'').trim().replace(/\/+$/,'');
+    const isPublicWeb=/^https?:$/.test(location.protocol) && !/^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
+    return configured || (isPublicWeb ? location.origin+location.pathname.replace(/\/$/,'') : 'https://mabram1.github.io/one-in-a-million/www');
+  };
+  const privateInviteLink = code => publicAppBase()+'#room='+encodeURIComponent(code);
   const publicRoomCode = target => 'P'+Math.floor(target/60000).toString(36).slice(-6).toUpperCase();
   const roomSeed = code => { let h=2166136261>>>0; for(const ch of code){ h^=ch.charCodeAt(0); h=Math.imul(h,16777619); } return h>>>0; };
   function peerHue(id){ let h=0; for(const ch of id) h=(h*31 + ch.charCodeAt(0))%360; return h; }
@@ -400,10 +407,10 @@ export function bootGame() {
     $('lobbyCopy').textContent=isPublic?'Players arriving now join this scheduled race.':'Send the invite link. The host starts when everyone is ready.';
     el.innerHTML=(isPublic?'Public room ':'Room ')+'<b>'+MP.code+'</b><br><span>'+n+' / '+MAX_ROOM_PLAYERS+' swimmers ready</span>';
     const roster=$('lobbyRoster'); if(roster) roster.innerHTML=rows.slice(0,MAX_ROOM_PLAYERS).map((p,i)=>'<div class="lobby-player"><i style="--peer:'+peerHue(p.id)+'"></i><span>'+String(p.name).replace(/[<>&]/g,'')+(p.me?' (You)':'')+'</span><b>'+(MP.isHost&&p.me?'HOST':String(i+1))+'</b></div>').join('');
-    const sb=$('lobbyStart'), wt=$('lobbyWait'), chips=$('mpChips'), share=$('lobbyShare'), auto=$('lobbyAuto');
+    const sb=$('lobbyStart'), wt=$('lobbyWait'), chips=$('mpChips'), inviteActions=$('lobbyInviteActions'), auto=$('lobbyAuto');
     if (sb) sb.style.display = !isPublic && MP.isHost ? '' : 'none';
     if (chips) chips.style.display = !isPublic && MP.isHost ? '' : 'none';
-    if (share) share.style.display = isPublic ? 'none' : '';
+    if (inviteActions) inviteActions.classList.toggle('hidden',isPublic);
     if (auto) auto.classList.toggle('hidden',!isPublic);
     if (wt) { wt.style.display = !isPublic && !MP.isHost ? '' : 'none'; wt.textContent='Waiting for the host to start…'; }
     if (isPublic){
@@ -655,8 +662,22 @@ export function bootGame() {
     selectMode('level'); beginPlay();
   };
   $('endlessPanel').onclick = () => { selectMode('endless'); beginPlay(); };
-  $('mpPanel').onclick = () => startLive('public');
-  $('chPanel').onclick = () => { hideHub(); $('start').classList.add('hidden'); $('roomChoice').classList.remove('hidden'); };
+  function openRoomChoice(privateFirst=false){
+    const linked=isLinkedPlayer();
+    $('privateCreate').disabled=!linked;
+    $('privateCreate').textContent=linked?'CREATE A ROOM':'SIGN IN TO CREATE';
+    $('privateGuestNote').classList.toggle('hidden',linked);
+    $('roomChoiceEyebrow').textContent=privateFirst?'CHALLENGE A FRIEND':'MULTIPLAYER';
+    $('roomChoiceTitle').textContent=privateFirst?'Private race':'Choose your race';
+    $('roomChoiceTag').textContent=privateFirst
+      ? 'Create a private room and invite your friend, or enter the code they sent you.'
+      : "Join the next open race, create a private room, or enter a friend's code.";
+    $('publicJoin').style.display=privateFirst?'none':'';
+    $('roomChoiceDivider').style.display=privateFirst?'none':'';
+    hideHub(); $('start').classList.add('hidden'); $('roomChoice').classList.remove('hidden');
+  }
+  $('mpPanel').onclick = () => openRoomChoice(false);
+  $('chPanel').onclick = () => openRoomChoice(true);
   let toastTimer=0;
   function toast(msg){ const t=$('toast'); if(!t) return; t.textContent=msg; t.classList.remove('hidden'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.add('hidden'), 2400); }
   function shareChallenge(){
@@ -677,24 +698,40 @@ export function bootGame() {
   $('challengeBtn').onclick = shareChallenge;
   $('challengePaste').onclick = enterChallenge;
   $('serverCfg').onclick = setSupaCfg;
-  $('privateCreate').onclick = () => startLive('private');
+  $('publicJoin').onclick = () => startLive('public');
+  $('privateCreate').onclick = () => {
+    if (!isLinkedPlayer()){ toast('Sign in with Google or email to create a private room'); return; }
+    startLive('private');
+  };
   $('privateJoin').onclick = () => {
     const code=cleanRoomCode($('privateCode').value);
     if (!code){ toast('Enter the room code your friend sent you'); return; }
     startLive('private',code);
   };
   $('roomChoiceBack').onclick = () => { $('roomChoice').classList.add('hidden'); showHub(); };
-  $('lobbyShare').onclick = () => {
-    const link=location.origin+location.pathname+'#room='+encodeURIComponent(MP.code);
-    const fallback=()=>{ try{ prompt('Copy this invite link and send it to your friend:',link); }catch(e){} };
-    if(navigator.share) navigator.share({ title:'One in a Million — private race', text:'Join my room '+MP.code, url:link }).catch(()=>{});
-    else if(navigator.clipboard?.writeText) navigator.clipboard.writeText(link).then(()=>toast('Invite copied — send it to your friend')).catch(fallback);
-    else fallback();
+  async function copyInviteText(value,success,promptText){
+    try { if(navigator.clipboard?.writeText){ await navigator.clipboard.writeText(value); toast(success); return true; } } catch(e){}
+    try {
+      const ta=document.createElement('textarea'); ta.value=value; ta.readOnly=true; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.focus(); ta.select(); const ok=document.execCommand('copy'); ta.remove();
+      if(ok){ toast(success); return true; }
+    } catch(e){}
+    try { prompt(promptText,value); } catch(e){}
+    return false;
+  }
+  $('lobbyCopyCode').onclick = () => copyInviteText(MP.code,'Room code copied','Copy this room code:');
+  $('lobbyShare').onclick = async () => {
+    const link=privateInviteLink(MP.code);
+    if(navigator.share){
+      try { await navigator.share({ title:'One in a Million — private race', text:'Join my private race. Room '+MP.code, url:link }); return; }
+      catch(e){ if(e && e.name==='AbortError') return; }
+    }
+    await copyInviteText(link,'Invite link copied — send it to your friend','Copy this invite link and send it to your friend:');
   };
   document.querySelectorAll('#mpChips .chip').forEach(ch => { ch.onclick = () => { mpM = +ch.dataset.m; document.querySelectorAll('#mpChips .chip').forEach(c=>c.classList.toggle('sel', c===ch)); }; });
   $('lobbyStart').onclick = () => {
     if (!MP.isHost || MP.started) return;
-    const seed=randomSeed(), startAt=Date.now()+650;
+    const seed=randomSeed(), startAt=Date.now()+1200;
     if (MP.sendGo){ try{ MP.sendGo({ m:mpM, seed, startAt }); }catch(e){} }
     beginLiveRace(mpM,seed,startAt);
   };
@@ -726,13 +763,19 @@ export function bootGame() {
     seedParticles();
   }
 
-  let countT=0, countN=3;
+  let countT=0, countN=3, countLeadMs=0, countStepMs=700, countGoHoldMs=0;
   function startCountdown(synchronizedStartAt=0){
-    G.state='ready'; countN=3;
+    G.state='ready';
+    countLeadMs=MP.active?2600:0;
+    countStepMs=MP.active?1000:700;
+    countGoHoldMs=MP.active?650:0;
+    countN=countLeadMs?99:3;
     // Convert the shared wall-clock start into this device's performance clock.
-    // All clients then render the same 3-2-1 despite normal network latency.
+    // All clients then render the same ready briefing + 3-2-1 despite normal network latency.
     countT = synchronizedStartAt ? now()+Math.max(0,synchronizedStartAt-Date.now()) : now();
-    $('count').classList.remove('hidden'); $('countBig').textContent='3';
+    $('count').classList.remove('hidden');
+    $('countBig').textContent=countLeadMs?'READY':'3';
+    $('countLbl').textContent=countLeadMs?'SHAKE TO CHARGE • TILT TO STEER':'HOLD YOUR PHONE COMFORTABLY';
   }
 
   function launch(){
@@ -1023,8 +1066,11 @@ export function bootGame() {
     // Earned reward (coins/gems/XP). Motion runs earn; keyboard earns nothing.
     const rw = G._reward;
     if (rw && (rw.coins || rw.gems || rw.xp)){
-      let earned = `+${rw.coins} 🪙` + (rw.gems ? ` · +${rw.gems} 💎` : '') + ` · +${rw.xp} XP`;
-      $('endStats').innerHTML += `<div class="row reward"><span class="k">Earned</span><span class="v">${earned}</span></div>`;
+      const earned=[];
+      if(rw.coins) earned.push(`<b><span>+${rw.coins}</span><small>COINS</small></b>`);
+      if(rw.gems) earned.push(`<b><span>+${rw.gems}</span><small>GEMS</small></b>`);
+      if(rw.xp) earned.push(`<b><span>+${rw.xp}</span><small>XP</small></b>`);
+      $('endStats').innerHTML += `<div class="row reward"><span class="k">Race rewards</span><span class="v reward-values">${earned.join('')}</span></div>`;
       if (rw.leveledTo) $('endStats').innerHTML += `<div class="row reward levelup"><span class="k">Level up!</span><span class="v">Lv ${rw.leveledTo}</span></div>`;
     }
     const cbtn=$('challengeBtn');
@@ -1717,11 +1763,14 @@ export function bootGame() {
     if (!W || !H) resize();
     if ((loop._n=(loop._n||0)+1) % 10 === 0) updateDiag();
     if (G.state==='ready'){
-      const el=t-countT; const shown=3-Math.floor(el/700);
-      if (shown!==countN){ countN=shown;
-        if (countN>0){ $('countBig').textContent=String(countN); $('countBig').style.animation='none'; void $('countBig').offsetWidth; $('countBig').style.animation=''; }
-        else if (countN===0){ $('countBig').textContent='GO'; } }
-      if (el>2100){ $('count').classList.add('hidden'); G.state='charging'; G.charge=0; G.chargeInputT=t; banner('REV UP! 🔋'); emitAudio('charge_start'); setMusicState('charging'); }
+      const el=t-countT;
+      if (el>=countLeadMs){
+        const shown=3-Math.floor((el-countLeadMs)/countStepMs);
+        if (shown!==countN){ countN=shown;
+          if (countN>0){ $('countBig').textContent=String(countN); $('countLbl').textContent='GET READY TO RACE'; $('countBig').style.animation='none'; void $('countBig').offsetWidth; $('countBig').style.animation=''; }
+          else if (countN===0){ $('countBig').textContent='GO'; $('countLbl').textContent='SHAKE TO LAUNCH!'; } }
+      }
+      if (el>countLeadMs+3*countStepMs+countGoHoldMs){ $('count').classList.add('hidden'); G.state='charging'; G.charge=0; G.chargeInputT=t; banner('REV UP! 🔋'); emitAudio('charge_start'); setMusicState('charging'); }
     } else if (G.state==='charging'){ chargeUpdate(dt, t); }
     else if (G.state==='playing'){ update(dt, t); }
     else if (G.state==='finishing'){ updateFinishAnim(); }   // cosmetic only — no sim, no input
@@ -1776,5 +1825,7 @@ export function bootGame() {
   requestAnimationFrame(loop);
 
   // Test/diagnostic handle. Not a global; production simply ignores it.
-  return { G, MP, tuning, loop, resize, competitors, setLevelLength, encodeGhost, decodeGhost, ghostWorldAt, setGhost, encodeChallenge, decodeChallenge, setChallenge, ingestPeerState, mpPlacement, finishFrame };
+  return { G, MP, tuning, loop, resize, competitors, setLevelLength, encodeGhost, decodeGhost, ghostWorldAt, setGhost, encodeChallenge, decodeChallenge, setChallenge, ingestPeerState, mpPlacement, finishFrame,
+    // Multiplayer Rooms v2 seams (tested in tests/characterization/rooms.test.ts)
+    cleanRoomCode, publicRoomCode, roomSeed, privateInviteLink, publicAppBase, isLinkedPlayer, openRoomChoice, startLive };
 }

@@ -10,3 +10,7 @@ tools/.cdn-transports.js
 .env
 .env.local
 .env.*.local
+
+# Local dev / raw asset deliveries — not part of the build
+.claude/
+art-deliveries/

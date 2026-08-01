@@ -27,8 +27,6 @@ const T = {
   },
 };
 
-const pct = (v: number) => Math.round(v * 100) + '%';
-
 export function openSettings(onReplaySwim?: () => void): void {
   const t = T[locale()];
   const s = getAudioSettings();
@@ -41,7 +39,6 @@ export function openSettings(onReplaySwim?: () => void): void {
     <div class="settings-ctl">
       <label for="aud-${key}">${label}</label>
       <input type="range" id="aud-${key}" min="0" max="100" value="${Math.round((s[key] as number) * 100)}" data-vol="${key}" aria-label="${label}">
-      <span class="val" data-valfor="${key}">${pct(s[key] as number)}</span>
     </div>`;
   const toggle = (key: keyof AudioSettings, label: string) => `
     <div class="settings-ctl">
@@ -81,11 +78,9 @@ export function openSettings(onReplaySwim?: () => void): void {
   root.querySelectorAll('input[type=range]').forEach((el) => {
     const input = el as HTMLInputElement;
     const key = input.dataset.vol as keyof AudioSettings;
-    const valEl = root.querySelector(`[data-valfor="${key}"]`) as HTMLElement | null;
     input.addEventListener('input', () => {
       const v = Math.max(0, Math.min(1, Number(input.value) / 100));
       setAudioSettings({ [key]: v } as Partial<AudioSettings>);
-      if (valEl) valEl.textContent = pct(v);
     });
     input.addEventListener('change', () => {
       unlockAudio();

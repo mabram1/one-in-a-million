@@ -34,6 +34,15 @@ export interface Harness {
   mpPlacement: () => { place: number; total: number };
   /** Current frame of the finish "enter the ovum" animation (null when idle). */
   finishFrame: () => any;
+  /** Multiplayer Rooms v2 seams (see rooms.test.ts). */
+  cleanRoomCode: (v: any) => string;
+  publicRoomCode: (targetMs: number) => string;
+  roomSeed: (code: string) => number;
+  privateInviteLink: (code: string) => string;
+  publicAppBase: () => string;
+  isLinkedPlayer: () => boolean;
+  openRoomChoice: (privateFirst?: boolean) => void;
+  startLive: (kind?: string, code?: string, startAt?: number) => void;
   /** Advance the fake clock and run the real loop in ~16 ms frames. */
   step: (ms: number) => void;
   /** Current fake clock value in ms. */
@@ -122,6 +131,14 @@ export function setupGame(startClockMs = 1_000_000): Harness {
     ingestPeerState: handle.ingestPeerState,
     mpPlacement: handle.mpPlacement,
     finishFrame: handle.finishFrame,
+    cleanRoomCode: handle.cleanRoomCode,
+    publicRoomCode: handle.publicRoomCode,
+    roomSeed: handle.roomSeed,
+    privateInviteLink: handle.privateInviteLink,
+    publicAppBase: handle.publicAppBase,
+    isLinkedPlayer: handle.isLinkedPlayer,
+    openRoomChoice: handle.openRoomChoice,
+    startLive: handle.startLive,
     step,
     nowMs: () => fake,
     key,

@@ -124,10 +124,13 @@
     </div>
 
     <div class="overlay room-choice hidden" id="roomChoice">
-      <div class="eyebrow">PRIVATE RACE</div>
-      <h2 class="result">Challenge a friend</h2>
-      <p class="tag">Create a room and send the link, or enter the code your friend sent you.</p>
+      <div class="eyebrow" id="roomChoiceEyebrow">MULTIPLAYER</div>
+      <h2 class="result" id="roomChoiceTitle">Choose your race</h2>
+      <p class="tag" id="roomChoiceTag">Join the next open race, create a private room, or enter a friend's code.</p>
+      <button class="play room-public-play" id="publicJoin">JOIN OPEN RACE</button>
+      <div class="room-choice-divider" id="roomChoiceDivider"><span>OR PLAY PRIVATELY</span></div>
       <button class="play" id="privateCreate">CREATE A ROOM</button>
+      <p class="private-guest-note hidden" id="privateGuestNote">Sign in with Google or email to create a private room. Guests can still join with a code.</p>
       <div class="room-code-entry">
         <input id="privateCode" maxlength="6" inputmode="text" autocomplete="off" placeholder="ROOM CODE" aria-label="Room code">
         <button id="privateJoin">JOIN</button>
@@ -139,7 +142,10 @@
       <div class="eyebrow" id="lobbyEyebrow">PRIVATE RACE</div>
       <h2 class="result" id="lobbyInfo">Room …</h2>
       <p class="tag" id="lobbyCopy">Send the link to your friend. When everyone is here, the host starts the race.</p>
-      <button class="lobby-share" id="lobbyShare">COPY INVITE LINK</button>
+      <div class="lobby-invite-actions" id="lobbyInviteActions">
+        <button class="lobby-share" id="lobbyCopyCode">COPY CODE</button>
+        <button class="lobby-share lobby-share-primary" id="lobbyShare">SHARE LINK</button>
+      </div>
       <div class="lobby-roster" id="lobbyRoster" aria-live="polite"></div>
       <div class="lobby-auto hidden" id="lobbyAuto">
         <span>NEXT PUBLIC RACE</span><strong id="lobbyCountdown">00:00</strong><small>Starts automatically on the next full minute</small>

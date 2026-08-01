@@ -25,6 +25,7 @@ The older asynchronous ghost challenge remains available from the results screen
 ## Security and configuration
 
 - `VITE_SUPABASE_ANON_KEY` is injected at build time. Never commit an anon or service-role key literal.
+- `VITE_PUBLIC_APP_URL` must point to the public web build used in private-room invitations. This prevents an Android/Capacitor build from sharing its device-local `localhost` URL.
 - Realtime Presence is used for lobby display and is advisory, not authoritative.
 - Race state is still client-reported. Existing plausibility checks reject impossible finish times, but competitive prizes require server authority.
 
@@ -47,4 +48,3 @@ room_members(room_id text, user_id uuid, joined_at timestamptz, lease_until time
 ```
 
 RLS must allow players to read their room and update only their own membership. The service-role key must never be shipped to the game.
-

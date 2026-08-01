@@ -8,14 +8,15 @@ import { getProfileStore, ProfileStore } from '../profileStore';
 import { levelInfo } from '../domain/progression';
 import { catalog } from '../config';
 import { openMyFace } from './myFace';
+import { openSignIn } from './authGate';
 import { art, hasCustomFace } from '../../game/assets/store';
 
 const B = ((import.meta as any).env?.BASE_URL as string) || './';
 
 function locale(): 'sl' | 'en' { try { return (navigator.language || '').toLowerCase().startsWith('sl') ? 'sl' : 'en'; } catch { return 'en'; } }
 const T = {
-  en: { title: 'Profile', level: 'Level', coins: 'Coins', gems: 'Gems', cosmetics: 'Cosmetics', bests: 'Personal bests', endless: 'Endless best', none: 'No runs yet', close: 'Close', guest: 'Guest', myFace: 'My Face' },
-  sl: { title: 'Profil', level: 'Stopnja', coins: 'Kovanci', gems: 'Dragulji', cosmetics: 'Kozmetika', bests: 'Osebni rekordi', endless: 'Endless rekord', none: 'Še brez teka', close: 'Zapri', guest: 'Gost', myFace: 'Moj obraz' },
+  en: { title: 'Profile', level: 'Level', coins: 'Coins', gems: 'Gems', cosmetics: 'Cosmetics', bests: 'Personal bests', endless: 'Endless best', none: 'No runs yet', close: 'Close', guest: 'Guest', myFace: 'My Face', signIn: '🔑 Sign in / Link account', signedIn: '✓ Signed in', linkHint: 'Keep your Champ, rewards and records on every phone.' },
+  sl: { title: 'Profil', level: 'Stopnja', coins: 'Kovanci', gems: 'Dragulji', cosmetics: 'Kozmetika', bests: 'Osebni rekordi', endless: 'Endless rekord', none: 'Še brez teka', close: 'Zapri', guest: 'Gost', myFace: 'Moj obraz', signIn: '🔑 Prijava / Poveži račun', signedIn: '✓ Prijavljen', linkHint: 'Ohrani Champa, nagrade in rekorde na vseh telefonih.' },
 };
 
 const fmt = (n: number) => n.toLocaleString('en-US');
@@ -80,6 +81,9 @@ export function openProfile(store: ProfileStore = getProfileStore()): void {
         <div class="profile-lvl">${t.level} ${info.displayLevel}</div>
       </div>
       <div class="profile-xp"><div class="profile-xp-fill" style="width:${pct}%"></div><span>${fmt(info.xpIntoLevel)} / ${fmt(info.xpForNext)} XP</span></div>
+      ${p.accountType === 'linked'
+        ? `<div class="profile-account linked">${t.signedIn}${p.displayName ? ' — ' + p.displayName : ''}</div>`
+        : `<button class="settings-row profile-signin" data-act="signin">${t.signIn}<small>${t.linkHint}</small></button>`}
       <div class="profile-wallet">
         <div class="profile-stat"><span class="k">🪙 ${t.coins}</span><span class="v">${fmt(p.wallet.coins)}</span></div>
         <div class="profile-stat"><span class="k">💎 ${t.gems}</span><span class="v">${fmt(p.wallet.gems)}</span></div>
@@ -96,6 +100,7 @@ export function openProfile(store: ProfileStore = getProfileStore()): void {
   root.addEventListener('click', (e) => {
     const el = e.target as HTMLElement;
     if (el.closest('[data-act="myface"]')) { openMyFace(); return; }
+    if (el.closest('[data-act="signin"]')) { void openSignIn(); return; }   // link a guest without losing progress
     if (el === root || el.closest('[data-act="close"]')) root.remove();
   });
   document.body.appendChild(root);
