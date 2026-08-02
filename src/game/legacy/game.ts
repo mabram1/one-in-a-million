@@ -1819,7 +1819,14 @@ export function bootGame() {
     $('start').classList.add('hidden'); $('customize').classList.remove('hidden');
     buildCustGrid(); updateCustPreview();
   }
-  function closeCustomize(){ $('customize').classList.add('hidden'); $('start').classList.remove('hidden'); }
+  function closeCustomize(){
+    $('customize').classList.add('hidden');
+    // Return to whichever menu we came from: the Main Hub is the default shell
+    // (main.ts shows it unless ?hub=classic), so re-open it instead of exposing
+    // the legacy #start menu. Only classic mode falls back to #start.
+    let classic = false; try { classic = new URLSearchParams(location.search).get('hub') === 'classic'; } catch(e){}
+    if (classic) $('start').classList.remove('hidden'); else showHub();
+  }
   if ($('custPanel')) $('custPanel').onclick = openCustomize;
   if ($('custBack'))  $('custBack').onclick  = closeCustomize;
   document.querySelectorAll('#custTabs button').forEach(b => b.onclick = () => { custSlot=b.dataset.slot; buildCustGrid(); });
