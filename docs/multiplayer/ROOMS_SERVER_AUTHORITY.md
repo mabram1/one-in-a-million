@@ -75,10 +75,25 @@ For public rooms the one-minute boundary is the **authoritative gameplay start**
 Use this single definition in code + UI ("Next race starts in …" counts down to
 `start_at`).
 
-## Not done here (client work remaining)
+## Client wiring — DONE (game.ts)
 
-- Wiring the RPCs into `startLive`/lobby (this doc is the contract; the migration
-  must be applied first so it can be tested end-to-end).
-- The 10-player cap is still client-side until the RPC is wired.
+The RPCs are now called best-effort from the Supabase transport (realtime presence
+still drives the live UI; only a hard rejection changes behaviour):
+
+- **`join_room`** — on channel `SUBSCRIBED` (`startLiveSupabase`). A `full`/`started`
+  result toasts and bounces the player back to the hub. This is now the authoritative
+  10-player cap (the old `updateLobby` cap is advisory only).
+- **`touch_room_member`** — 8 s heartbeat (`MP._touchT`), cleared in `leaveLobby`.
+- **`start_room`** — fire-and-forget in the host START handler; marks the room
+  `started` so late `join_room` calls are rejected. Never blocks the host's own start.
+- **`leave_room`** — best-effort in `leaveLobby` (client captured before teardown).
+
+All calls go through the `roomRpc(fn, args)` helper, which returns `null` on any
+error so the game keeps working when the RPC/migration is unavailable.
+
+## Notes
+
 - Never call these with a service-role key in the browser — anon + RLS + SECURITY
   DEFINER is the whole point.
+- Public rooms auto-start via the per-minute countdown (they don't call `start_room`);
+  they rotate by `publicRoomCode` each minute, and `sweep_rooms` reaps stale rows.

@@ -80,3 +80,34 @@ describe('multiplayer choice screen + account gating', () => {
     expect(document.getElementById('roomChoiceEyebrow')?.textContent).toBe('CHALLENGE A FRIEND');
   });
 });
+
+describe('multiplayer final standings', () => {
+  it('ranks finishers first (by time), then still-racing players by distance', () => {
+    // Self finished at 12.0s; peer A finished faster; peers B/C are still racing.
+    h.MP.id = 'self'; h.MP.name = 'Me';
+    h.G.finished = true; h.G.elapsed = 12.0; h.G.distance = 5200;
+    h.MP.peers = {
+      A: { n: 'Ana',  d: 5200, fin: true,  ft: 10.0 },
+      B: { n: 'Bo',   d: 3000, fin: false },
+      C: { n: 'Cy',   d: 4000, fin: false },
+    };
+    h.MP.finishes = { A: 10.0 };   // validated finish set
+
+    const s = h.mpStandings();
+    expect(s.map((r) => r.name)).toEqual(['Ana', 'Me', 'Cy', 'Bo']);
+    expect(s.map((r) => r.place)).toEqual([1, 2, 3, 4]);
+    expect(s[0].time).toBe(10.0);            // fastest finisher
+    expect(s[1].self).toBe(true);            // self is second (finished at 12.0)
+    expect(s[2].time).toBeNull();            // still racing -> no time
+    expect(s[3].name).toBe('Bo');            // farther-behind racer is last
+  });
+
+  it('lists self as the only racer before anyone else appears', () => {
+    h.MP.id = 'self'; h.MP.name = 'Solo';
+    h.G.finished = false; h.G.distance = 100;
+    h.MP.peers = {}; h.MP.finishes = {};
+    const s = h.mpStandings();
+    expect(s).toHaveLength(1);
+    expect(s[0]).toMatchObject({ self: true, name: 'Solo', place: 1, time: null });
+  });
+});

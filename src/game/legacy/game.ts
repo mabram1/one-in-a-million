@@ -326,6 +326,14 @@ export function bootGame() {
     toast('Custom server saved ✓');
   }
 
+  // Best-effort call to a server-authoritative room RPC (migration 0001_rooms).
+  // Returns the RPC's jsonb result, or null on any failure so callers can fall
+  // back to the advisory realtime-presence behaviour when the RPC is unavailable.
+  async function roomRpc(fn, args){
+    try { const c = MP.client; if (!c || !c.rpc) return null; const { data, error } = await c.rpc(fn, args); return error ? null : data; }
+    catch(e){ return null; }
+  }
+
   function startLive(kind='private', suppliedCode='', suppliedStartAt=0){
     const cfg = supaCfg();
     const haveSupa = !!(cfg && cfg.url && cfg.key && window.__supa);
@@ -356,7 +364,23 @@ export function bootGame() {
       ch.on('presence', { event:'join' }, updateLobby);
       ch.on('presence', { event:'leave' }, updateLobby);
       ch.subscribe(async (status) => {
-        if (status==='SUBSCRIBED'){ try{ await ch.track({ name:MP.name, joinedAt:Date.now(), kind:MP.kind }); }catch(e){} updateLobby(); }
+        if (status==='SUBSCRIBED'){
+          try{ await ch.track({ name:MP.name, joinedAt:Date.now(), kind:MP.kind }); }catch(e){}
+          updateLobby();
+          // Server-authoritative membership: enforce the 10-player cap + start-lock
+          // via the join_room RPC. Best-effort — realtime presence still drives the
+          // live lobby if the RPC is unavailable; only a hard full/started rejection
+          // bounces the player (the previous cap at updateLobby was advisory only).
+          const res = await roomRpc('join_room', { p_code:code, p_player_id:MP.id, p_kind:MP.kind, p_display_name:MP.name, p_distance_m:mpM, p_seed:roomSeed(code), p_host_id:(MP.isHost?MP.id:null) });
+          if (!MP.active) return;   // left during the await
+          if (res && res.ok===false && (res.reason==='full' || res.reason==='started')){
+            toast(res.reason==='full' ? 'Room is full — the next public race opens automatically' : 'That race already started — try the next one');
+            leaveLobby(); return;
+          }
+          // Heartbeat so the server can purge us if we disappear (>30s -> stale).
+          try{ clearInterval(MP._touchT); }catch(e){}
+          MP._touchT = setInterval(() => { roomRpc('touch_room_member', { p_code:code, p_player_id:MP.id }); }, 8000);
+        }
         else if (status==='CHANNEL_ERROR' || status==='TIMED_OUT'){ toast('Cannot reach Supabase — check Server settings'); }
       });
       MP.send   = (payload) => { try{ ch.send({ type:'broadcast', event:'st', payload:{ ...payload, id:MP.id } }); }catch(e){} };
@@ -425,6 +449,9 @@ export function bootGame() {
   function leaveLobby(showMenu=true){
     try{ clearInterval(MP._finT); }catch(e){}
     try{ clearInterval(MP._lobbyT); }catch(e){}
+    try{ clearInterval(MP._touchT); }catch(e){}
+    // Best-effort server release so the seat frees immediately (don't await).
+    try{ if (MP.transport==='supabase' && MP.code && MP.id) roomRpc('leave_room', { p_code:MP.code, p_player_id:MP.id }); }catch(e){}
     try{ MP.room && MP.room.leave && MP.room.leave(); }catch(e){}
     try{ MP.ch && MP.ch.unsubscribe && MP.ch.unsubscribe(); }catch(e){}
     MP.active=false; MP.transport=''; MP.room=null; MP.ch=null; MP.client=null; MP.peers={}; MP.finishes={}; MP.started=false; MP.roster=[];
@@ -459,6 +486,21 @@ export function bootGame() {
     const total = peerCount() + 1;
     const before = Object.keys(MP.finishes).filter((id) => id !== MP.id && MP.finishes[id] <= G.elapsed).length;
     return { place: before + 1, total };
+  }
+  // Final standings for the results screen: self + every peer, ordered by the
+  // validated finish time (finishers first, ascending), then still-racing by
+  // distance. Peer names are untrusted -> sanitized at render like the lobby roster.
+  function mpStandings(){
+    const rows=[{ id:MP.id, name:MP.name||'You', self:true, time:(G.finished?G.elapsed:null), world:G.distance, hue:174 }];
+    for (const id in MP.peers){ const p=MP.peers[id];
+      rows.push({ id, name:p.n||'Swimmer', self:false,
+        time:(MP.finishes[id]!=null?MP.finishes[id]:(p.fin?p.ft:null)),
+        world:(p.d!=null?p.d:0), hue:peerHue(id) });
+    }
+    rows.sort((a,b)=>{ const af=a.time!=null,bf=b.time!=null;
+      if (af&&bf) return a.time-b.time; if (af!==bf) return af?-1:1; return b.world-a.world; });
+    rows.forEach((r,i)=>r.place=i+1);
+    return rows;
   }
   // keep finished racers forever (they stop broadcasting) so results/placement stay correct
   function prunePeers(){ const t=now(); for (const id in MP.peers){ const p=MP.peers[id]; if (!p.fin && t-(p.t||0) > networkInterpolation.peerTimeoutMs) delete MP.peers[id]; } }
@@ -732,6 +774,10 @@ export function bootGame() {
   $('lobbyStart').onclick = () => {
     if (!MP.isHost || MP.started) return;
     const seed=randomSeed(), startAt=Date.now()+1200;
+    // Server start-lock (best-effort, fire-and-forget): marks the room 'started'
+    // so join_room rejects late arrivals. Never blocks the host's own start, so
+    // the race begins with the same timing whether or not the server is reachable.
+    roomRpc('start_room', { p_code:MP.code, p_player_id:MP.id, p_start_at:new Date(startAt).toISOString() });
     if (MP.sendGo){ try{ MP.sendGo({ m:mpM, seed, startAt }); }catch(e){} }
     beginLiveRace(mpM,seed,startAt);
   };
@@ -1062,6 +1108,15 @@ export function bootGame() {
         `<div class="row"><span class="k">Distance</span><span class="v">${m(G.distance)} m</span></div>`+
         `<div class="row"><span class="k">Time</span><span class="v">${G.elapsed.toFixed(1)} s</span></div>`+
         `<div class="row"><span class="k">Bumps</span><span class="v">${G.hits}</span></div>`;
+    }
+    // Multiplayer: prepend a final-standings table (self + peers, ranked by
+    // validated finish time). Names are peer-supplied -> stripped of markup.
+    if (MP.active){
+      const sane = s => String(s).replace(/[<>&]/g,'').slice(0,16) || 'Swimmer';
+      const medal = p => p===1?'🥇':p===2?'🥈':p===3?'🥉':(p+'.');
+      const st = mpStandings();
+      const body = st.map(r=>`<div class="row mp-standing${r.self?' me':''}"><span class="k"><i class="mp-dot" style="background:hsl(${r.hue},80%,60%)"></i>${medal(r.place)} ${sane(r.name)}${r.self?' (you)':''}</span><span class="v">${r.time!=null?r.time.toFixed(1)+' s':m(r.world)+' m'}</span></div>`).join('');
+      $('endStats').innerHTML = `<div class="row mp-standings-head"><span class="k">Final standings</span><span class="v">${st.length} racer${st.length!==1?'s':''}</span></div>` + body + $('endStats').innerHTML;
     }
     // Earned reward (coins/gems/XP). Motion runs earn; keyboard earns nothing.
     const rw = G._reward;
@@ -1841,7 +1896,7 @@ export function bootGame() {
   requestAnimationFrame(loop);
 
   // Test/diagnostic handle. Not a global; production simply ignores it.
-  return { G, MP, tuning, loop, resize, competitors, setLevelLength, encodeGhost, decodeGhost, ghostWorldAt, setGhost, encodeChallenge, decodeChallenge, setChallenge, ingestPeerState, mpPlacement, finishFrame,
+  return { G, MP, tuning, loop, resize, competitors, setLevelLength, encodeGhost, decodeGhost, ghostWorldAt, setGhost, encodeChallenge, decodeChallenge, setChallenge, ingestPeerState, mpPlacement, mpStandings, finishFrame,
     // Multiplayer Rooms v2 seams (tested in tests/characterization/rooms.test.ts)
     cleanRoomCode, publicRoomCode, roomSeed, privateInviteLink, publicAppBase, isLinkedPlayer, openRoomChoice, startLive };
 }

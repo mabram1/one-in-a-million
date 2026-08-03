@@ -32,6 +32,8 @@ export interface Harness {
   ingestPeerState: (id: string, d: any) => void;
   /** Current multiplayer placement from the validated finish set. */
   mpPlacement: () => { place: number; total: number };
+  /** Final standings (self + peers) ordered by validated finish time, then distance. */
+  mpStandings: () => Array<{ id: string; name: string; self: boolean; time: number | null; world: number; hue: number; place: number }>;
   /** Current frame of the finish "enter the ovum" animation (null when idle). */
   finishFrame: () => any;
   /** Multiplayer Rooms v2 seams (see rooms.test.ts). */
@@ -130,6 +132,7 @@ export function setupGame(startClockMs = 1_000_000): Harness {
     setChallenge: handle.setChallenge,
     ingestPeerState: handle.ingestPeerState,
     mpPlacement: handle.mpPlacement,
+    mpStandings: handle.mpStandings,
     finishFrame: handle.finishFrame,
     cleanRoomCode: handle.cleanRoomCode,
     publicRoomCode: handle.publicRoomCode,
