@@ -535,6 +535,13 @@
 .main-hub__daily-reward { display: flex; align-items: center; gap: 5px; font-weight: 800; color: var(--oim-gold); font-size: 14px; flex: 0 0 auto; }
 .main-hub__nav { border: none !important; background-color: transparent !important; box-shadow: none !important; }
 
+/* Legal footer (Terms · Privacy · Imprint) — sits at the end of the scroll,
+   clearing the fixed bottom nav. */
+.main-hub__legal { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 8px 0 calc(92px + env(safe-area-inset-bottom, 0px)); font-size: 11px; }
+.main-hub__legal button { background: none; border: 0; color: var(--oim-muted); font-size: 11px; letter-spacing: .02em; cursor: pointer; padding: 2px; }
+.main-hub__legal button:hover { color: var(--oim-text); }
+.main-hub__legal span { color: var(--oim-muted); opacity: .5; }
+
 /* One-time "add your face" nudge shown right after sign-in (see maybeFaceNudge). */
 .main-hub__facecta { display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; margin: 4px 0 2px; padding: 11px 14px; border-radius: 16px; cursor: pointer; color: var(--oim-text); background: linear-gradient(120deg, rgba(67,224,207,.16), rgba(255,210,77,.12)); border: 1px solid rgba(67,224,207,.45); box-shadow: 0 0 22px rgba(67,224,207,.20), inset 0 1px rgba(255,255,255,.06); animation: faceCtaIn .5s cubic-bezier(.2,.9,.3,1.3) both; }
 .main-hub__facecta-emoji { font-size: 24px; flex: 0 0 auto; filter: drop-shadow(0 0 8px rgba(67,224,207,.5)); }

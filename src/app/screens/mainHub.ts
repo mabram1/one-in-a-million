@@ -17,6 +17,8 @@ import { openStore } from './store';
 import { openProfile } from './profile';
 import { openMyFace } from './myFace';
 import { hasCustomFace } from '../../game/assets/store';
+import { openLegal } from './legal';
+import type { LegalDocId } from './legalContent';
 
 const FLAG_KEY = 'oiam_hub_v2';
 const DIST_KEY = 'oiam_practice_dist';
@@ -126,6 +128,11 @@ function template(): string {
         <span class="main-hub__daily-prog"><i style="width:0%"></i></span></span>
       <span class="main-hub__daily-reward"><svg width="16" height="16" aria-hidden="true"><use href="${icon('coin')}"></use></svg>500</span>
     </button>
+    <div class="main-hub__legal">
+      <button type="button" data-legal="terms">${c.terms}</button><span aria-hidden="true">·</span>
+      <button type="button" data-legal="privacy">${c.privacy}</button><span aria-hidden="true">·</span>
+      <button type="button" data-legal="imprint">${c.imprint}</button>
+    </div>
   </div>
   <nav class="main-hub__nav main-hub__ui" aria-label="Main navigation" style="background:${frame('frame-bottom-nav')}">
     ${nav('home', c.home, true)}${nav('customize', c.customize)}${nav('store', c.store)}${nav('profile', c.profile)}
@@ -170,6 +177,9 @@ function wire(): void {
       else if (r === 'daily') toast(c.dailyChallenge + ' — coming soon');
       // 'home' is a no-op (already here)
     };
+  });
+  root.querySelectorAll('.main-hub__legal button').forEach((b) => {
+    (b as HTMLElement).onclick = () => openLegal((b as HTMLElement).dataset.legal as LegalDocId);
   });
 }
 

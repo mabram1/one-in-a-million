@@ -19,6 +19,9 @@
   "desktopNotice": "Keyboard runs have separate records.",
   "motionReady": "MOTION READY",
   "guest": "Guest",
-  "level": "LEVEL {level}"
+  "level": "LEVEL {level}",
+  "terms": "Terms",
+  "privacy": "Privacy",
+  "imprint": "Imprint"
 }
 

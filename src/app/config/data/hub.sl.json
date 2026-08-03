@@ -19,6 +19,9 @@
   "desktopNotice": "Dirke s tipkovnico imajo ločene rekorde.",
   "motionReady": "SENZORJI PRIPRAVLJENI",
   "guest": "Gost",
-  "level": "NIVO {level}"
+  "level": "NIVO {level}",
+  "terms": "Pogoji",
+  "privacy": "Zasebnost",
+  "imprint": "Impresum"
 }
 
