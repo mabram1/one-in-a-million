@@ -99,7 +99,12 @@ export function openProfile(store: ProfileStore = getProfileStore()): void {
 
   root.addEventListener('click', (e) => {
     const el = e.target as HTMLElement;
-    if (el.closest('[data-act="myface"]')) { openMyFace(); return; }
+    if (el.closest('[data-act="myface"]')) {
+      // Refresh the Champ preview in place when the face changes, so the uploaded
+      // photo shows on Spermy immediately (no need to reopen the profile).
+      openMyFace(() => { const pv = root.querySelector('.profile-champ-preview'); if (pv) pv.innerHTML = champPreview(); });
+      return;
+    }
     if (el.closest('[data-act="signin"]')) { void openSignIn(); return; }   // link a guest without losing progress
     if (el === root || el.closest('[data-act="close"]')) root.remove();
   });

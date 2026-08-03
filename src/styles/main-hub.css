@@ -500,7 +500,10 @@
 /* daily card */
 .main-hub__daily { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 10px 14px; border-radius: 16px; border: 1px solid rgba(255,210,77,.28); background: rgba(33,7,16,.7); color: var(--oim-text); }
 .main-hub__daily svg { width: 26px; height: 26px; flex: 0 0 auto; }
-.main-hub__daily span { flex: 1; display: flex; flex-direction: column; }
+/* Only the text column grows/stacks — NOT the reward span (which must stay a
+   compact inline coin+amount on the right). This selector previously matched
+   every span, forcing the reward to column layout (coin above the number). */
+.main-hub__daily-txt { flex: 1; display: flex; flex-direction: column; }
 .main-hub__daily strong { font-size: 13px; color: var(--oim-gold); letter-spacing: .04em; }
 .main-hub__daily small { font-size: 11px; color: var(--oim-muted); }
 .main-hub__daily b { font-size: 13px; color: var(--oim-text); }
@@ -529,8 +532,23 @@
 .main-hub__daily-txt small { color: var(--oim-muted); font-size: 11px; }
 .main-hub__daily-prog { height: 6px; border-radius: 6px; background: rgba(255,255,255,.14); overflow: hidden; margin-top: 4px; }
 .main-hub__daily-prog i { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, #ffd76a, #f2b25f); }
-.main-hub__daily-reward { display: flex; align-items: center; gap: 5px; font-weight: 800; color: var(--oim-gold); font-size: 14px; }
+.main-hub__daily-reward { display: flex; align-items: center; gap: 5px; font-weight: 800; color: var(--oim-gold); font-size: 14px; flex: 0 0 auto; }
 .main-hub__nav { border: none !important; background-color: transparent !important; box-shadow: none !important; }
+
+/* One-time "add your face" nudge shown right after sign-in (see maybeFaceNudge). */
+.main-hub__facecta { display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; margin: 4px 0 2px; padding: 11px 14px; border-radius: 16px; cursor: pointer; color: var(--oim-text); background: linear-gradient(120deg, rgba(67,224,207,.16), rgba(255,210,77,.12)); border: 1px solid rgba(67,224,207,.45); box-shadow: 0 0 22px rgba(67,224,207,.20), inset 0 1px rgba(255,255,255,.06); animation: faceCtaIn .5s cubic-bezier(.2,.9,.3,1.3) both; }
+.main-hub__facecta-emoji { font-size: 24px; flex: 0 0 auto; filter: drop-shadow(0 0 8px rgba(67,224,207,.5)); }
+.main-hub__facecta-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.main-hub__facecta-txt strong { font-size: 13px; letter-spacing: .02em; color: var(--oim-player); }
+.main-hub__facecta-txt small { font-size: 11px; color: var(--oim-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.main-hub__facecta-go { flex: 0 0 auto; color: var(--oim-player); font-weight: 800; font-size: 18px; }
+.main-hub__facecta-x { flex: 0 0 auto; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; color: var(--oim-muted); font-size: 16px; line-height: 1; cursor: pointer; }
+.main-hub__facecta-x:hover { color: var(--oim-text); background: rgba(255,255,255,.08); }
+@keyframes faceCtaIn { from { transform: translateY(-6px) scale(.98); opacity: 0; } to { transform: none; opacity: 1; } }
+/* pulsing ring on the Profile nav item while the nudge is active */
+.main-hub__nav-pulse { position: relative; }
+.main-hub__nav-pulse::after { content: ''; position: absolute; inset: 4px; border-radius: 14px; animation: navPulse 1.8s ease-out infinite; pointer-events: none; }
+@keyframes navPulse { 0% { box-shadow: 0 0 0 0 rgba(67,224,207,.45); } 70% { box-shadow: 0 0 0 10px rgba(67,224,207,0); } 100% { box-shadow: 0 0 0 0 rgba(67,224,207,0); } }
 
 /* Currency pill pops when the balance increases (e.g. coins earned in a race). */
 .main-hub__currency.pop { animation: pillPop .55s cubic-bezier(.2,.9,.3,1.5) both; }

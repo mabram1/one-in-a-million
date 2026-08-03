@@ -15,6 +15,8 @@ import type { PracticeDistance } from '../hub/types';
 import { openSettings } from './settings';
 import { openStore } from './store';
 import { openProfile } from './profile';
+import { openMyFace } from './myFace';
+import { hasCustomFace } from '../../game/assets/store';
 
 const FLAG_KEY = 'oiam_hub_v2';
 const DIST_KEY = 'oiam_practice_dist';
@@ -206,4 +208,43 @@ export function show(): void {
   bindProfile();
   renderer?.start();
   $('start')?.classList.add('hidden');
+  maybeFaceNudge();
+}
+
+/** One-time, right after sign-in: nudge a linked player (who hasn't added a face
+ *  yet) toward putting their photo on Champ. Shows at most once, ever. */
+function maybeFaceNudge(): void {
+  try {
+    if (getProfileStore().profile.accountType !== 'linked') return;
+    if (localStorage.getItem('oiam_face_nudged')) return;
+    localStorage.setItem('oiam_face_nudged', '1');   // fire at most once
+    if (hasCustomFace()) return;                      // already has a face -> nothing to nudge
+    faceNudge();
+  } catch { /* localStorage unavailable -> skip the nudge */ }
+}
+
+function faceNudge(): void {
+  if (!root || root.querySelector('.main-hub__facecta')) return;
+  const sl = (() => { try { return (navigator.language || '').toLowerCase().startsWith('sl'); } catch { return false; } })();
+  const cta = document.createElement('div');
+  cta.className = 'main-hub__facecta';
+  cta.setAttribute('role', 'button');
+  cta.tabIndex = 0;
+  cta.innerHTML =
+    `<span class="main-hub__facecta-emoji" aria-hidden="true">📸</span>` +
+    `<span class="main-hub__facecta-txt"><strong>${sl ? 'Daj svoj obraz na Champa' : 'Put your face on your Champ'}</strong>` +
+    `<small>${sl ? 'Ena selfie — traja 5 sekund' : 'One selfie — takes 5 seconds'}</small></span>` +
+    `<span class="main-hub__facecta-go" aria-hidden="true">→</span>` +
+    `<span class="main-hub__facecta-x" role="button" aria-label="${sl ? 'Zapri' : 'Dismiss'}">×</span>`;
+  const stop = () => { cta.remove(); root?.querySelector('[data-route="profile"]')?.classList.remove('main-hub__nav-pulse'); };
+  const go = () => { stop(); openMyFace(); };
+  cta.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('.main-hub__facecta-x')) { stop(); return; }
+    go();
+  });
+  cta.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+  const anchor = root.querySelector('.main-hub__modes');
+  if (anchor && anchor.parentElement) anchor.parentElement.insertBefore(cta, anchor);
+  else root.appendChild(cta);
+  root.querySelector('[data-route="profile"]')?.classList.add('main-hub__nav-pulse');
 }
