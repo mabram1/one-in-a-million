@@ -37,7 +37,9 @@ void (async () => {
   }
 })();
 
-bootGame();
+// Never let a game-engine boot hiccup take down the whole UI (hub, auth gate,
+// tutorial all run after this). Resilience over silence — surface it in the console.
+try { bootGame(); } catch (e) { console.error('bootGame() failed at boot', e); }
 
 // Audio/haptics: suspend music in the background, resume on return (web + native).
 wireAudioLifecycle();

@@ -98,6 +98,12 @@ export function bootGame() {
   function resize(){
     const r = canvas.getBoundingClientRect();
     const screenW = r.width, screenH = r.height;
+    // Layout not ready (canvas 0×0 at boot, or in a not-yet-shown container): bail
+    // out. Otherwise viewScale=screenW/logicalWidth=0 and H=screenH/viewScale=0/0=NaN,
+    // which throws in createRadialGradient and crashes bootGame() before showHub() runs
+    // (the intermittent "hub doesn't appear, legacy menu shows" bug). The game loop and
+    // the ResizeObserver call resize() again once the canvas has a real size.
+    if (!(screenW > 0) || !(screenH > 0)) return;
     dpr = Math.min(window.devicePixelRatio || 1, 2.5);
     canvas.width = Math.round(screenW*dpr); canvas.height = Math.round(screenH*dpr);
     // Lay the whole world out in a fixed LOGICAL width and uniformly scale it to
@@ -1461,6 +1467,7 @@ export function bootGame() {
 
   // ---------- Render ----------
   function render(){
+    if (!(W > 0) || !(H > 0)) return;   // never draw with non-finite/zero dims (gradients would throw)
     const ff = (G.state==='finishing' && G.finishAnim) ? finishFrame() : null;
     ctx.save();
     if (ff){ ctx.translate(ff.camX, ff.camY); }   // small finish camera bump (<= 4px)
