@@ -585,7 +585,7 @@ export function bootGame() {
       const prog = Math.min(1, G.nextSpawn/LEVEL_LENGTH);   // 0 at the wide start -> 1 at the narrow egg
       // Distribute by LOCAL lane width: wide canal => denser obstacles, narrow => sparser.
       const wf = Math.max(0.3, Math.min(1, wallHalf(G.nextSpawn)/maxHalf));
-      const gap = Math.max(60, Math.min(trackGeneration.gapMax,
+      const gap = Math.max(78, Math.min(trackGeneration.gapMax,
         trackGeneration.gapBase * (1 + trackGeneration.widthDensityBias*(0.5 - wf)) + G.nextSpawn*trackGeneration.gapPerWorldUnit));
       if (G.nextSpawn > trackGeneration.graceUntilUnits && G.nextSpawn < spawnLimit){
         // Once the canal starts tapering, centre blockers become unfair because a

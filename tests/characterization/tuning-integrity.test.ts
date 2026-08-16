@@ -16,7 +16,9 @@ describe('tuning version', () => {
     // 1.6.0 canal width profile: full-width plateau then taper.
     // 1.7.0 steering is damped (not fully locked) while shaking — steering.shakeSteerFactor
     // 0.35 — so you can nudge around obstacles while building speed (owner 2026-08-01).
-    expect(tuningVersion).toBe('1.7.0');
+    // 1.8.0 easier spacing: obstacle gap ~1.3x wider (gapBase 108->140, gapMax 235->305,
+    // min gap 60->78) — more room between obstacles (owner 2026-08-03).
+    expect(tuningVersion).toBe('1.8.0');
   });
 
   it('is frozen so nothing can mutate it at runtime', () => {
