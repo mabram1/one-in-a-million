@@ -1,9 +1,12 @@
 name: Build Android APK
 
 on:
+  # The APK is built ON DEMAND (not on every push) — web is the primary product and
+  # the APK is a later deliverable. Run it from the Actions tab when you want a build,
+  # or automatically when you cut a version tag.
+  workflow_dispatch:
   push:
-    branches: [ main ]
-  workflow_dispatch:   # lets you run it by hand from the Actions tab
+    tags: [ 'v*' ]
 
 permissions:
   contents: write      # needed to publish the APK to a Release
