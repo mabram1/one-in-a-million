@@ -1,0 +1,39 @@
+name: Supabase keep-alive
+
+# Free-tier Supabase projects auto-pause after ~7 days of inactivity, which takes
+# down auth + multiplayer for everyone until manually restored. This sends one tiny
+# REST query on a schedule so the project counts as active and never pauses.
+#
+# Uses the PUBLIC anon key (RLS-protected) — safe to run in CI. Reads it from the
+# repo Variables the build workflows already use; the URL falls back to the known
+# project URL if the Variable is unset.
+
+on:
+  schedule:
+    - cron: '17 6 * * *'      # daily at 06:17 UTC (well under the 7-day pause window)
+  workflow_dispatch: {}         # allow manual runs from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query Supabase REST to keep the project active
+        env:
+          URL: ${{ vars.VITE_SUPABASE_URL }}
+          KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          [ -n "${URL:-}" ] || URL="https://tsddumsxoclcjguczezr.supabase.co"
+          if [ -z "${KEY:-}" ]; then
+            echo "::error::Repo Variable VITE_SUPABASE_ANON_KEY is not set — add it (it is the PUBLIC anon key)."
+            exit 1
+          fi
+          # A tiny PostgREST query hits the database, which counts as project activity.
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            "$URL/rest/v1/rooms?select=code&limit=1" \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY")
+          echo "Supabase REST responded: HTTP $code"
+          case "$code" in
+            200|206) echo "Project is awake ✓" ;;
+            *) echo "::error::Unexpected status $code — is the project paused or the anon key wrong?"; exit 1 ;;
+          esac
