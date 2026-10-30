@@ -49,6 +49,7 @@ describe('same seed ⇒ identical track', () => {
 
   /** Race once at a fixed seed and snapshot the generated world. */
   function raceOnce(seed: number) {
+    try { localStorage.removeItem('oiam_guest_plays'); } catch { /* */ }   // not a guest-limit test
     h.G._seedOverride = seed;
     const chip = [...document.querySelectorAll('#distChips .chip')]
       .find((c) => (c as HTMLElement).dataset.m === '1000') as HTMLElement;

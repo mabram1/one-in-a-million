@@ -67,6 +67,9 @@ export interface Harness {
 
 export function setupGame(startClockMs = 1_000_000): Harness {
   installDom();
+  // Fresh per test: reset the guest daily-play counter so the limit never bleeds
+  // across tests (a guest is capped at GUEST_DAILY_LIMIT race starts per day).
+  try { localStorage.removeItem('oiam_guest_plays'); } catch { /* ignore */ }
 
   let fake = startClockMs;
   const realNow = performance.now.bind(performance);
@@ -156,6 +159,7 @@ export function setupGame(startClockMs = 1_000_000): Harness {
 
 /** Drive a run from the menu into the racing state at a given practice distance. */
 export function startPracticeRace(h: Harness, metres = 1000) {
+  try { localStorage.removeItem('oiam_guest_plays'); } catch { /* */ }   // these tests aren't about the guest limit
   const chip = [...document.querySelectorAll('#distChips .chip')]
     .find((c) => (c as HTMLElement).dataset.m === String(metres)) as HTMLElement | undefined;
   chip?.click();

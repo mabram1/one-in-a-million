@@ -15,6 +15,8 @@ import { encodeDeltas, decodeDeltas, interpolateAt, encodeChallengeCode, decodeC
 import { art, equip, hasCustomFace, loadCustomFace } from '../assets/store';
 import { emitAudio, unlockAudio, setMusicState, setRaceSpeed, getAudioSettings, setAudioSettings } from '../../audio';
 import { getProfileStore } from '../../app/profileStore';
+import { guestLimitReached, recordGuestPlay } from '../../app/guestLimit';
+import { showGuestLimitGate } from '../../app/screens/authGate';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../app/supabaseConfig';
 import { show as showHub, hide as hideHub } from '../../app/screens/mainHub';
 
@@ -656,6 +658,12 @@ export function bootGame() {
   }
 
   async function beginPlay(synchronizedStartAt=0){
+    // Guest daily free-play limit: a guest gets a few race starts per day, then the
+    // sign-in gate is offered (soft nudge). Multiplayer + signed-in players are exempt.
+    if (!MP.active && !isLinkedPlayer()){
+      if (guestLimitReached()){ showGuestLimitGate(exitToHub); return; }
+      recordGuestPlay();
+    }
     unlockAudio();   // real user gesture (Play/Race) — create/resume the AudioContext
     try{
       if (typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function'){

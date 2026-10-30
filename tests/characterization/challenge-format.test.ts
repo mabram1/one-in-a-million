@@ -19,6 +19,7 @@ function recordChallenge(seed: number, metres = 1000): string {
   // Start from a clean slate: the game instance is shared across tests, and a
   // ghost/challenge left loaded by an earlier test would make practicePlay reuse
   // its level length instead of the fresh `metres` distance we want to record.
+  try { localStorage.removeItem('oiam_guest_plays'); } catch { /* */ }   // not a guest-limit test
   h.G.ghost = null; h.G.challengeSeed = null; h.G.challengeLegacy = false; h.G.challengeLevelUnits = 0;
   h.G._seedOverride = seed;
   const chip = [...document.querySelectorAll('#distChips .chip')]
@@ -98,6 +99,7 @@ describe('loading a v2 challenge reproduces the creator’s track', () => {
     expect(h.G.challengeLegacy).toBe(false);            // fair: seeded + matching tuning
     expect(Math.round(h.G.challengeLevelUnits / h.tuning.camera.pxPerUnit)).toBe(1000);
 
+    try { localStorage.removeItem('oiam_guest_plays'); } catch { /* */ }   // not a guest-limit test
     (document.getElementById('practicePlay') as HTMLElement).click();   // starts the challenge race
     expect(h.G.raceSeed).toBe(seed >>> 0);              // friend races the SAME seed
     // And a ghost is present to race against.
